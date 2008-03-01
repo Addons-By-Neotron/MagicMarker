@@ -1,0 +1,14 @@
+<Bindings>
+	<Binding name="MAGICMARKTOGGLELEARN" header="MagicMarker">
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ToggleLearningMode()
+	</Binding>
+	<Binding name="MAGICMARKTOGGLEMARK" header="MagicMarker">
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ToggleMarkingMode()
+	</Binding>
+	<Binding name="MAGICMARKMARK" header="MagicMarker">
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkSingle()
+	</Binding>
+	<Binding name="MAGICMARKUNMARK" header="MagicMarker">
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):UnmarkSingle()
+	</Binding>
+</Bindings>

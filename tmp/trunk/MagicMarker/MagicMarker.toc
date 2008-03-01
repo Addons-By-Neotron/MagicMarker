@@ -1,0 +1,18 @@
+## Interface: 20300
+## Title: Magic Marker |cff7fff7f -Ace3-|r
+## Notes: Smart raid marking to speed up trash clearing in raids
+## Author: NeoTron
+## Version: 1.0
+## DefaultState: enabled
+## X-Category: Raid
+## X-eMail: neotron@gmail.com
+
+## OptionalDeps: Ace3
+## X-Embeds: Ace3
+## SavedVariables: MagicMarkerDB
+
+# Library files
+embeds.xml
+Locales.xml
+MagicMarker.lua
+Config.lua
