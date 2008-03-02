@@ -16,3 +16,4 @@ embeds.xml
 Locales.xml
 MagicMarker.lua
 Config.lua
+MMRaidIcon.lua

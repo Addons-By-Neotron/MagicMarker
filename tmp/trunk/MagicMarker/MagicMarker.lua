@@ -19,6 +19,14 @@ local markedTargets = {}
 local newTargets = {}
 local targetCategoryList = {}
 local recentlyAdded = {}
+
+local mobdata
+local targetdata
+
+local ACTIONS = { TANK = 1, CC = 2, IGNORE = 3 }
+local CCLIST = { TANK = 0, SHEEP = 1, BANISH = 2, SHACKLE = 3, HIBERNATE = 4, TRAP = 5, KITE = 6, MC = 7 }
+local PRIORITY = { P1 = 1, P2 = 2, P3 = 3, P4 = 4 }
+
 local CATEGORIES = {
    TANK = 1,
    SHEEP = 2, 
@@ -51,21 +59,17 @@ end
 
 function MagicMarker:OnInitialize()
    -- Set up the database
-   MagicMarkerDB = MagicMarkerDB or { unitCategoryMap = {} }
+   MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
-   unitCategoryMap = MagicMarkerDB.unitCategoryMap
+   MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {}
+   MagicMarkerDB.targetdata = MagicMarkerDB.targetdata or {}
 
+   unitCategoryMap = MagicMarkerDB.unitCategoryMap or {}
+   mobdata = MagicMarkerDB.mobData
+   targetdata = MagicMarkerDB.targetdata
    
-   self:RegisterChatCommand("magic", ToggleDebug)
-
-   -- Category List
-   targetCategoryList[CATEGORIES.TANK] = L["Tank"]
-   targetCategoryList[CATEGORIES.SHEEP] = L["Crowd Control - Sheep"]
-   targetCategoryList[CATEGORIES.BANISH] = L["Crowd Control - Banish"]
-   targetCategoryList[CATEGORIES.CC] = L["Crowd Control - Other"]
-   targetCategoryList[CATEGORIES.IGNORED] = L["Ignored"]
-
-   self:GenerateOptions(targetCategoryList)
+   self:GenerateOptions( {} )
+   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
 end
 
 function MagicMarker:OnEnable()
@@ -133,7 +137,7 @@ function MagicMarker:SmartMarkUnit(unit)
       end
 
       local now = GetTime();
-      if recentlyAdded[unitGUID] and (now - recentlyAdded[unitGUID]) < 1.0 then
+      if recentlyAdded[unitGUID] and (now - recentlyAdded[unitGUID]) < 0.8 then
 	 self:PrintDebug("  recently marked.")
 	 return
       end
@@ -193,7 +197,9 @@ end
 function MagicMarker:AddNewUnit(unit)
 
    if UnitIsEligable(unit) then
-      unitName = UnitName(unit)
+      local unitName = UnitName(unit)
+      local zoneName = GetRealZoneText()
+      self:InsertNewUnit(unitName, zoneName)
       
       if newTargets[unitName] then return end
             
@@ -247,6 +253,7 @@ function MagicMarker:ToggleLearningMode()
    end
    if not learningEnabled then
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "AddNewUnit", "mouseover")
+      self:RegisterEvent("PLAYER_TARGET_CHANGED", "AddNewUnit", "target")
       learningEnabled = true
       if learningFrame then
 	 learningFrame:SetStatusText("Learning Mode Enabled")
@@ -255,8 +262,10 @@ function MagicMarker:ToggleLearningMode()
 	 CreateLearningFrame()
       end
    else
+      self:GenerateOptions( {} )
       learningEnabled = false
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+      self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       if learningFrame then
 	 learningFrame:SetStatusText("Learning Mode Disabled")
       end
@@ -274,11 +283,13 @@ function MagicMarker:ToggleMarkingMode()
    if not markingEnabled then
       markedTargets = { }
       markingEnabled = true
+      self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")
       self:Print("Enabling Smart Marking")
    else
       markingEnabled = false
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+      self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       self:Print("Disabling Smart Marking")
       RaidNotice_AddMessage(RaidBossEmoteFrame, "", ChatTypeInfo["RAID_WARNING"])
       recentlyAdded = {};
