@@ -9,17 +9,24 @@ Description:
 	MagicMarker lets you easily classify and mark mobs simply my
 	moving the mouse over them. This allows incredibly fast
 	marking once of trash groups. Although not necessary for the
-	addon to function, you can categorize mobs to use a diffent
-	priority list of marks. This allows for consistent marking of
-	targets to tank and crowd control. The categoriews and raid
-	marks per category is currently hard coded. The addon will
-	save your preferences for mark for each category so you will
-	get consistent marking between sessions.
+	addon to function, you can configure the priority and crowd
+	control methods you wish to use on a per mob basis. You can
+	also customize the marks to use for tank targets and each
+	crowd control method.
+
+	This allows for consistent marking of targets to tank and
+	crowd control. 
 
 Todo:
-	* Category editor
-        * Target priority (higher priority targets use the earlier
-          marks for that category).
+	* Smart category selection based on the number of players for
+	  a class currently in the party / raid.
+        * Ability to broadcast the raid mark configuration and target
+          database to members of the guild / raid (useful if you want
+          to share a unified configuration for others to mark)
+	* 2.4: Use mob ID from the UnitGUID as the the mob key in the
+	  configuration.
+	* 2.4: Use UnitGUID as the unique mob ID for duplicate mark
+	  prevention (removes the need for mafk delays).
 
 Contact:
 	For suggestions and bug reports:
@@ -44,5 +51,20 @@ Usage:
 	  rules.
 	* Unmark selected target: Unmark your target and remove from
 	  the list of of marks.
+
+**********************************************************************
+
+Raid target prioritization:
+
+     - The priority (high, medium, low) is the primary weight.
+     - A mog of category Tank weighs higher than an equal priority
+       target in the Crowd Control category.
+     - For crowd control targets, the targets for each specified CC
+       method will be iterated in order.
+     - If no CC method target was available, the tank list will be
+       used.
+     - IT IS ESSENTIAL THAT THE TANK LIST INCLUDES ALL TARGET ICONS IN
+       YOUR PREFERRED ORDER OR THE ADDON WILL BE UNABLE TO USE ALL 8
+       TARGETS.
 
 **********************************************************************

@@ -4,23 +4,30 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "enUS", true)
 
 
-L["Magic Marker"] = true;
+L["Magic Marker"] = true
 
 -- Key Bindings
-L["Reset raid icons"] = true;
-L["Mark selected target"] = true;
-L["Unmark selected target"] = true;
+L["Reset raid icons"] = true
+L["Mark selected target"] = true
+L["Unmark selected target"] = true
+L["Toggle config dialog"] = true
 
 -- Options Config
 L["Options"] = true
 L["Crowd Control Config"] = true
 L["Priority"] = true
 L["Category"] = true
-L["Mob Config"] = true
-L["Target Customization"] = true
+L["Mob Database"] = true
+L["Raid Target Settings"] = true
 L["Add new crowd control"] = true
 L["Add raid icon"] = true
 L["Crowd Control #"] = true
+L["Key Bindings"] = true
+L["Enable debug messages"] = true
+L["General Options"] = true
+L["%s has a total of %d mobs. %s of these are newly discovered."] = true
+L["Out of these mobs %d are ignored."] = true
+L["None"] = true
 
 -- Mark categories
 L["Tank"] = true
@@ -28,9 +35,6 @@ L["Crowd Control - Sheep"] = true
 L["Crowd Control - Banish"] = true
 L["Crowd Control - Other"] = true
 L["Ignored"] = true
-
--- GUI
-L["Target Learner"] = true
 
 -- CC Names
 L["SHEEP"] = "Sheep"
@@ -67,3 +71,6 @@ L["_Remove"] = "None"
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The ordering is the priority in which they are attempted be used. I.e if the raid has two mages but two sheep targets are already assigned, it will iterate through the specified methods until one is found. If none is found, it will revert back to assigning a tank or arbitrary symbol to the target."
 
+-- Printed non-debug messages
+L["Added new mob %s in zone %s."] = true
+L["Resetting raid targets."] = true

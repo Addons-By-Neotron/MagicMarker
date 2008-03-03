@@ -8,31 +8,24 @@ more details.
 
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 
-local AceGUI = LibStub("AceGUI-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 
+-- Upvalue of global functions
 local GetTime = GetTime
 local GetRealZoneText = GetRealZoneText
-
+local IsAltKeyDown = IsAltKeyDown
+local format = string.format
+-- Parameters
 local MagicMarker = MagicMarker
 local markedTargets = {}
 local markedTargetValues= {}
-local newTargets = {}
-local targetCategoryList = {}
 local recentlyAdded = {}
 
+
+-- upvalues of config data
 local mobdata
 local targetdata
-
-local function ToggleDebug()
-   MagicMarkerDB.debug = not MagicMarkerDB.debug
-   if MagicMarkerDB.debug then
-      MagicMarker:Print("Enabled debug output")
-   else
-      MagicMarker:Print("Disabled debug output")
-   end
-end
 
 function MagicMarker:OnInitialize()
    -- Set up the database
@@ -62,7 +55,7 @@ end
 
 local function GetUniqueUnitID(unit) 
    local unitName = UnitName(unit)
-   return string.format("%s:%d:%s:%d:%s",
+   return format("%s:%d:%s:%d:%s",
 			unitName, UnitLevel(unit),
 			UnitClassification(unit), UnitSex(unit),
 			UnitCreatureType(unit))
@@ -77,7 +70,7 @@ end
 
 -- Return the hash for the unit of NIL if it's not available
 local function GetUnitHash(unitName, zoneName)
-   local tmpHash = mobdata[MagicMarker:SimplifyName(zoneName or GetRealZoneText())];
+   local tmpHash = mobdata[MagicMarker:SimplifyName(zoneName or GetRealZoneText())]
    if tmpHash then
       return tmpHash.mobs[MagicMarker:SimplifyName(unitName)]
    end
@@ -90,7 +83,7 @@ local function LowFindMark(list, value)
       if not markedValue or value > markedValue then
 	 -- This will return the first free target or an already used target
 	 -- if the value of the new target is higher.
-	 MagicMarker:PrintDebug("LowFindMark => "..tostring(id).." value "..tostring(value));
+	 MagicMarker:PrintDebug("LowFindMark => "..tostring(id).." value "..tostring(value))
 	 markedTargetValues[id] = value
 	 return id
       end
@@ -153,7 +146,7 @@ function MagicMarker:UnitValue(unit, hash)
 	 value = value * 2 + 2-unitData.category -- Tank > CC
       end
    end
-   self:PrintDebug(string.format("Unit Value for %s = %d", unit, value))
+   self:PrintDebug(format("Unit Value for %s = %d", unit, value))
    unitValueCache[unit]  = value
    return value
 end
@@ -165,20 +158,21 @@ end
 function MagicMarker:SmartMarkUnit(unit)
    self:PrintDebug("Unit => "..unit)
    local unitName = UnitName(unit)
-   if UnitIsEligable(unit) and IsAltKeyDown() then
+   local altKey = IsAltKeyDown()
+   if UnitIsEligable(unit) and (IsAltKeyDown() or unit == "target") then
       local unitGUID = GetUniqueUnitID(unit)
       local unitTarget = GetRaidTargetIndex(unit)
       
       self:InsertNewUnit(unitName, GetRealZoneText()) -- This will insert it if it's missing
       
-      self:PrintDebug("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")");
+      self:PrintDebug("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")")
       
       if markedTargets[unitTarget] == unitGUID then
 	 self:PrintDebug("  already marked.")
 	 return
       end
       
-      local now = GetTime();
+      local now = GetTime()
       if recentlyAdded[unitGUID] and (now - recentlyAdded[unitGUID]) < 0.8 then
 	 self:PrintDebug("  recently marked.")
 	 return
@@ -237,7 +231,7 @@ function MagicMarker:ResetMarkData()
    end
    -- Hack, sometimes the last mark isn't removed.
    self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.2)
-   self:PrintDebug("Reset mark cache")
+   self:Print(L["Resetting raid targets."])
 end
 
 
@@ -247,3 +241,4 @@ BINDING_HEADER_MagicMarker = L["Magic Marker"]
 BINDING_NAME_MAGICMARKRESET = L["Reset raid icons"]
 BINDING_NAME_MAGICMARKMARK = L["Mark selected target"]
 BINDING_NAME_MAGICMARKUNMARK = L["Unmark selected target"]
+BINDING_NAME_MAGICMARKTOGGLE = L["Toggle config dialog"]

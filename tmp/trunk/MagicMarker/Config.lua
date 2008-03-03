@@ -1,6 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
+local format = format
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
@@ -14,22 +15,140 @@ BabbleZone = nil
 local options = {}
 local db = MagicMarkerDB
 
+-- KeybindHelper code from Xinhuan's addon IPopBar. Thanks for letting me use it! 
+local KeybindHelper = {}
+do
+   local t = {}
+   function KeybindHelper:MakeKeyBindingTable(...)
+      for k in pairs(t) do t[k] = nil end
+      for i = 1, select("#", ...) do
+	 local key = select(i, ...)
+	 if key ~= "" then
+	    tinsert(t, key)
+	 end
+      end
+      return t
+   end
+   
+   function KeybindHelper:GetKeybind(info)
+      return table.concat(self:MakeKeyBindingTable(GetBindingKey(info.arg)), ", ")
+   end
+   
+   function KeybindHelper:SetKeybind(info, key)
+      if key == "" then
+	 local t = self:MakeKeyBindingTable(GetBindingKey(info.arg))
+	 for i = 1, #t do
+	    SetBinding(t[i])
+	 end
+      else
+	 local oldAction = GetBindingAction(key)
+	 local frame = LibStub("AceConfigDialog-3.0").OpenFrames["Magic Marker"]
+	 if frame then
+	    if ( oldAction ~= "" and oldAction ~= info.arg ) then
+	       frame:SetStatusText(KEY_UNBOUND_ERROR:format(GetBindingText(oldAction, "BINDING_NAME_")))
+	    else
+	       frame:SetStatusText(KEY_BOUND)
+	    end
+	 end
+	 SetBinding(key, info.arg)
+      end
+      SaveBindings(GetCurrentBindingSet())
+   end
+end
+
+local function SetDebug(var, value)
+   MagicMarkerDB.debug = value
+end
+
+local function GetDebug(var)
+   return MagicMarkerDB.debug
+end
+
+
+
 local options = { 
    type = "group", 
    name = L["Magic Marker"],
+   childGroups = "tab",
    args = {
       mobs = {
 	 type = "group",
-	 name = L["Mob Config"],
+	 name = L["Mob Database"],
 	 args = {}, 
 	 order = 300
       }, 
       categories = {
+	 childGroups = "tab",
 	 type = "group",
-	 name = L["Target Customization"],
-	 order = 0,
+	 name = L["Raid Target Settings"],
+	 order = 1,
 	 args = { }
       }, 
+      options = {
+	 childGroups = "tab",
+	 type = "group",
+	 name = L["Options"],
+	 order = 0,
+	 args = {
+	    generalHeader = {
+	       type = "header",
+	       name = L["General Options"],
+	       order = 0,
+	    },
+	    debug = {
+	       type = "toggle",
+	       name = L["Enable debug messages"],
+	       set = SetDebug,
+	       get = GetDebug,
+	       order = 1
+	    },
+	    bindingHeader = {
+	       type = "header",
+	       name = L["Key Bindings"],
+	       order = 100,
+	    },
+	    keyconfig = {
+	       name = L["Toggle config dialog"],
+	       desc = L["Toggle config dialog"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKTOGGLE",
+	       order = 101,
+	    },	    
+	    keyreset = {
+	       name = L["Reset raid icons"],
+	       desc = L["Reset raid icons"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKRESET",
+	       order = 101,
+	    },	    
+	    keymark = {
+	       name = L["Mark selected target"],
+	       desc = L["Mark selected target"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKMARK",
+	       order = 102,
+	    },	    
+	    keyunmark = {
+	       name = L["Unmark selected target"],
+	       desc = L["Unmark selected target"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKUNMARK",
+	       order = 103,
+	    },	    
+	 },
+      },
    }
 }
 local mobdata, targetdata
@@ -245,7 +364,7 @@ function MagicMarker:InsertNewUnit(name, zone)
 	 priority = 2,
 	 cc = {}
       }
-      self:PrintDebug("Added new mob "..simpleName.." for zone "..simpleZone);
+      self:Print(format(L["Added new mob %s in zone %s."],name, zone))
 
       if optionsCallout then self:CancelTimer(optionsCallout) end
       
@@ -253,6 +372,27 @@ function MagicMarker:InsertNewUnit(name, zone)
    end
    
    return mobdata[simpleZone].mobs[simpleName];
+end
+
+local function GetZoneInfo(hash)
+   local new = 0
+   local total = 0
+   local ignored = 0
+   local mobs = hash.mobs
+   for mob,data in pairs(mobs) do
+      MagicMarker:Print("Counting "..data.name)
+      if data.new then new = new + 1 end
+      if data.priority == 4 then ignored = ignored + 1 end
+      total = total + 1
+   end
+   if new > 0 then new = tostring(new) else new = L["None"] end
+
+   local ret =  format(L["%s has a total of %d mobs. %s of these are newly discovered."],
+			      hash.name, total, new)
+   if ignored > 0 then
+      ret = ret .. " "..format(L["Out of these mobs %d are ignored."], ignored);
+   end
+   return ret
 end
 
 function MagicMarker:GenerateOptions()
@@ -298,14 +438,19 @@ function MagicMarker:GenerateOptions()
       opts[id] = {
 	 type = "group",
 	 name = ZoneLookup[zone.name] or zone.name,
-	 args = {},
+	 args = {
+	    zoneInfo = {
+	       type = "description",
+	       name = GetZoneInfo(zone)
+	    }
+	 },
 	 set = mySetterFunc,
 	 get = myGetterFunc, 
       }
       subopts = opts[id].args
       for mob, data in pairs(zone.mobs) do
 	 subopts[mob] = {
-	    type = "group", 
+	    type = "group",
 	    args = {
 	       header = {
 		  name = data.name,
