@@ -46,10 +46,17 @@ do
    end
    
    local function SetValue(self, value)
+      if value == "_Remove" then
+	 self.icon:Hide()
+      else
+	 self.icon:Show()
+      end
+	 
       if self.list then
 	 self.editbox:SetText(self.list[value] or "")
       end
       self.editbox.value = value
+      self.icon:SetTexture(string.format(iconFormat, value))
       self.editbox:SetCursorPosition(0)
    end
    
@@ -220,12 +227,14 @@ do
       if text and text ~= "" then
 	 self.label:SetText(text)
 	 self.label:Show()
-	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",0,-18)
+	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,-18)
+	 self.icon:SetPoint("TOPRIGHT",self.editbox,"TOPLEFT",0,0)
 	 self.frame:SetHeight(44)
       else
 	 self.label:SetText("")
 	 self.label:Hide()
-	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",0,0)
+	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,0)
+	 self.icon:SetPoint("RIGHT",self.editbox,"LEFT",0,0)
 	 self.frame:SetHeight(26)
       end
    end
@@ -302,6 +311,14 @@ do
       editbox:SetScript("OnEnterPressed",Dropdown_OnEnterPressed)
       frame:SetScript("OnEnter",Control_OnEnter)
       frame:SetScript("OnLeave",Control_OnLeave)
+
+      local icon = frame:CreateTexture("OVERLAY")
+      self.icon = icon
+      icon.obj = self
+      icon:SetWidth(16)
+      icon:SetHeight(16)
+      icon:SetPoint("LEFT",frame,"LEFT",0,0)
+
       editbox:SetScript("OnEnter",Control_OnEnter)
       editbox:SetScript("OnLeave",Control_OnLeave)
       editbox:SetTextInsets(5,5,3,3)
@@ -312,8 +329,8 @@ do
       editbox:SetBackdropColor(0,0,0)
       editbox:SetBackdropBorderColor(0.4,0.4,0.4)
       
-      editbox:SetPoint("TOPLEFT",frame,"TOPLEFT",0,0)
-      editbox:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",-20,0)
+      editbox:SetPoint("TOPLEFT",icon,"TOPLEFT",-16,0)
+      editbox:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",0,0)
       local button = CreateFrame("Button",nil,frame)
       self.button = button
       button.obj = self
@@ -331,6 +348,8 @@ do
       button:GetHighlightTexture():SetTexCoord(.09,.91,.09,.91)
       button:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",0,0)
       button:SetScript("OnClick",Dropdown_TogglePullout)
+
+
       frame:SetHeight(44)
       frame:SetWidth(200)
       frame:SetScript("OnHide",Dropdown_OnHide)

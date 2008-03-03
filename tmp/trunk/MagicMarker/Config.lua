@@ -46,6 +46,9 @@ local PRI_LIST = { "P1", "P2", "P3", "P4" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "_Remove" }
 local ccDropdown, priDropdown, catDropdown, raidIconDropdown
 
+
+
+
 do
    ccDropdown = {}
    priDropdown = {}
@@ -67,6 +70,17 @@ do
       raidIconDropdown[txt] = L[txt]
       CONFIG_MAP[txt] = num
    end
+end
+
+function MagicMarker:GetMarkForCategory(category)
+   if category == 1 then
+      return targetdata.TANK or {}
+   end
+   return targetdata[ CC_LIST[category] ] or {}
+end
+
+function MagicMarker:IsUnitIgnored(pri)
+   return pri == CONFIG_MAP.P4
 end
 
 local function getID(value)
@@ -109,7 +123,7 @@ local function raidTargetSetter(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
-   MagicMarker:Print("Setting "..id.." to "..value);
+   MagicMarker:PrintDebug("Setting "..id.." to "..value);
    targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
 end
 
@@ -134,6 +148,7 @@ local function mySetterFunc(info, value)
    
    if ccid  then
       value = uniqList(mobdata[region].mobs[mob].cc or {}, ccid, value, 1, CONFIG_MAP.NUMCC)
+      var = "cc"
    end
 
    mobdata[region].mobs[mob][var] = value
@@ -145,7 +160,7 @@ local function mySetterFunc(info, value)
 	 options.args.mobs.args[region].args[mob].args.header.name; 
    end
    
-   MagicMarker:Print("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) )
+   MagicMarker:PrintDebug("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) )
 end
 
 local function myGetterFunc(info)
@@ -161,13 +176,13 @@ local function myGetterFunc(info)
    elseif var == "category" then
       value = ACT_LIST[value]
    end
-   MagicMarker:Print("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) )
+   MagicMarker:PrintDebug("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) )
    return value
 end
 
 
 local function isIgnored(var)
-   return mobdata[var[#var-2]].mobs[var[#var-1]].priority == 4
+   return MagicMarker:IsUnitIgnored(mobdata[var[#var-2]].mobs[var[#var-1]])
 end
 
 local function isHiddenCC(var)
@@ -212,29 +227,31 @@ function MagicMarker:SimplifyName(name)
    return gsub(name, " ", "")
 end
 
+local optionsCallout
 
 function MagicMarker:InsertNewUnit(name, zone)
    local simpleName = self:SimplifyName(name)
    zone = ZoneReverse[zone] or zone;
    local simpleZone = self:SimplifyName(zone)
+   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { } }
 
-   if not mobdata[simpleZone] then
-      mobdata[simpleZone] = {
-	 name = zone,
-	 mobs = { }
-      }
-   end
-
-   if not mobdata[simpleZone].mobs[simpleName] then
-      mobdata[simpleZone].mobs[simpleName] = {
+   mobdata[simpleZone] = zoneHash
+   
+   if not zoneHash.mobs[simpleName] then
+      zoneHash.mobs[simpleName] = {
 	 name = name,
 	 new = true,
 	 category = 1,
 	 priority = 2,
 	 cc = {}
       }
-      self:Print("Added new mob "..simpleName.." for zone "..simpleZone);
+      self:PrintDebug("Added new mob "..simpleName.." for zone "..simpleZone);
+
+      if optionsCallout then self:CancelTimer(optionsCallout) end
+      
+      optionsCallout = self:ScheduleTimer(self.GenerateOptions, 1)
    end
+   
    return mobdata[simpleZone].mobs[simpleName];
 end
 

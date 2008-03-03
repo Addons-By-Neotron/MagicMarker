@@ -7,8 +7,7 @@ local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "enUS", true)
 L["Magic Marker"] = true;
 
 -- Key Bindings
-L["Toggle learning mode"] = true;
-L["Toggle smart marking mode"] = true;
+L["Reset raid icons"] = true;
 L["Mark selected target"] = true;
 L["Unmark selected target"] = true;
 
@@ -20,6 +19,7 @@ L["Category"] = true
 L["Mob Config"] = true
 L["Target Customization"] = true
 L["Add new crowd control"] = true
+L["Add raid icon"] = true
 L["Crowd Control #"] = true
 
 -- Mark categories

@@ -6,47 +6,24 @@ more details.
 ]]
 
 
-MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0", "AceEvent-3.0")
+MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 
 local AceGUI = LibStub("AceGUI-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
+
+local GetTime = GetTime
+local GetRealZoneText = GetRealZoneText
+
 local MagicMarker = MagicMarker
-local learningFrame, learningScroll
-local markingEnabled = false
-local learningEnabled = false
 local markedTargets = {}
+local markedTargetValues= {}
 local newTargets = {}
 local targetCategoryList = {}
 local recentlyAdded = {}
 
 local mobdata
 local targetdata
-
-local ACTIONS = { TANK = 1, CC = 2, IGNORE = 3 }
-local CCLIST = { TANK = 0, SHEEP = 1, BANISH = 2, SHACKLE = 3, HIBERNATE = 4, TRAP = 5, KITE = 6, MC = 7 }
-local PRIORITY = { P1 = 1, P2 = 2, P3 = 3, P4 = 4 }
-
-local CATEGORIES = {
-   TANK = 1,
-   SHEEP = 2, 
-   BANISH = 3, 
-   CC = 4, 
-   OTHER = 5, 
-   IGNORED = 6
-}
-
-local
-   markCategories = {
-   { 8, 1, 2 }, -- TANK
-   { 5, 6, 4 }, -- SHEEP
-   { 3, 7, 4, 5, 6 }, --    BANISH
-   { 7, 4, 3 },  --    CC
-   { 4, 7, 3, 5, 6, 2, 1, 8 } --    OTHER
-}
-
-local unitCategoryMap = {
-}
 
 local function ToggleDebug()
    MagicMarkerDB.debug = not MagicMarkerDB.debug
@@ -61,19 +38,26 @@ function MagicMarker:OnInitialize()
    -- Set up the database
    MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
-   MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {}
-   MagicMarkerDB.targetdata = MagicMarkerDB.targetdata or {}
+   MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {} 
+   MagicMarkerDB.targetdata = MagicMarkerDB.targetdata or { ["TANK"]={ 8, 1, 2, 3, 4, 5, 6, 7 } }
 
-   unitCategoryMap = MagicMarkerDB.unitCategoryMap or {}
-   mobdata = MagicMarkerDB.mobData
+   MagicMarkerDB.unitCategoryMap = nil -- Delete old data, no way to convert since it's missing zone info
+
+   mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
    
-   self:GenerateOptions( {} )
+   self:GenerateOptions()
    self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
 end
 
 function MagicMarker:OnEnable()
-   
+   self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+   self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
+end
+
+function MagicMarker:OnDisable()
+   self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+   self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 end
 
 local function GetUniqueUnitID(unit) 
@@ -91,61 +75,119 @@ local function UnitIsEligable (unit)
       UnitCreatureType(unit) ~= "Critter"
 end
 
+-- Return the hash for the unit of NIL if it's not available
+local function GetUnitHash(unitName, zoneName)
+   local tmpHash = mobdata[MagicMarker:SimplifyName(zoneName or GetRealZoneText())];
+   if tmpHash then
+      return tmpHash.mobs[MagicMarker:SimplifyName(unitName)]
+   end
+end
+
+local function LowFindMark(list, value)
+   local id, markedValue
+   for _,id in ipairs(list) do
+      markedValue = markedTargetValues[id]
+      if not markedValue or value > markedValue then
+	 -- This will return the first free target or an already used target
+	 -- if the value of the new target is higher.
+	 MagicMarker:PrintDebug("LowFindMark => "..tostring(id).." value "..tostring(value));
+	 markedTargetValues[id] = value
+	 return id
+      end
+   end
+end
+
 -- Return the next mark for the unit
 function MagicMarker:GetNextUnitMark(unit) 
    local unitName = GetUnitName(unit)
-   local category = unitCategoryMap[unitName]
-
-   if category == nil then
-      category = CATEGORIES.TANK
-   elseif category == CATEGORIES.IGNORED then
-      return -1 
-   end
+   local unitHash = GetUnitHash(unitName)
+   local unitValue = 0
+   local cc,tankFirst = true
    
-   self:PrintDebug("  Category = "..category);
-   local key, value
-   for key,value in pairs(markCategories[category]) do
-      if not markedTargets[value] then
-	 return value
+   if unitHash then
+      if self:IsUnitIgnored(unitHash.priority) then return -1 end
+      unitValue = self:UnitValue(unitName, unitHash)
+      cc = unitHash.cc
+      if unitHash.category == 1 then
+	 tankFirst = false
+      end
+   end
+   self:PrintDebug("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue)
+   local raidMarkList 
+   local raidMarkID
+   
+   if tankFirst or not cc then
+      raidMarkList = self:GetMarkForCategory(1) 
+      raidMarkID = LowFindMark(raidMarkList, unitValue)
+   end -- tank marks
+
+   if not raidMarkID then 
+      for _,category in ipairs(cc) do
+	 raidMarkList = self:GetMarkForCategory(category)
+	 raidMarkID = LowFindMark(raidMarkList, unitValue)
+	 if raidMarkID then break end
       end
    end
 
+   -- no mark found, fall back to tank list for default
+   if not raidMarkID then
+      raidMarkList = self:GetMarkForCategory(1)
+      raidMarkID = LowFindMark(raidMarkList, unitValue)
+   end
+   
    -- None left for the specified category, 
    -- falling back to the "catch all"...
+   return raidMarkID or 0 -- no target found
+end
 
-   for key,value in pairs(markCategories[CATEGORIES.OTHER]) do
-      if not markedTargets[value] then
-	 return value
+local unitValueCache = {}
+
+function MagicMarker:UnitValue(unit, hash)
+   if unitValueCache[unit] then return unitValueCache[unit] end
+   local unitData = hash or GetUnitHash(unit)
+   local value = 0
+   
+   if unitData then
+      value = 4-unitData.priority
+      if value > 0 then
+	 value = value * 2 + 2-unitData.category -- Tank > CC
       end
    end
+   self:PrintDebug(string.format("Unit Value for %s = %d", unit, value))
+   unitValueCache[unit]  = value
+   return value
+end
    
-   return 0 -- no target found
+local function unitValue(unit1, unit2) 
+   return MagicMarker:UnitValue(unit1) >  MagicMarker:UnitValue(unit2)
 end
 
 function MagicMarker:SmartMarkUnit(unit)
    self:PrintDebug("Unit => "..unit)
-   
-   if UnitIsEligable(unit) then
+   local unitName = UnitName(unit)
+   if UnitIsEligable(unit) and IsAltKeyDown() then
       local unitGUID = GetUniqueUnitID(unit)
       local unitTarget = GetRaidTargetIndex(unit)
-
+      
+      self:InsertNewUnit(unitName, GetRealZoneText()) -- This will insert it if it's missing
+      
       self:PrintDebug("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")");
       
       if markedTargets[unitTarget] == unitGUID then
 	 self:PrintDebug("  already marked.")
 	 return
       end
-
+      
       local now = GetTime();
       if recentlyAdded[unitGUID] and (now - recentlyAdded[unitGUID]) < 0.8 then
 	 self:PrintDebug("  recently marked.")
 	 return
       end
-
+      
       recentlyAdded[unitGUID] = now
       
       local newTarget = self:GetNextUnitMark(unit)
-
+      
       if newTarget == 0 then
 	 self:PrintDebug("  No more raid targets available -- disabling marking.")
 	 if markingEnabled then
@@ -154,11 +196,12 @@ function MagicMarker:SmartMarkUnit(unit)
       elseif newTarget == -1 then
 	 self:PrintDebug("  Target on ignore list")
       else
+	 self:PrintDebug("  => "..newTarget)
 	 markedTargets[newTarget] = unitGUID
 	 SetRaidTarget(unit, newTarget)
       end
    else
-      self:PrintDebug("Ignoring "..UnitName(unit))
+      if unitName then self:PrintDebug("Ignoring "..unitName) end
    end
 end
 
@@ -174,6 +217,7 @@ function MagicMarker:UnmarkSingle()
       local unitTarget = GetRaidTargetIndex("target")
       SetRaidTarget("target", 0)
       markedTargets[unitTarget] = nil
+      markedTargetValues[unitTarget] = nil
    end
 end
 
@@ -183,124 +227,23 @@ function MagicMarker:PrintDebug(...)
    end
 end
 
-local function ChangeUnitCategory(widget, event, value)
-   local unitName = widget.label:GetText()
-   MagicMarker:PrintDebug("setting "..unitName.." to "..value)
-   if value == CATEGORIES.TANK then
-      -- Tank is default, no need to save
-      unitCategoryMap[unitName] = nil 
-   else
-      unitCategoryMap[unitName] = value
+-- Disable memoried marksdata
+function MagicMarker:ResetMarkData()
+   local id
+   markedTargets = { }
+   markedTargetValues = { }
+   for id = 8,0,-1 do
+      SetRaidTarget("player", id)
    end
-end
-
-function MagicMarker:AddNewUnit(unit)
-
-   if UnitIsEligable(unit) then
-      local unitName = UnitName(unit)
-      local zoneName = GetRealZoneText()
-      self:InsertNewUnit(unitName, zoneName)
-      
-      if newTargets[unitName] then return end
-            
-      local dropdown = AceGUI:Create("Dropdown")
-      
-      dropdown:SetList(targetCategoryList)
-      
-      dropdown:SetValue(unitCategoryMap[unitName] or CATEGORIES.TANK)
-      dropdown:SetLabel(unitName)
-
-      dropdown:SetCallback("OnValueChanged", ChangeUnitCategory)
-      
-      newTargets[unitName] = dropdown
-      learningScroll:AddChild(dropdown)   
-   end
-end
-
-local function CloseLearningFrame(widget, event)
-   AceGUI:Release(widget)
-   learningFrame = nil
-   learningScroll = nil
-   if learningEnabled then
-      MagicMarker:ToggleLearningMode()
-   end
-end
-
-local function CreateLearningFrame()
-   local f = AceGUI:Create("Frame")
-   f:SetCallback("OnClose", CloseLearningFrame)
-   f:SetTitle(L["Target Learner"])
-   f:SetStatusText("Learning Mode Enabled")
-   f:SetLayout("Fill")
-   f:SetStatusTable(MagicMarkerDB.frameStatusTable)
-   
-   local scroll = AceGUI:Create("ScrollFrame")
-   scroll:SetLayout("Flow")
-
-   f:AddChild(scroll)
-   f:Show()
-
-   learningFrame = f
-   learningScroll = scroll
-end
-
--- Toggle interactive learning mode, allowing easy
--- categorization of targets you mouse over
-function MagicMarker:ToggleLearningMode() 
-   -- Don't enable marking if learning mode is on
-   if markingEnabled then
-      return
-   end
-   if not learningEnabled then
-      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "AddNewUnit", "mouseover")
-      self:RegisterEvent("PLAYER_TARGET_CHANGED", "AddNewUnit", "target")
-      learningEnabled = true
-      if learningFrame then
-	 learningFrame:SetStatusText("Learning Mode Enabled")
-      else
-	 newTargets = { }
-	 CreateLearningFrame()
-      end
-   else
-      self:GenerateOptions( {} )
-      learningEnabled = false
-      self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
-      self:UnregisterEvent("PLAYER_TARGET_CHANGED")
-      if learningFrame then
-	 learningFrame:SetStatusText("Learning Mode Disabled")
-      end
-   end
-end
-
--- Toggle smart marking. When enabled, it resets the cache
--- of already marked targets
-function MagicMarker:ToggleMarkingMode()
-   -- Don't enable marking if learning mode is on
-   if learningEnabled then
-      return
-   end
-   
-   if not markingEnabled then
-      markedTargets = { }
-      markingEnabled = true
-      self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
-      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")
-      self:Print("Enabling Smart Marking")
-   else
-      markingEnabled = false
-      self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
-      self:UnregisterEvent("PLAYER_TARGET_CHANGED")
-      self:Print("Disabling Smart Marking")
-      RaidNotice_AddMessage(RaidBossEmoteFrame, "", ChatTypeInfo["RAID_WARNING"])
-      recentlyAdded = {};
-   end
+   -- Hack, sometimes the last mark isn't removed.
+   self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.2)
+   self:PrintDebug("Reset mark cache")
 end
 
 
 -- Keybind names
 
 BINDING_HEADER_MagicMarker = L["Magic Marker"]
-BINDING_NAME_MAGICMARKTOGGLELEARN = L["Toggle learning mode"]
-BINDING_NAME_MAGICMARKTOGGLEMARK = L["Toggle smart marking mode"]
+BINDING_NAME_MAGICMARKRESET = L["Reset raid icons"]
 BINDING_NAME_MAGICMARKMARK = L["Mark selected target"]
 BINDING_NAME_MAGICMARKUNMARK = L["Unmark selected target"]

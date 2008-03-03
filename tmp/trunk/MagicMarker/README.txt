@@ -29,18 +29,17 @@ Contact:
 **********************************************************************
 
 Usage:
-	First bind keys to the four addon functions in the normal key
-	binding UI.
+
+	First bind keys to the three addon functions in the normal key
+	binding UI. To mark a target, hold in the ALT button while
+	mousing over it. New mobs will automatically be added to the
+	configuration UI. You open the config UI with the /magic
+	command or via the /ace3 command.
 
 	These are the functions:
 
-	* Toggle learning mode: Learning mode allows you to categorize
-	  units to allow for context sensitive marking. Currently the
-	  categories are hard coded: Tank, Sheep, Banish, Other CC and
-	  Ignore (don't mark).
-	* Toggle smart marking mode: Clears the list of recorded
-	  markings and marks mobs you mouse over as per their
-	  categorization.
+	* Reset raid targets: Clears the list of recorded
+	  markings, and resets all raid targets..
 	* Mark selected target: Mark a single target using the normal
 	  rules.
 	* Unmark selected target: Unmark your target and remove from
