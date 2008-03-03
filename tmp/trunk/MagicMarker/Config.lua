@@ -343,6 +343,7 @@ local function addNewRT(var)
 end
    
 function MagicMarker:SimplifyName(name)
+   if not name then return "" end
    return gsub(name, " ", "")
 end
 

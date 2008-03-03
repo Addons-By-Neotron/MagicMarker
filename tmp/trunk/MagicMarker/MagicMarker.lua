@@ -16,6 +16,10 @@ local GetTime = GetTime
 local GetRealZoneText = GetRealZoneText
 local IsAltKeyDown = IsAltKeyDown
 local format = string.format
+local UnitGUID = UnitGUID
+local SetRaidTarget = SetRaidTarget
+local GetRaidTargetIndex = GetRaidTargetIndex
+
 -- Parameters
 local MagicMarker = MagicMarker
 local markedTargets = {}
@@ -53,7 +57,8 @@ function MagicMarker:OnDisable()
    self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 end
 
-local function GetUniqueUnitID(unit) 
+local function GetUniqueUnitID(unit)
+   if UnitGUID then return UnitGUID(unit) end -- 2.4
    local unitName = UnitName(unit)
    return format("%s:%d:%s:%d:%s",
 			unitName, UnitLevel(unit),
@@ -136,7 +141,7 @@ end
 local unitValueCache = {}
 
 function MagicMarker:UnitValue(unit, hash)
-   if unitValueCache[unit] then return unitValueCache[unit] end
+   --   if unitValueCache[unit] then return unitValueCache[unit] end
    local unitData = hash or GetUnitHash(unit)
    local value = 0
    
@@ -172,13 +177,10 @@ function MagicMarker:SmartMarkUnit(unit)
 	 return
       end
       
-      local now = GetTime()
-      if recentlyAdded[unitGUID] and (now - recentlyAdded[unitGUID]) < 0.8 then
+      if recentlyAdded[unitGUID] then 
 	 self:PrintDebug("  recently marked.")
 	 return
       end
-      
-      recentlyAdded[unitGUID] = now
       
       local newTarget = self:GetNextUnitMark(unit)
       
@@ -190,6 +192,9 @@ function MagicMarker:SmartMarkUnit(unit)
       elseif newTarget == -1 then
 	 self:PrintDebug("  Target on ignore list")
       else
+	 recentlyAdded[unitGUID] = true
+	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.75, unitGUID) -- To clear it up
+      
 	 self:PrintDebug("  => "..newTarget)
 	 markedTargets[newTarget] = unitGUID
 	 SetRaidTarget(unit, newTarget)
