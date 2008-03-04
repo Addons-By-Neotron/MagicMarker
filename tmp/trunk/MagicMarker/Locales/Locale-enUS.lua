@@ -45,6 +45,7 @@ L["TRAP"] = "Trap"
 L["KITE"] = "Kite"
 L["MC"] = "Mind Control"
 L["FEAR"] = "Fear"
+L["SAP"] = "Sap"
 L["00NONE"] = "None "
 
 -- Priority names
