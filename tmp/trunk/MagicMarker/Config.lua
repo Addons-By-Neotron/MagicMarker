@@ -155,7 +155,7 @@ local mobdata, targetdata
 
 -- Config UI name => ID
 local CONFIG_MAP = {
-   NUMCC=8, 
+   NUMCC=9, 
 }
 
 -- ID => Config UI name
