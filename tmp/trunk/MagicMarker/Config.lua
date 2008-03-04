@@ -162,7 +162,7 @@ local CONFIG_MAP = {
 local ACT_LIST = { "TANK", "CC" }
 local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP" }
 local PRI_LIST = { "P1", "P2", "P3", "P4" }
-local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "_Remove" }
+local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, priDropdown, catDropdown, raidIconDropdown
 
 
@@ -185,9 +185,12 @@ do
       catDropdown[txt] = L[txt]
       CONFIG_MAP[txt] = num
    end
+   local temp 
    for num, txt in ipairs(RT_LIST) do
-      raidIconDropdown[txt] = L[txt]
-      CONFIG_MAP[txt] = num
+      temp = num..txt
+      raidIconDropdown[temp] = L[txt]
+      CONFIG_MAP[temp] = num
+      RT_LIST[num] = temp
    end
 end
 
@@ -248,11 +251,12 @@ end
 
 local function raidTargetGetter(info)
    local type = info[#info-1]
-   local id = getID(info[#info])
+   local id = getID(info[#info]) or 9
    if not targetdata[type] then
       return nil
    end
-   return RT_LIST[ targetdata[type][id] or 9 ]
+   MagicMarker:PrintDebug("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
+   return RT_LIST[ targetdata[type][id] ]
 end
 
 
@@ -381,7 +385,6 @@ local function GetZoneInfo(hash)
    local ignored = 0
    local mobs = hash.mobs
    for mob,data in pairs(mobs) do
-      MagicMarker:Print("Counting "..data.name)
       if data.new then new = new + 1 end
       if data.priority == 4 then ignored = ignored + 1 end
       total = total + 1

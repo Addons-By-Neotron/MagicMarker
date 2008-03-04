@@ -46,17 +46,18 @@ do
    end
    
    local function SetValue(self, value)
-      if value == "_Remove" then
+      if value == "9None" then
 	 self.icon:Hide()
-      else
+      elseif value then
+	 self.icon:SetTexture(string.format(iconFormat, string.sub(value, 2))) 
 	 self.icon:Show()
       end
-	 
+      
       if self.list then
 	 self.editbox:SetText(self.list[value] or "")
       end
+
       self.editbox.value = value
-      self.icon:SetTexture(string.format(iconFormat, value))
       self.editbox:SetCursorPosition(0)
    end
    

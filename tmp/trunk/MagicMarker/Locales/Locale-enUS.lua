@@ -67,7 +67,7 @@ L["Moon"] = true
 L["Square"] = true
 L["Cross"] = true
 L["Skull"] = true
-L["_Remove"] = "None"
+L["None"] = "None"
 
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The ordering is the priority in which they are attempted be used. I.e if the raid has two mages but two sheep targets are already assigned, it will iterate through the specified methods until one is found. If none is found, it will revert back to assigning a tank or arbitrary symbol to the target."
