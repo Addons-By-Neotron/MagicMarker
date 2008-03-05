@@ -109,7 +109,7 @@ end
 local groupScanTimer
 function MagicMarker:ScheduleGroupScan()
    if groupScanTimer then
-      self:CancelTimer(groupScanTimer)
+      self:CancelTimer(groupScanTimer, true)
    end
    groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 1)
 end
