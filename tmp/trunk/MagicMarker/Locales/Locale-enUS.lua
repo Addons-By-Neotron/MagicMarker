@@ -11,6 +11,7 @@ L["Reset raid icons"] = true
 L["Mark selected target"] = true
 L["Unmark selected target"] = true
 L["Toggle config dialog"] = true
+L["Mark party/raid targets"] = true
 
 -- Options Config
 L["Options"] = true

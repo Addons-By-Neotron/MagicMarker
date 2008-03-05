@@ -18,15 +18,7 @@ Description:
 	crowd control. 
 
 Todo:
-	* Smart category selection based on the number of players for
-	  a class currently in the party / raid.
-        * Ability to broadcast the raid mark configuration and target
-          database to members of the guild / raid (useful if you want
-          to share a unified configuration for others to mark)
-	* 2.4: Use mob ID from the UnitGUID as the the mob key in the
-	  configuration.
-	* 2.4: Use UnitGUID as the unique mob ID for duplicate mark
-	  prevention (removes the need for mafk delays).
+	See http://wowace.com/wiki/Magic_Marker
 
 Contact:
 	For suggestions and bug reports:

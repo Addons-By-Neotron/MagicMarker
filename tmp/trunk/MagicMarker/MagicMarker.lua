@@ -82,6 +82,26 @@ end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
 
+
+function MagicMarker:MarkRaidTargets()
+   local id, class, name
+   raidClassList = {}
+   groupScanTimer = nil
+   self:PrintDebug("Making all targets of the raid.")
+   
+   if GetNumRaidMembers() > 0 then
+      for id = 1,GetNumRaidMembers() do
+	 self:SmartMarkUnit("raid"..id.."target");
+      end
+   elseif GetNumPartyMembers() > 0 then
+      for id = 1,GetNumPartyMembers() do
+	 self:SmartMarkUnit("raid"..id.."target");
+      end
+   end
+end
+
+local groupScanTimer
+
 function MagicMarker:ScanGroupMembers()
    local id, class, name
    raidClassList = {}
@@ -106,12 +126,10 @@ function MagicMarker:ScanGroupMembers()
    end
 end
 
-local groupScanTimer
+
 function MagicMarker:ScheduleGroupScan()
-   if groupScanTimer then
-      self:CancelTimer(groupScanTimer, true)
-   end
-   groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 1)
+   if groupScanTimer then self:CancelTimer(groupScanTimer, true) end
+   groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 5)
 end
 
 
@@ -223,7 +241,7 @@ function MagicMarker:SmartMarkUnit(unit)
    self:PrintDebug("Unit => "..unit)
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
-   if UnitIsEligable(unit) and (IsAltKeyDown() or unit == "target") then
+   if UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
       local unitGUID = GetUniqueUnitID(unit)
       local unitTarget = GetRaidTargetIndex(unit)
       
@@ -252,7 +270,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 self:PrintDebug("  Target on ignore list")
       else
 	 recentlyAdded[unitGUID] = true
-	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.75, unitGUID) -- To clear it up
+	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.3, unitGUID) -- To clear it up
       
 	 self:PrintDebug("  => "..newTarget)
 	 if markedTargets[newTarget] then 
@@ -316,3 +334,4 @@ BINDING_NAME_MAGICMARKRESET = L["Reset raid icons"]
 BINDING_NAME_MAGICMARKMARK = L["Mark selected target"]
 BINDING_NAME_MAGICMARKUNMARK = L["Unmark selected target"]
 BINDING_NAME_MAGICMARKTOGGLE = L["Toggle config dialog"]
+BINDING_NAME_MAGICMARKRAID = L["Mark party/raid targets"]
