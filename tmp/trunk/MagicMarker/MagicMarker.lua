@@ -43,13 +43,14 @@ function MagicMarker:OnInitialize()
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
    
-   self:GenerateOptions()
-   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
 end
 
 function MagicMarker:OnEnable()
    self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
    self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
+
+   self:GenerateOptions()
+   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
 end
 
 function MagicMarker:OnDisable()
@@ -214,9 +215,11 @@ end
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
       local unitTarget = GetRaidTargetIndex("target")
-      SetRaidTarget("target", 0)
-      markedTargets[unitTarget] = nil
-      markedTargetValues[unitTarget] = nil
+      if unitTarget then
+	 SetRaidTarget("target", 0)
+	 markedTargets[unitTarget] = nil
+	 markedTargetValues[unitTarget] = nil
+      end
    end
 end
 

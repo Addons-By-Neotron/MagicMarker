@@ -7,7 +7,7 @@
 ## X-Category: Raid
 ## X-eMail: neotron@gmail.com
 
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, MobNotes
 ## X-Embeds: Ace3
 ## SavedVariables: MagicMarkerDB
 

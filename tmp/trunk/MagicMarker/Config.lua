@@ -10,6 +10,8 @@ local BabbleZone = LibStub("LibBabble-Zone-3.0")
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
 local ZoneLookup  = BabbleZone:GetLookupTable()
 
+local MobNotesDB
+
 BabbleZone = nil
 
 local options = {}
@@ -245,7 +247,7 @@ local function raidTargetSetter(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
-   MagicMarker:PrintDebug("Setting "..id.." to "..value);
+--   MagicMarker:PrintDebug("Setting "..id.." to "..value);
    targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
 end
 
@@ -255,7 +257,7 @@ local function raidTargetGetter(info)
    if not targetdata[type] then
       return nil
    end
-   MagicMarker:PrintDebug("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
+--   MagicMarker:PrintDebug("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
    return RT_LIST[ targetdata[type][id] ]
 end
 
@@ -371,7 +373,7 @@ function MagicMarker:InsertNewUnit(name, zone)
       }
       self:Print(format(L["Added new mob %s in zone %s."],name, zone))
 
-      if optionsCallout then self:CancelTimer(optionsCallout) end
+      if optionsCallout then self:CancelTimer(optionsCallout, true) end
       
       optionsCallout = self:ScheduleTimer(self.GenerateOptions, 1)
    end
@@ -399,9 +401,26 @@ local function GetZoneInfo(hash)
    return ret
 end
 
+
+local function GetMobName(arg)
+   return mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
+end
+    
+
+local function GetMobNote(arg)
+   if not  MobNotesDB then MobNotesDB = _G.MobNotesDB  end
+   local name = GetMobName(arg)
+   return MobNotesDB[GetMobName(arg)] or "N/A"
+end
+
+local function NoMobNote(arg)
+   return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
+end
+
 function MagicMarker:GenerateOptions()
    local opts = options.args.categories.args
    local subopts
+
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
 
@@ -459,7 +478,7 @@ function MagicMarker:GenerateOptions()
 	       header = {
 		  name = data.name,
 		  type = "header",
-		  order = 1
+		  order = 0
 	       }, 
 	       priority = {
 		  name = L["Priority"],
@@ -478,30 +497,42 @@ function MagicMarker:GenerateOptions()
 		  name = L["Crowd Control Config"], 
 		  type = "header",
 		  hidden = isIgnored,
-		  order = 4
+		  order = 40
 	       },
 	       ccinfo = {
 		  type = "description",
 		  name = L["CCHELPTEXT"],
-		  order = 5,
+		  order = 50,
 		  hidden = isIgnored,
 	       }, 
 	       addcc = {
 		  type = "execute",
 		  name = L["Add new crowd control"],
 		  func = addNewCC,
-		  order = 100,
+		  order = 300,
 		  hidden = isHiddenAddCC, 
+	       },
+	       mobnotes = {
+		  name = GetMobNote, 
+		  type = "description", 
+		  order = 20,
+		  hidden = NoMobNote,
+	       },
+	       mobnoteheader = {
+		  name = L["Mob Notes"],
+		  type = "header", 
+		  order = 15,
+		  hidden = NoMobNote,
 	       }
 	    }
 	 }
-	 
+
 	 for num = 1,CONFIG_MAP.NUMCC do
 	    subopts[mob].args["ccopt"..num] = {
 	       name = L["Crowd Control #"]..num,
 	       type = "select",
 	       values = ccDropdown,
-	       order = 10+num,
+	       order = 100+num,
 	       hidden = isHiddenCC,
 	    }
 	 end

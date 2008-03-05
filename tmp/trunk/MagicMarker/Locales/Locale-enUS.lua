@@ -28,6 +28,7 @@ L["General Options"] = true
 L["%s has a total of %d mobs. %s of these are newly discovered."] = true
 L["Out of these mobs %d are ignored."] = true
 L["None"] = true
+L["Mob Notes"] = true
 
 -- Mark categories
 L["Tank"] = true
