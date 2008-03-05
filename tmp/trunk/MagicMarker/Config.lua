@@ -17,6 +17,21 @@ BabbleZone = nil
 local options = {}
 local db = MagicMarkerDB
 
+local mobdata, targetdata
+
+-- Config UI name => ID
+local CONFIG_MAP = {
+   NUMCC=9, 
+}
+
+-- ID => Config UI name
+local ACT_LIST = { "TANK", "CC" }
+local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP" }
+local PRI_LIST = { "P1", "P2", "P3", "P4" }
+local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
+local ccDropdown, priDropdown, catDropdown, raidIconDropdown
+
+
 -- KeybindHelper code from Xinhuan's addon IPopBar. Thanks for letting me use it! 
 local KeybindHelper = {}
 do
@@ -153,22 +168,6 @@ local options = {
       },
    }
 }
-local mobdata, targetdata
-
--- Config UI name => ID
-local CONFIG_MAP = {
-   NUMCC=9, 
-}
-
--- ID => Config UI name
-local ACT_LIST = { "TANK", "CC" }
-local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP" }
-local PRI_LIST = { "P1", "P2", "P3", "P4" }
-local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
-local ccDropdown, priDropdown, catDropdown, raidIconDropdown
-
-
-
 
 do
    ccDropdown = {}

@@ -21,15 +21,24 @@ local SetRaidTarget = SetRaidTarget
 local GetRaidTargetIndex = GetRaidTargetIndex
 
 -- Parameters
-local MagicMarker = MagicMarker
 local markedTargets = {}
 local markedTargetValues= {}
 local recentlyAdded = {}
+-- Number of CC used for each crowd control method
+local ccUsed = {}
+
+-- Hardcoded... :-)
+ raidClassList = {}
 
 
--- upvalues of config data
+-- More upvalues
+local MagicMarker = MagicMarker
 local mobdata
 local targetdata
+
+-- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
+local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false , "PRIEST", "WARLOCK", "ROGUE" }
+
 
 function MagicMarker:OnInitialize()
    -- Set up the database
@@ -49,8 +58,11 @@ function MagicMarker:OnEnable()
    self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
    self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
 
+   self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
+   self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
    self:GenerateOptions()
    self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
+   self:ScanGroupMembers()
 end
 
 function MagicMarker:OnDisable()
@@ -67,6 +79,41 @@ local function GetUniqueUnitID(unit)
 			UnitCreatureType(unit))
    
 end
+
+local party_idx = { "party1", "party2", "party3", "party4" }
+
+function MagicMarker:ScanGroupMembers()
+   local id, class, name
+   raidClassList = {}
+   groupScanTimer = nil
+   self:PrintDebug("Rescanning raid/party member classes.")
+   
+   if GetNumRaidMembers() > 0 then
+      for id = 1,GetNumRaidMembers() do
+	 name = GetRaidRosterInfo(id); 
+	 _,class = UnitClass(name)
+	 raidClassList[class] = (raidClassList[class] or 0) + 1
+      end
+   else
+      if GetNumPartyMembers() > 0 then
+	 for id = 1,GetNumPartyMembers() do
+	    _,class = UnitClass(party_idx[id]);
+	    raidClassList[class] = (raidClassList[class] or 0) + 1
+	 end
+      end
+      _,class = UnitClass("player")
+      raidClassList[class] = (raidClassList[class] or 0) + 1
+   end
+end
+
+local groupScanTimer
+function MagicMarker:ScheduleGroupScan()
+   if groupScanTimer then
+      self:CancelTimer(groupScanTimer)
+   end
+   groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 1)
+end
+
 
 -- Return whether a target is eligable for marking
 local function UnitIsEligable (unit)
@@ -101,13 +148,15 @@ function MagicMarker:GetNextUnitMark(unit)
    local unitName = GetUnitName(unit)
    local unitHash = GetUnitHash(unitName)
    local unitValue = 0
-   local cc,tankFirst = true
+   local cc,tankFirst, cc_list_used
+   tankFirst = true
+   cc_list_used = 1 -- Tank
    
    if unitHash then
       if self:IsUnitIgnored(unitHash.priority) then return -1 end
       unitValue = self:UnitValue(unitName, unitHash)
       cc = unitHash.cc
-      if unitHash.category == 1 then
+      if unitHash.category ~= cc_list_used then
 	 tankFirst = false
       end
    end
@@ -122,12 +171,21 @@ function MagicMarker:GetNextUnitMark(unit)
 
    if not raidMarkID then 
       for _,category in ipairs(cc) do
-	 raidMarkList = self:GetMarkForCategory(category)
-	 raidMarkID = LowFindMark(raidMarkList, unitValue)
-	 if raidMarkID then break end
+	 local class = CC_CLASS[category]
+	 local cc_used_count = ccUsed[category] or 0
+	 if not class or cc_used_count < (raidClassList[class] or 0)
+	 then
+	    raidMarkList = self:GetMarkForCategory(category)
+	    raidMarkID = LowFindMark(raidMarkList, unitValue)
+	    if raidMarkID then
+	       ccUsed[category] = cc_used_count + 1
+	       cc_list_used = category
+	       break
+	    end
+	 end
       end
    end
-
+      
    -- no mark found, fall back to tank list for default
    if not raidMarkID then
       raidMarkList = self:GetMarkForCategory(1)
@@ -136,7 +194,7 @@ function MagicMarker:GetNextUnitMark(unit)
    
    -- None left for the specified category, 
    -- falling back to the "catch all"...
-   return raidMarkID or 0 -- no target found
+   return raidMarkID or 0, cc_list_used -- no target found
 end
 
 local unitValueCache = {}
@@ -173,7 +231,7 @@ function MagicMarker:SmartMarkUnit(unit)
       
       self:PrintDebug("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")")
       
-      if markedTargets[unitTarget] == unitGUID then
+      if markedTargets[unitTarget] and markedTargets[unitTarget].guid == unitGUID then
 	 self:PrintDebug("  already marked.")
 	 return
       end
@@ -183,7 +241,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 return
       end
       
-      local newTarget = self:GetNextUnitMark(unit)
+      local newTarget, ccID = self:GetNextUnitMark(unit)
       
       if newTarget == 0 then
 	 self:PrintDebug("  No more raid targets available -- disabling marking.")
@@ -197,7 +255,13 @@ function MagicMarker:SmartMarkUnit(unit)
 	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.75, unitGUID) -- To clear it up
       
 	 self:PrintDebug("  => "..newTarget)
-	 markedTargets[newTarget] = unitGUID
+	 if markedTargets[newTarget] then 
+	    ccUsed[ markedTargets[newTarget].ccid ] = ccID
+	    markedTargets[newTarget].ccid = ccID	    
+	    markedTargets[newTarget].guid = unitGUID
+	 else
+	    markedTargets[newTarget] = { guid=unitGUID, ccid = ccID }
+	 end
 	 SetRaidTarget(unit, newTarget)
       end
    else
@@ -215,8 +279,9 @@ end
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
       local unitTarget = GetRaidTargetIndex("target")
-      if unitTarget then
+      if unitTarget and markedTargets[unitTarget] then
 	 SetRaidTarget("target", 0)
+	 ccUsed[ markedTargets[unitTarget].ccid ] = nil
 	 markedTargets[unitTarget] = nil
 	 markedTargetValues[unitTarget] = nil
       end
@@ -232,9 +297,10 @@ end
 -- Disable memoried marksdata
 function MagicMarker:ResetMarkData()
    local id
-   markedTargets = { }
-   markedTargetValues = { }
+   ccUsed = { }
    for id = 8,0,-1 do
+      markedTargets[id]  = nil
+      markedTargetValues[id] = nil
       SetRaidTarget("player", id)
    end
    -- Hack, sometimes the last mark isn't removed.
