@@ -270,7 +270,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 self:PrintDebug("  Target on ignore list")
       else
 	 recentlyAdded[unitGUID] = true
-	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.3, unitGUID) -- To clear it up
+	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.75, unitGUID) -- To clear it up
       
 	 self:PrintDebug("  => "..newTarget)
 	 if markedTargets[newTarget] then 

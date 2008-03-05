@@ -417,7 +417,13 @@ end
     
 
 local function GetMobNote(arg)
-   if not  MobNotesDB then MobNotesDB = _G.MobNotesDB  end
+   if not MobNotesDB then
+      if _G.MobNotesDB then
+	 MobNotesDB = _G.MobNotesDB
+      else
+	 return ""
+      end
+   end
    local name = GetMobName(arg)
    return MobNotesDB[GetMobName(arg)] or "N/A"
 end
