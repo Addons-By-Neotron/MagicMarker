@@ -164,6 +164,16 @@ local options = {
 	       arg = "MAGICMARKUNMARK",
 	       order = 103,
 	    },	    
+	    keyunmark = {
+	       name = L["Mark party/raid targets"],
+	       desc = L["Mark party/raid targets"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKRAID",
+	       order = 104,
+	    },	    
 	 },
       },
    }
