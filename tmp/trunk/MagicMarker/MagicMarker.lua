@@ -27,9 +27,14 @@ local recentlyAdded = {}
 -- Number of CC used for each crowd control method
 local ccUsed = {}
 
--- Hardcoded... :-)
- raidClassList = {}
+-- class makeup of the party/raid
+local raidClassList = {}
 
+-- Cached "raid marks" - i.e if you set up marks on illidan you can
+-- reset after phase 2 and then recall them if you need later on.
+-- When "loading" cached marks it will also avoid using those marks
+-- for NPC's
+local raidMarkCache = {}
 
 -- More upvalues
 local MagicMarker = MagicMarker
@@ -51,23 +56,62 @@ function MagicMarker:OnInitialize()
 
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
-   
+
 end
 
 function MagicMarker:OnEnable()
-   self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
-   self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
-
-   self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
-   self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
+   self:RegisterEvent("ZONE_CHANGED_NEW_AREA","ZoneChangedNewArea")
+   self:ZoneChangedNewArea()
    self:GenerateOptions()
-   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end)
+   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
+   self:RegisterChatCommand("mmtmpl", "MarkRaidFromTemplate", false, true)
    self:ScanGroupMembers()
 end
 
 function MagicMarker:OnDisable()
-   self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
-   self:UnregisterEvent("PLAYER_TARGET_CHANGED")
+   self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
+   self:UnregisterChatCommand("magic")
+   self:DisableEvents()
+end
+
+function MagicMarker:ZoneChangedNewArea()
+   local zone = GetRealZoneText()
+   
+   if zone == nil or zone == "" then
+      -- zone hasn't been loaded yet, try again in 5 secs.
+      self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
+      --self:Print("Unable to determine zone - retrying in 5 secs")
+      return
+   end
+
+   if IsInInstance() then
+      self:EnableEvents()
+   else
+      self:DisableEvents()
+   end
+end
+
+function MagicMarker:EnableEvents()
+   if not self.addonEnabled then
+      self.addonEnabled = true
+      self:Print(L["Magic Marker enabled."])
+      --self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
+      self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
+      self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
+      self:ScheduleGroupScan()
+   end
+end
+
+function MagicMarker:DisableEvents()
+   if self.addonEnabled then
+      self.addonEnabled = false
+      self:Print(L["Magic Marker disabled."])
+      --self:UnregisterEvent("PLAYER_TARGET_CHANGED")
+      self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
+      self:UnregisterEvent("RAID_ROSTER_UPDATE")
+      self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+   end
 end
 
 local function GetUniqueUnitID(unit)
@@ -127,6 +171,54 @@ function MagicMarker:ScanGroupMembers()
 end
 
 
+function MagicMarker:CacheRaidMarkForUnit(unit)
+   local id = GetRaidTargetIndex(unit)
+   if id then
+      raidMarkCache[unit] = id
+      self:PrintDebug("Cached "..id.." for "..unit);
+   end
+end
+
+function MagicMarker:CacheRaidMarks()
+   raidMarkCache = {}
+   
+   self:PrintDebug("Caching raid / party marks")
+   self:IterateGroup(self.CacheRaidMarkForUnit)
+end
+
+function MagicMarker:MarkRaidFromCache()
+   for unit,id in pairs(raidMarkCache) do
+      self:ReserveMark(id, unit, 1000)
+   end
+end
+
+function MagicMarker:IterateGroup(callback)
+   local id, name
+   raidMarkCache = {}
+
+   self:PrintDebug("Caching raid / party marks")
+   
+   if GetNumRaidMembers() > 0 then
+      for id = 1,GetNumRaidMembers() do
+	 callback(self, GetRaidRosterInfo(id))
+      end
+   else
+      if GetNumPartyMembers() > 0 then
+	 for id = 1,GetNumPartyMembers() do
+	    callback(self, GetRaidRosterInfo(party_idx[id]))
+	 end
+      end
+      callback(self, GetRaidRosterInfo("player"));
+   end   
+end
+
+function MagicMarker:MarkRaidFromTemplate(template)
+   MagicMarker:PrintDebug("Marking from template: "..template)
+   if MagicMarker.MarkTemplates[template] then
+      self:IterateGroup(MagicMarker.MarkTemplates[template])
+   end
+end
+
 function MagicMarker:ScheduleGroupScan()
    if groupScanTimer then self:CancelTimer(groupScanTimer, true) end
    groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 5)
@@ -136,7 +228,7 @@ end
 -- Return whether a target is eligable for marking
 local function UnitIsEligable (unit)
    return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit) and
-      UnitCreatureType(unit) ~= "Critter"
+      UnitCreatureType(unit) ~= "Critter" and not UnitIsPlayer(unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
@@ -162,7 +254,7 @@ local function LowFindMark(list, value)
 end
 
 -- Return the next mark for the unit
-function MagicMarker:GetNextUnitMark(unit) 
+function MagicMarker:GetNextUnitMark(unit,value) 
    local unitName = GetUnitName(unit)
    local unitHash = GetUnitHash(unitName)
    local unitValue = 0
@@ -270,7 +362,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 self:PrintDebug("  Target on ignore list")
       else
 	 recentlyAdded[unitGUID] = true
-	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.75, unitGUID) -- To clear it up
+	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.7, unitGUID) -- To clear it up
       
 	 self:PrintDebug("  => "..newTarget)
 	 if markedTargets[newTarget] then 
@@ -287,6 +379,22 @@ function MagicMarker:SmartMarkUnit(unit)
    end
 end
 
+function MagicMarker:ReserveMark(mark, unit, value)
+   if not markedTargets[mark] or markedTargetValues[mark] < value then
+      if markedTargets[mark] then
+	 local ccid = markedTargets[mark].ccid;
+	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
+	 markedTargets[mark].ccid = "NONE"
+	 markedTargets[mark].guid = unit
+      else
+	 markedTargets[mark] = { guid=unit, ccid = "NONE" }
+      end
+      markedTargetValues[mark] = value -- don't override
+      SetRaidTarget(unit, mark)
+      return true
+   end
+   return false
+end
 
 function MagicMarker:MarkSingle()
    if UnitExists("target") then
@@ -316,14 +424,16 @@ end
 function MagicMarker:ResetMarkData()
    local id
    ccUsed = { }
+   recentlyAdded = {}
    for id = 8,0,-1 do
       markedTargets[id]  = nil
       markedTargetValues[id] = nil
       SetRaidTarget("player", id)
    end
    -- Hack, sometimes the last mark isn't removed.
-   self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.2)
+   self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.75)
    self:Print(L["Resetting raid targets."])
+   self:ScanGroupMembers()
 end
 
 
@@ -335,3 +445,5 @@ BINDING_NAME_MAGICMARKMARK = L["Mark selected target"]
 BINDING_NAME_MAGICMARKUNMARK = L["Unmark selected target"]
 BINDING_NAME_MAGICMARKTOGGLE = L["Toggle config dialog"]
 BINDING_NAME_MAGICMARKRAID = L["Mark party/raid targets"]
+BINDING_NAME_MAGICMARKSAVE = L["Save party/raid mark layout"]
+BINDING_NAME_MAGICMARKLOAD = L["Load party/raid mark layout"]

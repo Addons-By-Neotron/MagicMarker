@@ -164,7 +164,7 @@ local options = {
 	       arg = "MAGICMARKUNMARK",
 	       order = 103,
 	    },	    
-	    keyunmark = {
+	    keymarkraid = {
 	       name = L["Mark party/raid targets"],
 	       desc = L["Mark party/raid targets"],
 	       type = "keybinding",
@@ -173,6 +173,26 @@ local options = {
 	       set = "SetKeybind",
 	       arg = "MAGICMARKRAID",
 	       order = 104,
+	    },	    
+	    keysave = {
+	       name = L["Save party/raid mark layout"], 
+	       desc = L["Save party/raid mark layout"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKSAVE",
+	       order = 105,
+	    },	    
+	    keyload = {
+	       name = L["Load party/raid mark layout"], 
+	       desc = L["Load party/raid mark layout"],
+	       type = "keybinding",
+	       handler = KeybindHelper,
+	       get = "GetKeybind",
+	       set = "SetKeybind",
+	       arg = "MAGICMARKLOAD",
+	       order = 105,
 	    },	    
 	 },
       },
@@ -412,7 +432,7 @@ end
 
 
 local function GetMobName(arg)
-   return mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
+   return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
 end
     
 

@@ -77,3 +77,7 @@ L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true
 L["Resetting raid targets."] = true
+L["Magic Marker enabled."] = true
+L["Magic Marker disabled."] = true
+L["Save party/raid mark layout"] = true
+L["Load party/raid mark layout"] = true
