@@ -24,7 +24,7 @@ L["Add new crowd control"] = true
 L["Add raid icon"] = true
 L["Crowd Control #"] = true
 L["Key Bindings"] = true
-L["Enable debug messages"] = true
+L["Log level"] = true
 L["General Options"] = true
 L["%s has a total of %d mobs. %s of these are newly discovered."] = true
 L["Out of these mobs %d are ignored."] = true
@@ -51,10 +51,12 @@ L["SAP"] = "Sap"
 L["00NONE"] = "None "
 
 -- Priority names
-L["P1"] = "High"
-L["P2"] = "Medium"
-L["P3"] = "Low"
-L["P4"] = "Ignore"
+L["P1"] = "Very High"
+L["P2"] = "High"
+L["P3"] = "Medium"
+L["P4"] = "Low"
+L["P5"] = "Very Low"
+L["P6"] = "Ignore"
 
 -- Category names
 L["TANK"] = "Tank"
@@ -81,3 +83,11 @@ L["Magic Marker enabled."] = true
 L["Magic Marker disabled."] = true
 L["Save party/raid mark layout"] = true
 L["Load party/raid mark layout"] = true
+
+-- Log levels
+L["NONE"] = "Disabled"
+L["ERROR"] = "Errors only"
+L["WARN"] = "Errors and warnings"
+L["INFO"] = "Informational messages"
+L["DEBUG"] = "Debug messaging"
+L["TRACE"] = "Debug trace messages"

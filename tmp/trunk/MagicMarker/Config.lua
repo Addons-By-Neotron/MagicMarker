@@ -1,7 +1,11 @@
 --[[
   MagicMarker configuration
 ]]
+local CONFIG_VERSION = 1
 local format = format
+local sub = string.sub
+local tonumber = tonumber
+local tolower = strlower
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
@@ -19,6 +23,8 @@ local db = MagicMarkerDB
 
 local mobdata, targetdata
 
+local log = MagicMarker:GetLoggers()
+
 -- Config UI name => ID
 local CONFIG_MAP = {
    NUMCC=9, 
@@ -27,10 +33,9 @@ local CONFIG_MAP = {
 -- ID => Config UI name
 local ACT_LIST = { "TANK", "CC" }
 local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP" }
-local PRI_LIST = { "P1", "P2", "P3", "P4" }
+local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
-local ccDropdown, priDropdown, catDropdown, raidIconDropdown
-
+local ccDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
 
 -- KeybindHelper code from Xinhuan's addon IPopBar. Thanks for letting me use it! 
 local KeybindHelper = {}
@@ -73,15 +78,40 @@ do
    end
 end
 
-local function SetDebug(var, value)
-   MagicMarkerDB.debug = value
+
+do
+   local temp 
+   ccDropdown = {}
+   priDropdown = {}
+   catDropdown = {}
+   raidIconDropdown = {}
+   logLevelsDropdown = {}
+
+   for num, txt in ipairs(CC_LIST) do
+      ccDropdown[txt] = L[txt]
+      CONFIG_MAP[txt] = num
+   end
+
+   for num, txt in ipairs(PRI_LIST) do
+      priDropdown[txt] = L[txt]
+      CONFIG_MAP[txt] = num
+   end
+
+   for num, txt in ipairs(ACT_LIST) do
+      catDropdown[txt] = L[txt]
+      CONFIG_MAP[txt] = num
+   end
+
+   for num, txt in ipairs(RT_LIST) do
+      temp = num..txt
+      raidIconDropdown[temp] = L[txt]
+      CONFIG_MAP[temp] = num
+      RT_LIST[num] = temp
+   end
+   for logname,id in pairs(MagicMarker.logLevels) do
+      logLevelsDropdown[id] = L[logname]
+   end
 end
-
-local function GetDebug(var)
-   return MagicMarkerDB.debug
-end
-
-
 
 local options = { 
    type = "group", 
@@ -113,11 +143,13 @@ local options = {
 	       order = 0,
 	    },
 	    debug = {
-	       type = "toggle",
-	       name = L["Enable debug messages"],
-	       set = SetDebug,
-	       get = GetDebug,
-	       order = 1
+	       type = "select",
+	       name = L["Log level"],
+	       handler = MagicMarker,
+	       set = "SetLogLevel",
+	       get = "GetLogLevel",
+	       order = 1,
+	       values = logLevelsDropdown,
 	    },
 	    bindingHeader = {
 	       type = "header",
@@ -199,32 +231,6 @@ local options = {
    }
 }
 
-do
-   ccDropdown = {}
-   priDropdown = {}
-   catDropdown = {}
-   raidIconDropdown = {}
-   for num, txt in ipairs(CC_LIST) do
-      ccDropdown[txt] = L[txt]
-      CONFIG_MAP[txt] = num
-   end
-   for num, txt in ipairs(PRI_LIST) do
-      priDropdown[txt] = L[txt]
-      CONFIG_MAP[txt] = num
-   end
-   for num, txt in ipairs(ACT_LIST) do
-      catDropdown[txt] = L[txt]
-      CONFIG_MAP[txt] = num
-   end
-   local temp 
-   for num, txt in ipairs(RT_LIST) do
-      temp = num..txt
-      raidIconDropdown[temp] = L[txt]
-      CONFIG_MAP[temp] = num
-      RT_LIST[num] = temp
-   end
-end
-
 function MagicMarker:GetMarkForCategory(category)
    if category == 1 then
       return targetdata.TANK or {}
@@ -233,11 +239,11 @@ function MagicMarker:GetMarkForCategory(category)
 end
 
 function MagicMarker:IsUnitIgnored(pri)
-   return pri == CONFIG_MAP.P4
+   return pri == CONFIG_MAP.P6
 end
 
 local function getID(value)
-   return tonumber(string.sub(value, -1))
+   return tonumber(sub(value, -1))
 end
 
 local function uniqList(list, id, newValue, empty, max)
@@ -276,7 +282,7 @@ local function raidTargetSetter(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
---   MagicMarker:PrintDebug("Setting "..id.." to "..value);
+--   log.trace("Setting "..id.." to "..value);
    targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
 end
 
@@ -286,7 +292,7 @@ local function raidTargetGetter(info)
    if not targetdata[type] then
       return nil
    end
---   MagicMarker:PrintDebug("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
+--   log.trace("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
    return RT_LIST[ targetdata[type][id] ]
 end
 
@@ -314,7 +320,7 @@ local function mySetterFunc(info, value)
 	 options.args.mobs.args[region].args[mob].args.header.name; 
    end
    
-   MagicMarker:PrintDebug("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) )
+   log.trace("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) )
 end
 
 local function myGetterFunc(info)
@@ -330,13 +336,15 @@ local function myGetterFunc(info)
    elseif var == "category" then
       value = ACT_LIST[value]
    end
-   MagicMarker:PrintDebug("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) )
+   log.trace("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) )
    return value
 end
 
 
 local function isIgnored(var)
-   return MagicMarker:IsUnitIgnored(mobdata[var[#var-2]].mobs[var[#var-1]])
+   local prio = mobdata[var[#var-2]].mobs[var[#var-1]].priority
+   local ignored = MagicMarker:IsUnitIgnored(prio)
+   return ignored
 end
 
 local function isHiddenCC(var)
@@ -400,7 +408,7 @@ function MagicMarker:InsertNewUnit(name, zone)
 	 priority = 2,
 	 cc = {}
       }
-      self:Print(format(L["Added new mob %s in zone %s."],name, zone))
+      log.info(format(L["Added new mob %s in zone %s."],name, zone))
 
       if optionsCallout then self:CancelTimer(optionsCallout, true) end
       
@@ -580,6 +588,33 @@ function MagicMarker:GenerateOptions()
    end
 end
 
+function MagicMarker:GetCCName(ccid)
+   return tolower(CC_LIST[ccid])
+end
+
+function MagicMarker:GetTargetName(ccid)
+   return sub(RT_LIST[ccid], 2)
+end
+
 LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options, "magicmarker") 
 
+function MagicMarker:UpgradeDatabase()
+   local version = MagicMarkerDB.version or 0
 
+   if version < 1 then
+      -- Added two new priority levels and change logging 
+      MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO;
+      MagicMarkerDB.debug = nil
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 for mob, mobData in pairs(zoneData.mobs) do
+	    if mobData.priority == 4 then
+	       mobData.priority = 6
+	    else
+	       mobData.priority = mobData.priority + 1
+	    end
+	 end
+      end
+   end
+   
+   MagicMarkerDB.version = CONFIG_VERSION
+end
