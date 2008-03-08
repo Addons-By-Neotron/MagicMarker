@@ -566,7 +566,6 @@ function MagicMarker:GenerateOptions()
       subopts = opts[id].args
       for mob, data in pairs(zone.mobs) do
 	 subopts[mob] = {
-	 width="double",
 	    type = "group",
 	    args = {
 	       header = {

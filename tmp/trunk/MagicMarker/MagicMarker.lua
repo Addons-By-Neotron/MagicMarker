@@ -100,18 +100,15 @@ local function GetUniqueUnitID(unit)
    
 end
 
-function MagicMarker:PossiblyReleaseMark(unit, mob)
+function MagicMarker:PossiblyReleaseMark(unit)
    local unitID = unit.."target"
-   if UnitExists(unitID) then
-      local unitTarget = UnitName(unitID)
-      if log.trace then log.trace("Possibly unmarking %s => %s.", mob, unitTarget) end
-      if unitTarget and UnitIsDeadOrGhost(unitID) then
-	 local raidMark = GetRaidTargetIndex(unitID)
-	 if log.trace then log.trace("  => found mark %d...", raidMark) end
-	 if raidMark and self:ReleaseMark(raidMark, unitID) then
-	    if log.debug then log.debug("Releasing target %s for %s", self:GetTargetName(raidMark), unitTarget) end
-	    return true;
-	 end
+   if UnitExists(unitID) and UnitIsDeadOrGhost(unitID) then
+      local unitName = UnitName(unitID)
+      local raidMark = GetRaidTargetIndex(unitID)
+      if log.trace then log.trace("  => found mark %d on dead mob %s ...", raidMark, unitName) end
+      if raidMark and self:ReleaseMark(raidMark, unitID) then
+	 if log.debug then log.debug("Releasing target %s for %s", self:GetTargetName(raidMark), unitName) end
+	 return true;
       end
    end
 end
@@ -121,22 +118,8 @@ end
 -- IT IS ENGLISH LOCALE ONLY ---
 --------------------------------
 function MagicMarker:UnitDeath()
-   local endPos = strfind(arg1, " dies")
-   local mob 
-   if endPos then
-      mob = sub(arg1, 1, endPos - 1)
-      if log.trace then log.trace("%s died", mob) end
-   else
-      _,endPos = strfind(arg1, "You have slain ")
-      if log.trace then log.trace("Slain something...") end
-      if endPos then
-	 mob = sub(arg1, endPos+1, strlen(arg1)-1);
-	 if log.trace then log.trace("I have slain %s!", mob) end
-      end
-   end
-   if mob then
-      self:IterateGroup(self.PossiblyReleaseMark, true, mob)
-   end
+   if log.trace then log.trace("Something died, checking for marks to free") end
+   self:IterateGroup(self.PossiblyReleaseMark, true)
 end
 
 function MagicMarker:ZoneChangedNewArea()
