@@ -16,6 +16,9 @@
 	<Binding name="MAGICMARKUNMARK" header="MagicMarker">
 		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):UnmarkSingle()
 	</Binding>
+	<Binding name="MAGICMARKRAID" header="MagicMarker">
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkRaidTargets()
+	</Binding>
 	<Binding name="MAGICMARKLOAD" header="MagicMarker">
 		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkRaidFromCache()
 	</Binding>

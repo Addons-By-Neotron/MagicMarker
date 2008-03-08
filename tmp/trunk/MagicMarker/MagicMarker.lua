@@ -18,7 +18,7 @@ local GetTime = GetTime
 local IsAltKeyDown = IsAltKeyDown
 local SetRaidTarget = SetRaidTarget
 local UnitGUID = UnitGUID
-local UnitIsDeadOrGhost = UnitIsDeadOrGhost
+local UnitIsDead = UnitIsDead
 local UnitLevel = UnitLevel
 local UnitName = UnitName
 local UnitSex = UnitSex
@@ -100,15 +100,18 @@ local function GetUniqueUnitID(unit)
    
 end
 
-function MagicMarker:PossiblyReleaseMark(unit)
-   local unitID = unit.."target"
-   if UnitExists(unitID) and UnitIsDeadOrGhost(unitID) then
+function MagicMarker:PossiblyReleaseMark(unit, noTarget)
+   local unitID = (noTarget and unit) or unit.."target"
+   if UnitExists(unitID) and UnitIsDead(unitID) then
       local unitName = UnitName(unitID)
       local raidMark = GetRaidTargetIndex(unitID)
-      if log.trace then log.trace("  => found mark %d on dead mob %s ...", raidMark, unitName) end
-      if raidMark and self:ReleaseMark(raidMark, unitID) then
-	 if log.debug then log.debug("Releasing target %s for %s", self:GetTargetName(raidMark), unitName) end
-	 return true;
+      
+      if raidMark then
+	 if log.trace then log.trace("  => found mark %d on dead mob %s ...", raidMark, unitName) end
+	 if self:ReleaseMark(raidMark, unitID) then
+	    if log.debug then log.debug("Released target %s for %s", self:GetTargetName(raidMark), unitName) end
+	    return true;
+	 end
       end
    end
 end
@@ -174,48 +177,23 @@ end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
 
-
 function MagicMarker:MarkRaidTargets()
-   local id, class, name
-   raidClassList = {}
-   groupScanTimer = nil
    if log.debug then log.debug("Making all targets of the raid.") end
-   
-   if GetNumRaidMembers() > 0 then
-      for id = 1,GetNumRaidMembers() do
-	 self:SmartMarkUnit("raid"..id.."target");
-      end
-   elseif GetNumPartyMembers() > 0 then
-      for id = 1,GetNumPartyMembers() do
-	 self:SmartMarkUnit("raid"..id.."target");
-      end
-   end
+   self:IterateGroup(function (self, unit) self.SmartMarkUnit(unit.."target") end, true)
 end
 
 local groupScanTimer
 
+function MagicMarker:LogClassInformation(unitName)
+   _,class = UnitClass(unitName)
+   raidClassList[class] = (raidClassList[class] or 0) + 1
+   if log.trace then log.trace("Found %s => %s.", unitName, class) end
+end
+
 function MagicMarker:ScanGroupMembers()
-   local id, class, name
    raidClassList = {}
-   groupScanTimer = nil
    if log.debug then log.debug("Rescanning raid/party member classes.") end
-   
-   if GetNumRaidMembers() > 0 then
-      for id = 1,GetNumRaidMembers() do
-	 name = GetRaidRosterInfo(id); 
-	 _,class = UnitClass(name)
-	 raidClassList[class] = (raidClassList[class] or 0) + 1
-      end
-   else
-      if GetNumPartyMembers() > 0 then
-	 for id = 1,GetNumPartyMembers() do
-	    _,class = UnitClass(party_idx[id]);
-	    raidClassList[class] = (raidClassList[class] or 0) + 1
-	 end
-      end
-      _,class = UnitClass("player")
-      raidClassList[class] = (raidClassList[class] or 0) + 1
-   end
+   self:IterateGroup(self.LogClassInformation)
 end
 
 
@@ -388,10 +366,14 @@ local function unitValue(unit1, unit2)
 end
 
 function MagicMarker:SmartMarkUnit(unit)
+   if not UnitExists(unit) then return end
    if log.trace then log.trace("Unit => "..unit) end
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
-   if UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
+   if UnitIsDead(unit) then
+      log.trace("Unit %s is dead...", unit)
+      self:PossiblyReleaseMark(unit, true)
+   elseif UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
       local unitGUID = GetUniqueUnitID(unit)
       local unitTarget = GetRaidTargetIndex(unit)
       
@@ -438,6 +420,7 @@ function MagicMarker:SmartMarkUnit(unit)
 end
 
 function MagicMarker:ReleaseMark(mark, target)
+   SetRaidTarget(target, 0)
    if markedTargets[mark] then
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
@@ -445,7 +428,6 @@ function MagicMarker:ReleaseMark(mark, target)
       end
       markedTargets[mark] = nil
       markedTargetValues[mark] = nil
-      SetRaidTarget(target, 0)
       return true
    end
 end
@@ -470,9 +452,7 @@ function MagicMarker:ReserveMark(mark, unit, value)
 end
 
 function MagicMarker:MarkSingle()
-   if UnitExists("target") then
-      self:SmartMarkUnit("target")
-   end
+   self:SmartMarkUnit("target")
 end
 
 function MagicMarker:UnmarkSingle()
