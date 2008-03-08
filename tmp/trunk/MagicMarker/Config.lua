@@ -646,7 +646,7 @@ function MagicMarker:GetTargetName(ccid)
    return sub(RT_LIST[ccid], 2)
 end
 
-LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options, "magicmarker") 
+LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options)
 
 function MagicMarker:UpgradeDatabase()
    local version = MagicMarkerDB.version or 0
