@@ -30,6 +30,9 @@ L["%s has a total of %d mobs. %s of these are newly discovered."] = true
 L["Out of these mobs %d are ignored."] = true
 L["None"] = true
 L["Mob Notes"] = true
+L["Zone Options"] = true
+L["Enable auto-marking on target change"] = true
+L["Enable Magic Marker in this zone"] = true
 
 -- Mark categories
 L["Tank"] = true

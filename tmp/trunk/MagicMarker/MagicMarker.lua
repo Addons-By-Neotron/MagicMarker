@@ -12,13 +12,20 @@ local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 
 -- Upvalue of global functions
-local GetTime = GetTime
-local GetRealZoneText = GetRealZoneText
-local IsAltKeyDown = IsAltKeyDown
-local format = string.format
-local UnitGUID = UnitGUID
-local SetRaidTarget = SetRaidTarget
 local GetRaidTargetIndex = GetRaidTargetIndex
+local GetRealZoneText = GetRealZoneText
+local GetTime = GetTime
+local IsAltKeyDown = IsAltKeyDown
+local SetRaidTarget = SetRaidTarget
+local UnitGUID = UnitGUID
+local UnitIsDeadOrGhost = UnitIsDeadOrGhost
+local UnitLevel = UnitLevel
+local UnitName = UnitName
+local UnitSex = UnitSex
+local format = string.format
+local strfind = strfind
+local strlen = strlen
+local sub = string.sub
 
 -- Parameters
 local markedTargets = {}
@@ -85,28 +92,87 @@ function MagicMarker:OnDisable()
    self:DisableEvents()
 end
 
+local function GetUniqueUnitID(unit)
+   if UnitGUID then return UnitGUID(unit) end -- 2.4
+   local unitName = UnitName(unit)
+   return format("%s:%d:%d",
+		 unitName, UnitLevel(unit), UnitSex(unit))
+   
+end
+
+function MagicMarker:PossiblyReleaseMark(unit, mob)
+   local unitID = unit.."target"
+   if UnitExists(unitID) then
+      local unitTarget = UnitName(unitID)
+      if log.trace then log.trace("Possibly unmarking %s => %s.", mob, unitTarget) end
+      if unitTarget and UnitIsDeadOrGhost(unitID) then
+	 local raidMark = GetRaidTargetIndex(unitID)
+	 if log.trace then log.trace("  => found mark %d...", raidMark) end
+	 if raidMark and self:ReleaseMark(raidMark, unitID) then
+	    if log.debug then log.debug("Releasing target %s for %s", self:GetTargetName(raidMark), unitTarget) end
+	    return true;
+	 end
+      end
+   end
+end
+
+--------------------------------
+-- THIS IS A HACK UNTIL 2.4  ---
+-- IT IS ENGLISH LOCALE ONLY ---
+--------------------------------
+function MagicMarker:UnitDeath()
+   local endPos = strfind(arg1, " dies")
+   local mob 
+   if endPos then
+      mob = sub(arg1, 1, endPos - 1)
+      if log.trace then log.trace("%s died", mob) end
+   else
+      _,endPos = strfind(arg1, "You have slain ")
+      if log.trace then log.trace("Slain something...") end
+      if endPos then
+	 mob = sub(arg1, endPos+1, strlen(arg1)-1);
+	 if log.trace then log.trace("I have slain %s!", mob) end
+      end
+   end
+   if mob then
+      self:IterateGroup(self.PossiblyReleaseMark, true, mob)
+   end
+end
+
 function MagicMarker:ZoneChangedNewArea()
    local zone = GetRealZoneText()
    
    if zone == nil or zone == "" then
       self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
    else
-      if IsInInstance() then
-	 self:EnableEvents()
+      zone = MagicMarker:SimplifyName(zone)
+      local zoneData = mobdata[zone]
+      local enableLogging
+      if not zoneData or zoneData.mm == nil then
+	 enableLogging = IsInInstance()
+      else
+	 enableLogging = zoneData.mm 
+      end
+
+      if enableLogging then
+	 self:EnableEvents(zoneData and zoneData.targetMark)
       else
 	 self:DisableEvents()
       end
    end
 end
 
-function MagicMarker:EnableEvents()
+function MagicMarker:EnableEvents(markOnTarget)
    if not self.addonEnabled then
       self.addonEnabled = true
-      log.info(L["Magic Marker enabled."])
-      --self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+      if log.info then log.info(L["Magic Marker enabled."]) end
+      if markOnTarget then
+	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+      end
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
+      self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
       self:ScheduleGroupScan()
    end
 end
@@ -114,22 +180,13 @@ end
 function MagicMarker:DisableEvents()
    if self.addonEnabled then
       self.addonEnabled = false
-      log.info(L["Magic Marker disabled."])
-      --self:UnregisterEvent("PLAYER_TARGET_CHANGED")
+      if log.info then log.info(L["Magic Marker disabled."]) end
+      self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
       self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
+      self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
    end
-end
-
-local function GetUniqueUnitID(unit)
-   if UnitGUID then return UnitGUID(unit) end -- 2.4
-   local unitName = UnitName(unit)
-   return format("%s:%d:%s:%d:%s",
-			unitName, UnitLevel(unit),
-			UnitClassification(unit), UnitSex(unit),
-			UnitCreatureType(unit))
-   
 end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
@@ -139,7 +196,7 @@ function MagicMarker:MarkRaidTargets()
    local id, class, name
    raidClassList = {}
    groupScanTimer = nil
-   log.debug("Making all targets of the raid.")
+   if log.debug then log.debug("Making all targets of the raid.") end
    
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
@@ -158,7 +215,7 @@ function MagicMarker:ScanGroupMembers()
    local id, class, name
    raidClassList = {}
    groupScanTimer = nil
-   log.debug("Rescanning raid/party member classes.")
+   if log.debug then log.debug("Rescanning raid/party member classes.") end
    
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
@@ -183,14 +240,14 @@ function MagicMarker:CacheRaidMarkForUnit(unit)
    local id = GetRaidTargetIndex(unit)
    if id then
       raidMarkCache[unit] = id
-      log.debug("Cached "..id.." for "..unit);
+      if log.debug then log.debug("Cached "..id.." for "..unit); end
    end
 end
 
 function MagicMarker:CacheRaidMarks()
    raidMarkCache = {}
    
-   log.debug("Caching raid / party marks.")
+   if log.debug then log.debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
 
@@ -200,28 +257,32 @@ function MagicMarker:MarkRaidFromCache()
    end
 end
 
-function MagicMarker:IterateGroup(callback)
+function MagicMarker:IterateGroup(callback, useID, ...)
    local id, name
    raidMarkCache = {}
 
-   log.trace("Iterating group...")
+   if log.trace then log.trace("Iterating group...") end
    
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
-	 callback(self, GetRaidRosterInfo(id))
+	 if useID then
+	    callback(self, "raid"..id, ...)
+	 else
+	    callback(self, GetRaidRosterInfo(id), ...)
+	 end
       end
    else
       if GetNumPartyMembers() > 0 then
 	 for id = 1,GetNumPartyMembers() do
-	    callback(self, GetRaidRosterInfo(party_idx[id]))
+	    callback(self, (useID and party_idx[id]) or GetRaidRosterInfo(party_idx[id]), ...)
 	 end
       end
-      callback(self, GetRaidRosterInfo("player"));
+      callback(self, (useID and "player") or GetRaidRosterInfo("player"), ...);
    end   
 end
 
 function MagicMarker:MarkRaidFromTemplate(template)
-   log.debug("Marking from template: "..template)
+   if log.debug then log.debug("Marking from template: "..template) end
    if MagicMarker.MarkTemplates[template] then
       self:IterateGroup(MagicMarker.MarkTemplates[template])
    end
@@ -254,7 +315,7 @@ local function LowFindMark(list, value)
       if not markedValue or value > markedValue then
 	 -- This will return the first free target or an already used target
 	 -- if the value of the new target is higher.
-	 log.trace("LowFindMark => "..tostring(id).." value "..tostring(value))
+	 if log.trace then log.trace("LowFindMark => "..tostring(id).." value "..tostring(value)) end
 	 markedTargetValues[id] = value
 	 return id
       end
@@ -279,14 +340,14 @@ function MagicMarker:GetNextUnitMark(unit,value)
 	 tankFirst = false
       end
    end
-   log.trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue)
+   if log.trace then log.trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue) end
    local raidMarkList 
    local raidMarkID
    
    if tankFirst or not cc then
       raidMarkList = self:GetMarkForCategory(1) 
       raidMarkID = LowFindMark(raidMarkList, unitValue)
-      if raidMarkID then log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID)) end
+      if raidMarkID and log.debug then log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID)) end
    end -- tank marks
 
    if not raidMarkID then 
@@ -299,7 +360,8 @@ function MagicMarker:GetNextUnitMark(unit,value)
 	    if raidMarkID then
 	       ccUsed[category] = cc_used_count + 1
 	       cc_list_used = category
-	       log.debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none", self:GetTargetName(raidMarkID) or "none?!")
+	       if log.debug then log.debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none",
+					   self:GetTargetName(raidMarkID) or "none?!") end
 	       break
 	    end
 	 end
@@ -310,7 +372,9 @@ function MagicMarker:GetNextUnitMark(unit,value)
    if not raidMarkID then
       raidMarkList = self:GetMarkForCategory(1)
       raidMarkID = LowFindMark(raidMarkList, unitValue)
-      if raidMarkID then log.debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID)) end
+      if raidMarkID and log.debug then
+	 log.debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID))
+      end 
    end
    
    -- None left for the specified category, 
@@ -331,7 +395,7 @@ function MagicMarker:UnitValue(unit, hash)
 	 value = value * 2 + 2-unitData.category -- Tank > CC
       end
    end
-   log.trace("Unit Value for %s = %d", unit, value)
+   if log.trace then log.trace("Unit Value for %s = %d", unit, value) end
    unitValueCache[unit]  = value
    return value
 end
@@ -341,7 +405,7 @@ local function unitValue(unit1, unit2)
 end
 
 function MagicMarker:SmartMarkUnit(unit)
-   log.trace("Unit => "..unit)
+   if log.trace then log.trace("Unit => "..unit) end
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
    if UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
@@ -350,32 +414,32 @@ function MagicMarker:SmartMarkUnit(unit)
       
       self:InsertNewUnit(unitName, GetRealZoneText()) -- This will insert it if it's missing
       
-      log.trace("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")")
+      if log.trace then log.trace("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")") end
       
       if markedTargets[unitTarget] and markedTargets[unitTarget].guid == unitGUID then
-	 log.trace("  already marked.")
+	 if log.trace then log.trace("  already marked.") end
 	 return
       end
       
       if recentlyAdded[unitGUID] then 
-	 log.trace("  recently marked.")
+	 if log.trace then log.trace("  recently marked.") end
 	 return
       end
       
       local newTarget, ccID = self:GetNextUnitMark(unit)
       
       if newTarget == 0 then
-	 log.trace("  No more raid targets available -- disabling marking.")
+	 if log.trace then log.trace("  No more raid targets available -- disabling marking.") end
 	 if markingEnabled then
 	    self:ToggleMarkingMode()
 	 end
       elseif newTarget == -1 then
-	 log.trace("  Target on ignore list")
+	 if log.trace then log.trace("  Target on ignore list") end
       else
 	 recentlyAdded[unitGUID] = true
 	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.7, unitGUID) -- To clear it up
 	 
-	 log.trace("  => "..newTarget)
+	 if log.trace then log.trace("  => "..newTarget) end
 	 if markedTargets[newTarget] then 
 	    ccUsed[ markedTargets[newTarget].ccid ] = ccID
 	    markedTargets[newTarget].ccid = ccID	    
@@ -386,15 +450,30 @@ function MagicMarker:SmartMarkUnit(unit)
 	 SetRaidTarget(unit, newTarget)
       end
    else
-      if unitName then log.trace("Ignoring "..unitName) end
+      if unitName and log.trace then log.trace("Ignoring "..unitName) end 
+   end
+end
+
+function MagicMarker:ReleaseMark(mark, target)
+   if markedTargets[mark] then
+      local ccid = markedTargets[mark].ccid
+      if ccid and ccUsed[ccid] then
+	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
+      end
+      markedTargets[mark] = nil
+      markedTargetValues[mark] = nil
+      SetRaidTarget(target, 0)
+      return true
    end
 end
 
 function MagicMarker:ReserveMark(mark, unit, value)
    if not markedTargets[mark] or markedTargetValues[mark] < value then
       if markedTargets[mark] then
-	 local ccid = markedTargets[mark].ccid;
-	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
+	 local ccid = markedTargets[mark].ccid
+	 if ccid and ccUsed [ccid] then
+	    ccUsed[ ccid ] = ccUsed[ ccid ] - 1
+	 end
 	 markedTargets[mark].ccid = "NONE"
 	 markedTargets[mark].guid = unit
       else
@@ -415,13 +494,8 @@ end
 
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
-      local unitTarget = GetRaidTargetIndex("target")
-      if unitTarget and markedTargets[unitTarget] then
-	 SetRaidTarget("target", 0)
-	 ccUsed[ markedTargets[unitTarget].ccid ] = nil
-	 markedTargets[unitTarget] = nil
-	 markedTargetValues[unitTarget] = nil
-      end
+      local mark = GetRaidTargetIndex("target")
+      if mark then self:ReleaseMark(mark, "target") end
    end
 end
 

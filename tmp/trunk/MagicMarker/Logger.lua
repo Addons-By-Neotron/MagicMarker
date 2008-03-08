@@ -14,12 +14,6 @@ local logPrefix = {
 local logLevels = MagicMarker.logLevels
 local logLevel  = logLevels.INFO
 
-function MagicMarker:SetLogLevel(path, level)
-   logLevel = level or path
-   MagicMarkerDB.logLevel = logLevel
-end
-function MagicMarker:GetLogLevel(path) return logLevel end
-
 local function LogMessage(level,...)
    if level <= logLevel
    then
@@ -27,15 +21,34 @@ local function LogMessage(level,...)
    end
 end
 
+local function debug(...) LogMessage(logLevels.DEBUG, ...) end
+local function error(...) LogMessage(logLevels.ERROR, ...) end
+local function warn(...) LogMessage(logLevels.WARN,  ...) end
+local function info(...) LogMessage(logLevels.INFO,  ...) end
+local function trace(...) LogMessage(logLevels.TRACE, ...) end
 
 local loggers = { 
-   debug = function(...) LogMessage(logLevels.DEBUG, ...) end, 
-   error = function(...) LogMessage(logLevels.ERROR, ...) end, 
-   warn  = function(...) LogMessage(logLevels.WARN,  ...) end, 
-   info  = function(...) LogMessage(logLevels.INFO,  ...) end, 
-   trace = function(...) LogMessage(logLevels.TRACE, ...) end
+   debug = debug,
+   error = error,
+   warn  = warn,
+   info  = info,
+   trace = trace,
 }
 
 function MagicMarker:GetLoggers() 
    return loggers
 end
+
+function MagicMarker:SetLogLevel(path, level)
+   logLevel = level or path
+   MagicMarkerDB.logLevel = logLevel
+   
+   if logLevel >= logLevels.ERROR then loggers.error = error else loggers.error = nil end
+   if logLevel >= logLevels.WARN  then loggers.warn = warn else loggers.warn = nil end
+   if logLevel >= logLevels.INFO  then loggers.info = info else loggers.info = nil end
+   if logLevel >= logLevels.DEBUG then loggers.debug = debug else loggers.debug = nil end
+   if logLevel >= logLevels.TRACE then loggers.trace = trace else loggers.trace = nil end
+end
+
+function MagicMarker:GetLogLevel(path) return logLevel end
+

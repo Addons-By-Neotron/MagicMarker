@@ -1,7 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
-local CONFIG_VERSION = 1
+local CONFIG_VERSION = 2
 local format = format
 local sub = string.sub
 local tonumber = tonumber
@@ -278,7 +278,7 @@ local function uniqList(list, id, newValue, empty, max)
    return list
 end
    
-local function raidTargetSetter(info, value)
+function MagicMarker:SetRaidTargetConfig(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
@@ -286,7 +286,7 @@ local function raidTargetSetter(info, value)
    targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
 end
 
-local function raidTargetGetter(info)
+function MagicMarker:GetRaidTargetConfig(info)
    local type = info[#info-1]
    local id = getID(info[#info]) or 9
    if not targetdata[type] then
@@ -296,9 +296,7 @@ local function raidTargetGetter(info)
    return RT_LIST[ targetdata[type][id] ]
 end
 
-
-
-local function mySetterFunc(info, value)
+function MagicMarker:SetMobConfig(info, value)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
@@ -320,10 +318,10 @@ local function mySetterFunc(info, value)
 	 options.args.mobs.args[region].args[mob].args.header.name; 
    end
    
-   log.trace("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) )
+   if log.trace then log.trace("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) ) end
 end
 
-local function myGetterFunc(info)
+function MagicMarker:GetMobConfig(info)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
@@ -336,8 +334,32 @@ local function myGetterFunc(info)
    elseif var == "category" then
       value = ACT_LIST[value]
    end
-   log.trace("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) )
+   if log.trace then log.trace("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) ) end
    return value
+end
+
+function MagicMarker:SetZoneConfig(info, value)
+   local var = info[#info]
+   local region = info[#info-1]
+   mobdata[region][var] = value
+   if log.trace then log.trace("Setting %s:%s to %s", region, var, tostring(value)) end
+   if region == self:SimplifyName(GetRealZoneText()) then
+      if var == "mm" then
+	 self:ZoneChangedNewArea()
+      elseif var == "targetMark" then
+	 if value then
+	    self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+	 else
+	    self:UnregisterEvent("PLAYER_TARGET_CHANGED")
+	 end
+      end
+   end
+end
+
+function MagicMarker:GetZoneConfig(info)
+   local var = info[#info]
+   local region = info[#info-1]
+   return mobdata[region][var]
 end
 
 
@@ -404,11 +426,12 @@ function MagicMarker:InsertNewUnit(name, zone)
       zoneHash.mobs[simpleName] = {
 	 name = name,
 	 new = true,
+	 mm = 1,
 	 category = 1,
 	 priority = 2,
 	 cc = {}
       }
-      log.info(format(L["Added new mob %s in zone %s."],name, zone))
+      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
 
       if optionsCallout then self:CancelTimer(optionsCallout, true) end
       
@@ -466,9 +489,10 @@ function MagicMarker:GenerateOptions()
 
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
-
-   options.args.categories.set = raidTargetSetter
-   options.args.categories.get = raidTargetGetter
+   
+   options.handler = self
+   options.args.categories.set = "SetRaidTargetConfig"
+   options.args.categories.get = "GetRaidTargetConfig"
 
    for id, catName in ipairs(CC_LIST) do
       if id == 1 then catName = "TANK" end -- hack
@@ -504,18 +528,45 @@ function MagicMarker:GenerateOptions()
       opts[id] = {
 	 type = "group",
 	 name = ZoneLookup[zone.name] or zone.name,
+	 width="double",
 	 args = {
 	    zoneInfo = {
 	       type = "description",
-	       name = GetZoneInfo(zone)
+	       name = GetZoneInfo(zone), 
+	       order = 0,
+	    },
+	    optionHeader = {
+	       type = "header",
+	       name = L["Zone Options"],
+	       order = 1
+	    },
+	    targetMark = {
+	       width = "full",
+	       type = "toggle",
+	       name = L["Enable auto-marking on target change"],
+	       handler = self,
+	       set = "SetZoneConfig",
+	       get = "GetZoneConfig",
+	       order = 20,
+	    },
+	    mm = {
+	       width = "full",
+	       type = "toggle",
+	       name = L["Enable Magic Marker in this zone"],
+	       handler = self,
+	       set = "SetZoneConfig",
+	       get = "GetZoneConfig",
+	       order = 10,
 	    }
+
 	 },
-	 set = mySetterFunc,
-	 get = myGetterFunc, 
+	 set = "SetMobConfig",
+	 get = "GetMobConfig", 
       }
       subopts = opts[id].args
       for mob, data in pairs(zone.mobs) do
 	 subopts[mob] = {
+	 width="double",
 	    type = "group",
 	    args = {
 	       header = {
@@ -615,6 +666,17 @@ function MagicMarker:UpgradeDatabase()
 	 end
       end
    end
-   
+
+   if version < 1 then
+      -- zone-level enable/disable feature, default to enable
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 zoneData.mm = true
+      end
+   end
+
    MagicMarkerDB.version = CONFIG_VERSION
+end
+
+function MagicMarker:ClearOptions()
+   options = {}
 end
