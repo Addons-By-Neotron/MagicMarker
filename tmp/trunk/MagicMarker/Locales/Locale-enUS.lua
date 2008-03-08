@@ -86,6 +86,7 @@ L["Magic Marker enabled."] = true
 L["Magic Marker disabled."] = true
 L["Save party/raid mark layout"] = true
 L["Load party/raid mark layout"] = true
+L["Unable to determine the class for %s."] = true
 
 -- Log levels
 L["NONE"] = "Disabled"

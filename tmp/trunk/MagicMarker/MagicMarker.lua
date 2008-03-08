@@ -82,6 +82,7 @@ function MagicMarker:OnEnable()
    self:ZoneChangedNewArea()
    self:GenerateOptions()
    self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
+   self:RegisterChatCommand("mm", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
    self:RegisterChatCommand("mmtmpl", "MarkRaidFromTemplate", false, true)
    self:ScanGroupMembers()
 end
@@ -184,10 +185,14 @@ end
 
 local groupScanTimer
 
-function MagicMarker:LogClassInformation(unitName)
-   _,class = UnitClass(unitName)
-   raidClassList[class] = (raidClassList[class] or 0) + 1
-   if log.trace then log.trace("Found %s => %s.", unitName, class) end
+function MagicMarker:LogClassInformation(unitName, class)
+   if not class then _,class = UnitClass(unitName) end
+   if class then 
+      raidClassList[class] = (raidClassList[class] or 0) + 1
+      if log.trace then log.trace("  found %s => %s.", unitName, class) end
+   elseif log.warn then
+      log.warn(L["Unable to determine the class for %s."], unitName)
+   end
 end
 
 function MagicMarker:ScanGroupMembers()
@@ -219,26 +224,27 @@ function MagicMarker:MarkRaidFromCache()
 end
 
 function MagicMarker:IterateGroup(callback, useID, ...)
-   local id, name
+   local id, name, class
    raidMarkCache = {}
 
    if log.trace then log.trace("Iterating group...") end
    
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
+	 name, _, _, _, _, class = GetRaidRosterInfo(id)
 	 if useID then
-	    callback(self, "raid"..id, ...)
+	    callback(self, "raid"..id, class, ...)
 	 else
-	    callback(self, GetRaidRosterInfo(id), ...)
+	    callback(self, name, class, ...)
 	 end
       end
    else
       if GetNumPartyMembers() > 0 then
 	 for id = 1,GetNumPartyMembers() do
-	    callback(self, (useID and party_idx[id]) or GetRaidRosterInfo(party_idx[id]), ...)
+	    callback(self, (useID and party_idx[id]) or UnitName(party_idx[id]), nil, ...)
 	 end
       end
-      callback(self, (useID and "player") or GetRaidRosterInfo("player"), ...);
+      callback(self, (useID and "player") or UnitName("player"), nil, ...);
    end   
 end
 
