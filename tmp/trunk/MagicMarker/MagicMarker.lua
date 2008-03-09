@@ -485,13 +485,3 @@ function MagicMarker:ResetMarkData()
 end
 
 
--- Keybind names
-
-BINDING_HEADER_MagicMarker = L["Magic Marker"]
-BINDING_NAME_MAGICMARKRESET = L["Reset raid icons"]
-BINDING_NAME_MAGICMARKMARK = L["Mark selected target"]
-BINDING_NAME_MAGICMARKUNMARK = L["Unmark selected target"]
-BINDING_NAME_MAGICMARKTOGGLE = L["Toggle config dialog"]
-BINDING_NAME_MAGICMARKRAID = L["Mark party/raid targets"]
-BINDING_NAME_MAGICMARKSAVE = L["Save party/raid mark layout"]
-BINDING_NAME_MAGICMARKLOAD = L["Load party/raid mark layout"]

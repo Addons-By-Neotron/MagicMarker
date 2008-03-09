@@ -35,6 +35,7 @@ L["Enable auto-marking on target change"] = true
 L["Enable Magic Marker in this zone"] = true
 L['Delete mob from database (not recoverable)'] = true 
 L['Delete entire zone from database (not recoverable)'] = true
+L["Introduction"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -84,6 +85,7 @@ L["None"] = "None"
 
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The ordering is the priority in which they are attempted be used. I.e if the raid has two mages but two sheep targets are already assigned, it will iterate through the specified methods until one is found. If none is found, it will revert back to assigning a tank or arbitrary symbol to the target."
+L["MOBDATAHELPTEXT"] = "Welcome to the Mob Database. Here you configure the priority, category and desired crowd control methods for all the mobs in the database. For mobs of category tank the crowd control methods can be ignored. If you choose to ignore a mob it will still be present in the list (in case you decide to unignore it). Once ignored, it will never get any raid targets assigned to it.\n\nYou can also delete a zone or individual mob entries in the zone. Please be aware that this action can't be reversed."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

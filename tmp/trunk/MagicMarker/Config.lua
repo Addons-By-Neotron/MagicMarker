@@ -9,13 +9,15 @@ local tolower = strlower
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
+local R = LibStub("AceConfigRegistry-3.0")
+local C = LibStub("AceConfigDialog-3.0")
 
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
 local ZoneLookup  = BabbleZone:GetLookupTable()
 
 local MobNotesDB
-local options 
+local options, standardZoneOptions, standardMobOptions
 BabbleZone = nil
 
 local db = MagicMarkerDB
@@ -77,6 +79,25 @@ do
    end
 end
 
+local function GetMobName(arg)
+   return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
+end
+    
+local function GetMobNote(arg)
+   if not MobNotesDB then
+      if _G.MobNotesDB then
+	 MobNotesDB = _G.MobNotesDB
+      else
+	 return ""
+      end
+   end
+   local name = GetMobName(arg)
+   return MobNotesDB[GetMobName(arg)] or "N/A"
+end
+
+function MagicMarker:NoMobNote(arg)
+   return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
+end
 
 do
    local temp 
@@ -134,6 +155,9 @@ do
 	    type = "group",
 	    name = L["Options"],
 	    order = 0,
+	    handler = KeybindHelper,
+	    get = "GetKeybind",
+	    set = "SetKeybind",
 	    args = {
 	       generalHeader = {
 		  type = "header",
@@ -154,80 +178,106 @@ do
 		  name = L["Key Bindings"],
 		  order = 100,
 	       },
-	       keyconfig = {
-		  name = L["Toggle config dialog"],
-		  desc = L["Toggle config dialog"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKTOGGLE",
-		  order = 101,
-	       },	    
-	       keyreset = {
-		  name = L["Reset raid icons"],
-		  desc = L["Reset raid icons"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKRESET",
-		  order = 101,
-	       },	    
-	       keymark = {
-		  name = L["Mark selected target"],
-		  desc = L["Mark selected target"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKMARK",
-		  order = 102,
-	       },	    
-	       keyunmark = {
-		  name = L["Unmark selected target"],
-		  desc = L["Unmark selected target"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKUNMARK",
-		  order = 103,
-	       },	    
-	       keymarkraid = {
-		  name = L["Mark party/raid targets"],
-		  desc = L["Mark party/raid targets"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKRAID",
-		  order = 104,
-	       },	    
-	       keysave = {
-		  name = L["Save party/raid mark layout"], 
-		  desc = L["Save party/raid mark layout"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKSAVE",
-		  order = 105,
-	       },	    
-	       keyload = {
-		  name = L["Load party/raid mark layout"], 
-		  desc = L["Load party/raid mark layout"],
-		  type = "keybinding",
-		  handler = KeybindHelper,
-		  get = "GetKeybind",
-		  set = "SetKeybind",
-		  arg = "MAGICMARKLOAD",
-		  order = 105,
-	       },	    
 	    },
 	 },
       }
    }
+   standardZoneOptions = {
+      optionHeader = {
+	 type = "header",
+	 name = L["Zone Options"],
+	 order = 1
+      },
+      targetMark = {
+	 width = "full",
+	 type = "toggle",
+	 name = L["Enable auto-marking on target change"],
+	 handler = MagicMarker,
+	 set = "SetZoneConfig",
+	 get = "GetZoneConfig",
+	 order = 20,
+      },
+      mm = {
+	 width = "full",
+	 type = "toggle",
+	 name = L["Enable Magic Marker in this zone"],
+	 handler = MagicMarker,
+	 set = "SetZoneConfig",
+	 get = "GetZoneConfig",
+	 order = 10,
+      },
+      deletehdr = {
+	 type = "header",
+	 name = "",
+	 order = 99
+      }, 
+   }
+   standardMobOptions = {
+      header = {
+	 name = GetMobName,
+	 type = "header",
+	 order = 0
+      },
+      priority = {
+	 name = L["Priority"],
+	 type = "select",
+	 values = priDropdown, 
+	 order = 2,
+      },
+      category = {
+	 name = "Category",
+	 type = "select",
+	 values = catDropdown, 
+	 order = 3,
+	 hidden = "IsIgnored",
+      },
+      ccheader = {
+	 name = L["Crowd Control Config"], 
+	 type = "header",
+	 hidden = "IsIgnored",
+	 order = 40
+      },
+      ccinfo = {
+	 type = "description",
+	 name = L["CCHELPTEXT"],
+	 order = 50,
+	 hidden = "IsIgnored",
+      }, 
+      addcc = {
+	 type = "execute",
+	 name = L["Add new crowd control"],
+	 func = "AddNewCC",
+	 order = 300,
+	 hidden = "IsHiddenAddCC", 
+      },
+      mobnotes = {
+	 name = GetMobNote, 
+	 type = "description", 
+	 order = 20,
+	 hidden = "NoMobNote",
+      },
+      mobnoteheader = {
+	 name = L["Mob Notes"],
+	 type = "header", 
+	 order = 15,
+	 hidden = "NoMobNote",
+      },
+      deletehdr = {
+	 type = "header",
+	 name = "",
+	 order = 10000
+      }
+   }
+
+   for num = 1,CONFIG_MAP.NUMCC do
+      standardMobOptions["ccopt"..num] = {
+	 name = L["Crowd Control #"]..num,
+	 type = "select",
+	 values = ccDropdown,
+	 order = 100+num,
+	 hidden = "IsHiddenCC",
+      }
+   end
 end
 
 function MagicMarker:GetMarkForCategory(category)
@@ -281,7 +331,7 @@ function MagicMarker:SetRaidTargetConfig(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
---   log.trace("Setting "..id.." to "..value);
+--   log.trace("Setting "..id.." to "..value)
    targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
 end
 
@@ -291,7 +341,7 @@ function MagicMarker:GetRaidTargetConfig(info)
    if not targetdata[type] then
       return nil
    end
---   log.trace("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ]);
+--   log.trace("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ])
    return RT_LIST[ targetdata[type][id] ]
 end
 
@@ -313,8 +363,8 @@ function MagicMarker:SetMobConfig(info, value)
    if mobdata[region].mobs[mob].new then
       mobdata[region].mobs[mob].new = nil
       -- Remove the "new" mark
-      options.args.mobs.args[region].args[mob].name = 
-	 options.args.mobs.args[region].args[mob].args.header.name; 
+      options.args.mobs.args[region].plugins.mobList[mob].name = 
+	 mobdata[region].mobs[mob].name
    end
    
    if log.trace then log.trace("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) ) end
@@ -362,45 +412,45 @@ function MagicMarker:GetZoneConfig(info)
 end
 
 
-local function isIgnored(var)
+function MagicMarker:IsIgnored(var)
    local prio = mobdata[var[#var-2]].mobs[var[#var-1]].priority
    local ignored = MagicMarker:IsUnitIgnored(prio)
    return ignored
 end
 
-local function isHiddenCC(var)
-   if isIgnored(var) then return true end
+function MagicMarker:IsHiddenCC(var)
+   if self:IsIgnored(var) then return true end
    local index = getID(var[#var])
    local cc = mobdata[var[#var-2]].mobs[var[#var-1]].cc 
    if not cc[index] then return true end
    return false
 end
 
-local function isHiddenRT(var)
+function MagicMarker:IsHiddenRT(var)
    local index = getID(var[#var])
    local list = targetdata[var[#var-1]]
    return not list or not list[index] 
 end
 
-local function isHiddenAddRT(var)
+function MagicMarker:IsHiddenAddRT(var)
    local index = getID(var[#var])
    local list = targetdata[var[#var-1]] 
    if not list then return false end
    return list[#list] == 9 or #list == 8
 end
 
-local function isHiddenAddCC(var)
-   if isIgnored(var) then return true end
+function MagicMarker:IsHiddenAddCC(var)
+   if self:IsIgnored(var) then return true end
    local cc = mobdata[var[#var-2]].mobs[var[#var-1]].cc
    return cc[#cc] == 1 or #cc == CONFIG_MAP.NUMCC 
 end
    
-local function addNewCC(var)
+function MagicMarker:AddNewCC(var)
    local val = mobdata[var[#var-2]].mobs[var[#var-1]].cc
    val[#val+1] = 1
 end
    
-local function addNewRT(var)
+function MagicMarker:AddNewRT(var)
    local val = targetdata[var[#var-1]] or {}
    val[#val+1] = 9
    targetdata[var[#var-1]] = val
@@ -409,34 +459,6 @@ end
 function MagicMarker:SimplifyName(name)
    if not name then return "" end
    return gsub(name, " ", "")
-end
-
-local optionsCallout
-
-function MagicMarker:InsertNewUnit(name, zone)
-   local simpleName = self:SimplifyName(name)
-   zone = ZoneReverse[zone] or zone;
-   local simpleZone = self:SimplifyName(zone)
-   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1 }
-
-   mobdata[simpleZone] = zoneHash
-   
-   if not zoneHash.mobs[simpleName] then
-      zoneHash.mobs[simpleName] = {
-	 name = name,
-	 new = true,
-	 category = 1,
-	 priority = 3,
-	 cc = {}
-      }
-      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
-
-      if optionsCallout then self:CancelTimer(optionsCallout, true) end
-      
-      optionsCallout = self:ScheduleTimer(self.GenerateOptions, 2)
-   end
-   
-   return mobdata[simpleZone].mobs[simpleName];
 end
 
 local function GetZoneInfo(hash)
@@ -454,31 +476,40 @@ local function GetZoneInfo(hash)
    local ret =  format(L["%s has a total of %d mobs. %s of these are newly discovered."],
 			      hash.name, total, new)
    if ignored > 0 then
-      ret = ret .. " "..format(L["Out of these mobs %d are ignored."], ignored);
+      ret = ret .. " "..format(L["Out of these mobs %d are ignored."], ignored)
    end
    return ret
 end
 
+local optionsCallout
 
-local function GetMobName(arg)
-   return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
-end
-    
+function MagicMarker:InsertNewUnit(name, zone)
+   local simpleName = self:SimplifyName(name)
+   zone = ZoneReverse[zone] or zone
+   local simpleZone = self:SimplifyName(zone)
+   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1 }
 
-local function GetMobNote(arg)
-   if not MobNotesDB then
-      if _G.MobNotesDB then
-	 MobNotesDB = _G.MobNotesDB
-      else
-	 return ""
-      end
+   mobdata[simpleZone] = zoneHash
+   
+   if not zoneHash.mobs[simpleName] then
+      zoneHash.mobs[simpleName] = {
+	 name = name,
+	 new = true,
+	 category = 1,
+	 priority = 3,
+	 cc = {}
+      }
+      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
    end
-   local name = GetMobName(arg)
-   return MobNotesDB[GetMobName(arg)] or "N/A"
-end
 
-local function NoMobNote(arg)
-   return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
+   if not options.args.mobs.args[simpleZone] then
+      options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
+   else 
+      options.args.mobs.args[simpleZone].args.loader.hidden = false
+      options.args.mobs.args[simpleZone].args.zoneInfo.name = GetZoneInfo(zoneHash)
+   end
+   self:NotifyChange()
+   return mobdata[simpleZone].mobs[simpleName]
 end
 
 function MagicMarker:RemoveZone(var)
@@ -489,6 +520,7 @@ function MagicMarker:RemoveZone(var)
    end
    mobdata[zone] = nil
    options.args.mobs.args[zone] = nil
+   self:NotifyChange()
 end
 
 function MagicMarker:RemoveMob(var)
@@ -501,7 +533,66 @@ function MagicMarker:RemoveMob(var)
 	       hash.mobs[mob].name, ZoneLookup[hash.name] or hash.name)
    end
    hash.mobs[mob] = nil
-   options.args.mobs.args[zone].args[mob] = nil
+   options.args.mobs.args[zone].plugins.mobList[mob] = nil
+   options.args.mobs.args[zone].args.zoneInfo.name = GetZoneInfo(hash)
+   self:NotifyChange()
+end
+
+function MagicMarker:BuildMobConfig(var)
+   local mob = var[#var-1]
+   local zone = var[#var-2]
+   local zoneHash = options.args.mobs.args[zone]
+   local subopts = options.args.mobs.args[zone].plugins.mobList
+   local name = subopts[mob].name
+   
+   if log.trace then log.trace("Generating configuration for %s in zone %s", mob, zone) end
+
+   subopts[mob].args.loader.hidden = true
+   
+   subopts[mob].plugins = {
+      sharedMobConfig = standardMobOptions,
+      privateMobConfig = {
+	 delete = {
+	    type = 'execute',
+	    name = L['Delete mob from database (not recoverable)'],
+	    order = 10001,
+	    width = "full",
+	    func = "RemoveMob",
+	    confirm = true,
+	    confirmText = string.format(L["Are you sure you want to delete |cffd9d919%s|r from the database?"], name)
+	 }
+      }
+   }
+   self:NotifyChange()
+end
+
+function MagicMarker:NotifyChange()
+   self:UnloadOptions()
+   R:NotifyChange(L["Magic Marker"])
+end
+ 
+local unloadTimer
+function MagicMarker:UnloadOptions()
+   if C.OpenFrames[L["Magic Marker"]] then
+      if not unloadTimer then
+	 unloadTimer = self:ScheduleRepeatingTimer("UnloadOptions", 5)
+	 log.trace("Attempting to unload options [%s]...", unloadTimer)
+      end
+      return
+   end
+   if unloadTimer then
+      self:CancelTimer(unloadTimer, true)  
+      unloadTimer = nil
+   end
+   
+   for id, hash in pairs(options.args.mobs.args) do
+      if id ~= "headerdata" then
+	 hash.args.loader.hidden = false
+	 hash.plugins.mobList = nil
+	 if log.trace then log.trace("Unloaded mob options for %s.", hash.name) end
+      end
+   end
+   R:NotifyChange(L["Magic Marker"])
 end
 
 function MagicMarker:GenerateOptions()
@@ -525,9 +616,9 @@ function MagicMarker:GenerateOptions()
 	    addcc = {
 	       type = "execute",
 	       name = L["Add raid icon"],
-	       func = addNewRT,
+	       func = "AddNewRT",
 	       order = 1000,
-	       hidden = isHiddenAddRT, 
+	       hidden = "IsHiddenAddRT", 
 	    }
 	 },
       }
@@ -537,158 +628,99 @@ function MagicMarker:GenerateOptions()
 	    name = "Raid Icon #"..icon,
 	    dialogControl = "MMRaidIcon",
 	    order = icon*10,
-	    hidden = isHiddenRT,
+	    hidden = "IsHiddenRT",
 	    values = raidIconDropdown,
 	 }
       end
       
    end
 
-   opts = options.args.mobs.args;
-   for id, zone in pairs(mobdata) do
-      opts[id] = {
-	 type = "group",
-	 name = ZoneLookup[zone.name] or zone.name,
-	 width="double",
-	 handler = MagicMarker, 
-	 args = {
-	    zoneInfo = {
-	       type = "description",
-	       name = GetZoneInfo(zone), 
-	       order = 0,
-	    },
-	    optionHeader = {
-	       type = "header",
-	       name = L["Zone Options"],
-	       order = 1
-	    },
-	    targetMark = {
-	       width = "full",
-	       type = "toggle",
-	       name = L["Enable auto-marking on target change"],
-	       handler = self,
-	       set = "SetZoneConfig",
-	       get = "GetZoneConfig",
-	       order = 20,
-	    },
-	    mm = {
-	       width = "full",
-	       type = "toggle",
-	       name = L["Enable Magic Marker in this zone"],
-	       handler = self,
-	       set = "SetZoneConfig",
-	       get = "GetZoneConfig",
-	       order = 10,
-	    },
-	    deletehdr = {
-	       type = "header",
-	       name = "",
-	       order = 99
-	    }, 
-	    delete = {
-	       type = 'execute',
-	       name = L['Delete entire zone from database (not recoverable)'],
-	       order = 100,
-	       width = "full",
-	       func = "RemoveZone",
-	       confirm = true,
-	       confirmText = string.format(L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"],
-					   ZoneLookup[zone.name] or zone.name)
-	    }
-
-
+   opts = options.args.mobs.args
+   opts.headerdata = {
+      type = "group",
+      name = L["Introduction"],
+      args = {
+	 header = {
+	    type = "header",
+	    name = L["Introduction"]
 	 },
-	 set = "SetMobConfig",
-	 get = "GetMobConfig", 
-      }
-      subopts = opts[id].args
-      for mob, data in pairs(zone.mobs) do
-	 subopts[mob] = {
-	    type = "group",
-	    args = {
-	       header = {
-		  name = data.name,
-		  type = "header",
-		  order = 0
-	       }, 
-	       priority = {
-		  name = L["Priority"],
-		  type = "select",
-		  values = priDropdown, 
-		  order = 2,
-	       },
-	       category = {
-		  name = "Category",
-		  type = "select",
-		  values = catDropdown, 
-		  order = 3,
-		  hidden = isIgnored,
-	       },
-	       ccheader = {
-		  name = L["Crowd Control Config"], 
-		  type = "header",
-		  hidden = isIgnored,
-		  order = 40
-	       },
-	       ccinfo = {
-		  type = "description",
-		  name = L["CCHELPTEXT"],
-		  order = 50,
-		  hidden = isIgnored,
-	       }, 
-	       addcc = {
-		  type = "execute",
-		  name = L["Add new crowd control"],
-		  func = addNewCC,
-		  order = 300,
-		  hidden = isHiddenAddCC, 
-	       },
-	       mobnotes = {
-		  name = GetMobNote, 
-		  type = "description", 
-		  order = 20,
-		  hidden = NoMobNote,
-	       },
-	       mobnoteheader = {
-		  name = L["Mob Notes"],
-		  type = "header", 
-		  order = 15,
-		  hidden = NoMobNote,
-	       },
-	       deletehdr = {
-		  type = "header",
-		  name = "",
-		  order = 10000
-	       }, 
-	       delete = {
-		  type = 'execute',
-		  name = L['Delete mob from database (not recoverable)'],
-		  order = 10001,
-		  width = "full",
-		  func = "RemoveMob",
-		  confirm = true,
-		  confirmText = string.format(L["Are you sure you want to delete |cffd9d919%s|r from the database?"], data.name)
-					      
-	       }
+	 desc = {
+	    type = "description",
+	    name = L["MOBDATAHELPTEXT"]
+	 }
+      },
+      order = 0,
+   }
+   for id, zone in pairs(mobdata) do
+      opts[id] = self:ZoneConfigData(id, zone)
+   end
+end
+
+function MagicMarker:ZoneConfigData(id, zone)
+   return {
+      type = "group",
+      name = ZoneLookup[zone.name] or zone.name,
+      handler = MagicMarker, 
+      args = {
+	 zoneInfo = {
+	    type = "description",
+	    name = GetZoneInfo(zone), 
+	    order = 0,
+	 },
+	 delete = {
+	    type = 'execute',
+	    name = L['Delete entire zone from database (not recoverable)'],
+	    order = 100,
+	    width = "full",
+	    func = "RemoveZone",
+	    confirm = true,
+	    confirmText = string.format(L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"],
+					ZoneLookup[zone.name] or zone.name)
+	 },
+	 loader = {
+	    type = "toggle",
+	    name = "loader",
+	    get = "LoadMobListForZone",
+	    arg = id,
+	 }
+      },
+      plugins = {
+	 StandardZone = standardZoneOptions, 
+      },
+      set = "SetMobConfig",
+      get = "GetMobConfig", 
+   }
+end
+
+function MagicMarker:LoadMobListForZone(var)
+   local zone = var[#var-1]
+   local zoneData = options.args.mobs.args[zone]
+   local name = mobdata[zone].name
+   local subopts = {}
+
+   name = ZoneReverse[name] or name
+
+   if log.trace then log.trace("Loading mob list for zone %s", name) end
+
+   zoneData.args.loader.hidden = true 
+--   zoneData.args.loader.get = nil -- prevent further loading
+
+   zoneData.plugins.mobList = subopts
+
+   for mob, data in pairs(mobdata[zone].mobs) do
+      subopts[mob] = {
+	 type = "group",
+	 name = (data.new and "* "..data.name) or data.name,
+	 args = {
+	    loader = {
+	       name = "Loader",
+	       type = "toggle",
+	       get = "BuildMobConfig"
 	    }
 	 }
-
-	 for num = 1,CONFIG_MAP.NUMCC do
-	    subopts[mob].args["ccopt"..num] = {
-	       name = L["Crowd Control #"]..num,
-	       type = "select",
-	       values = ccDropdown,
-	       order = 100+num,
-	       hidden = isHiddenCC,
-	    }
-	 end
-	 if data.new then
-	    subopts[mob].name = "* "..data.name;
-	 else 
-	    subopts[mob].name = data.name;
-	 end
-      end
+      }
    end
+   self:NotifyChange()
 end
 
 function MagicMarker:GetCCName(ccid)
@@ -699,14 +731,12 @@ function MagicMarker:GetTargetName(ccid)
    return sub(RT_LIST[ccid], 2)
 end
 
-LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options)
-
 function MagicMarker:UpgradeDatabase()
    local version = MagicMarkerDB.version or 0
 
    if version < 1 then
       -- Added two new priority levels and change logging 
-      MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO;
+      MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO
       MagicMarkerDB.debug = nil
       for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
 	 for mob, mobData in pairs(zoneData.mobs) do
@@ -719,7 +749,7 @@ function MagicMarker:UpgradeDatabase()
       end
    end
 
-   if version < 1 then
+   if version < 2 then
       -- zone-level enable/disable feature, default to enable
       for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
 	 zoneData.mm = true
@@ -729,6 +759,31 @@ function MagicMarker:UpgradeDatabase()
    MagicMarkerDB.version = CONFIG_VERSION
 end
 
-function MagicMarker:ClearOptions()
-   options = {}
+local keyBindingOrder = 1000
+
+local function AddKeyBinding(keyname, desc)
+   _G["BINDING_NAME_"..keyname] = desc
+   options.args.options.args[keyname] = {
+      name = desc, 
+      desc = desc, 
+      type = "keybinding",
+      arg = keyname,
+      order = keyBindingOrder,
+   }
+   keyBindingOrder = keyBindingOrder + 1
 end
+
+-- Keybind names
+
+BINDING_HEADER_MagicMarker = L["Magic Marker"]
+
+AddKeyBinding("MAGICMARKRESET", L["Reset raid icons"])
+AddKeyBinding("MAGICMARKMARK", L["Mark selected target"])
+AddKeyBinding("MAGICMARKUNMARK", L["Unmark selected target"])
+AddKeyBinding("MAGICMARKTOGGLE", L["Toggle config dialog"])
+AddKeyBinding("MAGICMARKRAID", L["Mark party/raid targets"])
+AddKeyBinding("MAGICMARKSAVE", L["Save party/raid mark layout"])
+AddKeyBinding("MAGICMARKLOAD", L["Load party/raid mark layout"])
+
+LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options)
+
