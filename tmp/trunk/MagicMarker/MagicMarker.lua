@@ -377,7 +377,7 @@ function MagicMarker:SmartMarkUnit(unit)
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
    if UnitIsDead(unit) then
-      log.trace("Unit %s is dead...", unit)
+      if log.trace then log.trace("Unit %s is dead...", unit) end
       self:PossiblyReleaseMark(unit, true)
    elseif UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
       local unitGUID = GetUniqueUnitID(unit)

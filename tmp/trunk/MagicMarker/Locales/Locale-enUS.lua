@@ -33,6 +33,12 @@ L["Mob Notes"] = true
 L["Zone Options"] = true
 L["Enable auto-marking on target change"] = true
 L["Enable Magic Marker in this zone"] = true
+L['Delete mob from database (not recoverable)'] = true 
+L['Delete entire zone from database (not recoverable)'] = true
+
+-- Options config confirmation
+L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
+L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = true
 
 -- Mark categories
 L["Tank"] = true
@@ -87,6 +93,8 @@ L["Magic Marker disabled."] = true
 L["Save party/raid mark layout"] = true
 L["Load party/raid mark layout"] = true
 L["Unable to determine the class for %s."] = true
+L["Deleting zone %s from the database!"] = true
+L["Deleting mob %s from zone %s from the database!"] = true
 
 -- Log levels
 L["NONE"] = "Disabled"

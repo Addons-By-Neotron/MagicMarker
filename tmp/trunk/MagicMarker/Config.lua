@@ -15,10 +15,9 @@ local ZoneReverse = BabbleZone:GetReverseLookupTable()
 local ZoneLookup  = BabbleZone:GetLookupTable()
 
 local MobNotesDB
-
+local options 
 BabbleZone = nil
 
-local options = {}
 local db = MagicMarkerDB
 
 local mobdata, targetdata
@@ -111,125 +110,125 @@ do
    for logname,id in pairs(MagicMarker.logLevels) do
       logLevelsDropdown[id] = L[logname]
    end
-end
-
-local options = { 
-   type = "group", 
-   name = L["Magic Marker"],
-   childGroups = "tab",
-   args = {
-      mobs = {
-	 type = "group",
-	 name = L["Mob Database"],
-	 args = {}, 
-	 order = 300
-      }, 
-      categories = {
-	 childGroups = "tab",
-	 type = "group",
-	 name = L["Raid Target Settings"],
-	 order = 1,
-	 args = { }
-      }, 
-      options = {
-	 childGroups = "tab",
-	 type = "group",
-	 name = L["Options"],
-	 order = 0,
-	 args = {
-	    generalHeader = {
-	       type = "header",
-	       name = L["General Options"],
-	       order = 0,
+   
+   options = { 
+      type = "group", 
+      name = L["Magic Marker"],
+      childGroups = "tab",
+      args = {
+	 mobs = {
+	    type = "group",
+	    name = L["Mob Database"],
+	    args = {}, 
+	    order = 300
+	 }, 
+	 categories = {
+	    childGroups = "tab",
+	    type = "group",
+	    name = L["Raid Target Settings"],
+	    order = 1,
+	    args = { }
+	 }, 
+	 options = {
+	    childGroups = "tab",
+	    type = "group",
+	    name = L["Options"],
+	    order = 0,
+	    args = {
+	       generalHeader = {
+		  type = "header",
+		  name = L["General Options"],
+		  order = 0,
+	       },
+	       debug = {
+		  type = "select",
+		  name = L["Log level"],
+		  handler = MagicMarker,
+		  set = "SetLogLevel",
+		  get = "GetLogLevel",
+		  order = 1,
+		  values = logLevelsDropdown,
+	       },
+	       bindingHeader = {
+		  type = "header",
+		  name = L["Key Bindings"],
+		  order = 100,
+	       },
+	       keyconfig = {
+		  name = L["Toggle config dialog"],
+		  desc = L["Toggle config dialog"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKTOGGLE",
+		  order = 101,
+	       },	    
+	       keyreset = {
+		  name = L["Reset raid icons"],
+		  desc = L["Reset raid icons"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKRESET",
+		  order = 101,
+	       },	    
+	       keymark = {
+		  name = L["Mark selected target"],
+		  desc = L["Mark selected target"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKMARK",
+		  order = 102,
+	       },	    
+	       keyunmark = {
+		  name = L["Unmark selected target"],
+		  desc = L["Unmark selected target"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKUNMARK",
+		  order = 103,
+	       },	    
+	       keymarkraid = {
+		  name = L["Mark party/raid targets"],
+		  desc = L["Mark party/raid targets"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKRAID",
+		  order = 104,
+	       },	    
+	       keysave = {
+		  name = L["Save party/raid mark layout"], 
+		  desc = L["Save party/raid mark layout"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKSAVE",
+		  order = 105,
+	       },	    
+	       keyload = {
+		  name = L["Load party/raid mark layout"], 
+		  desc = L["Load party/raid mark layout"],
+		  type = "keybinding",
+		  handler = KeybindHelper,
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  arg = "MAGICMARKLOAD",
+		  order = 105,
+	       },	    
 	    },
-	    debug = {
-	       type = "select",
-	       name = L["Log level"],
-	       handler = MagicMarker,
-	       set = "SetLogLevel",
-	       get = "GetLogLevel",
-	       order = 1,
-	       values = logLevelsDropdown,
-	    },
-	    bindingHeader = {
-	       type = "header",
-	       name = L["Key Bindings"],
-	       order = 100,
-	    },
-	    keyconfig = {
-	       name = L["Toggle config dialog"],
-	       desc = L["Toggle config dialog"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKTOGGLE",
-	       order = 101,
-	    },	    
-	    keyreset = {
-	       name = L["Reset raid icons"],
-	       desc = L["Reset raid icons"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKRESET",
-	       order = 101,
-	    },	    
-	    keymark = {
-	       name = L["Mark selected target"],
-	       desc = L["Mark selected target"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKMARK",
-	       order = 102,
-	    },	    
-	    keyunmark = {
-	       name = L["Unmark selected target"],
-	       desc = L["Unmark selected target"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKUNMARK",
-	       order = 103,
-	    },	    
-	    keymarkraid = {
-	       name = L["Mark party/raid targets"],
-	       desc = L["Mark party/raid targets"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKRAID",
-	       order = 104,
-	    },	    
-	    keysave = {
-	       name = L["Save party/raid mark layout"], 
-	       desc = L["Save party/raid mark layout"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKSAVE",
-	       order = 105,
-	    },	    
-	    keyload = {
-	       name = L["Load party/raid mark layout"], 
-	       desc = L["Load party/raid mark layout"],
-	       type = "keybinding",
-	       handler = KeybindHelper,
-	       get = "GetKeybind",
-	       set = "SetKeybind",
-	       arg = "MAGICMARKLOAD",
-	       order = 105,
-	    },	    
 	 },
-      },
+      }
    }
-}
+end
 
 function MagicMarker:GetMarkForCategory(category)
    if category == 1 then
@@ -418,7 +417,7 @@ function MagicMarker:InsertNewUnit(name, zone)
    local simpleName = self:SimplifyName(name)
    zone = ZoneReverse[zone] or zone;
    local simpleZone = self:SimplifyName(zone)
-   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { } }
+   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1 }
 
    mobdata[simpleZone] = zoneHash
    
@@ -426,16 +425,15 @@ function MagicMarker:InsertNewUnit(name, zone)
       zoneHash.mobs[simpleName] = {
 	 name = name,
 	 new = true,
-	 mm = 1,
 	 category = 1,
-	 priority = 2,
+	 priority = 3,
 	 cc = {}
       }
       if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
 
       if optionsCallout then self:CancelTimer(optionsCallout, true) end
       
-      optionsCallout = self:ScheduleTimer(self.GenerateOptions, 1)
+      optionsCallout = self:ScheduleTimer(self.GenerateOptions, 2)
    end
    
    return mobdata[simpleZone].mobs[simpleName];
@@ -483,6 +481,29 @@ local function NoMobNote(arg)
    return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
 end
 
+function MagicMarker:RemoveZone(var)
+   local zone = var[#var-1]
+   if log.warn then
+      log.warn(L["Deleting zone %s from the database!"],
+	       ZoneLookup[mobdata[zone].name] or mobdata[zone].name)
+   end
+   mobdata[zone] = nil
+   options.args.mobs.args[zone] = nil
+end
+
+function MagicMarker:RemoveMob(var)
+   local mob = var[#var-1]
+   local zone = var[#var-2]
+   local hash = mobdata[zone]
+      
+   if log.info then
+      log.info(L["Deleting mob %s from zone %s from the database!"],
+	       hash.mobs[mob].name, ZoneLookup[hash.name] or hash.name)
+   end
+   hash.mobs[mob] = nil
+   options.args.mobs.args[zone].args[mob] = nil
+end
+
 function MagicMarker:GenerateOptions()
    local opts = options.args.categories.args
    local subopts
@@ -490,7 +511,7 @@ function MagicMarker:GenerateOptions()
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
    
-   options.handler = self
+   options.handler = MagicMarker
    options.args.categories.set = "SetRaidTargetConfig"
    options.args.categories.get = "GetRaidTargetConfig"
 
@@ -529,6 +550,7 @@ function MagicMarker:GenerateOptions()
 	 type = "group",
 	 name = ZoneLookup[zone.name] or zone.name,
 	 width="double",
+	 handler = MagicMarker, 
 	 args = {
 	    zoneInfo = {
 	       type = "description",
@@ -557,7 +579,23 @@ function MagicMarker:GenerateOptions()
 	       set = "SetZoneConfig",
 	       get = "GetZoneConfig",
 	       order = 10,
+	    },
+	    deletehdr = {
+	       type = "header",
+	       name = "",
+	       order = 99
+	    }, 
+	    delete = {
+	       type = 'execute',
+	       name = L['Delete entire zone from database (not recoverable)'],
+	       order = 100,
+	       width = "full",
+	       func = "RemoveZone",
+	       confirm = true,
+	       confirmText = string.format(L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"],
+					   ZoneLookup[zone.name] or zone.name)
 	    }
+
 
 	 },
 	 set = "SetMobConfig",
@@ -616,6 +654,21 @@ function MagicMarker:GenerateOptions()
 		  type = "header", 
 		  order = 15,
 		  hidden = NoMobNote,
+	       },
+	       deletehdr = {
+		  type = "header",
+		  name = "",
+		  order = 10000
+	       }, 
+	       delete = {
+		  type = 'execute',
+		  name = L['Delete mob from database (not recoverable)'],
+		  order = 10001,
+		  width = "full",
+		  func = "RemoveMob",
+		  confirm = true,
+		  confirmText = string.format(L["Are you sure you want to delete |cffd9d919%s|r from the database?"], data.name)
+					      
 	       }
 	    }
 	 }
