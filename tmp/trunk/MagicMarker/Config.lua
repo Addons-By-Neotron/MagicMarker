@@ -576,7 +576,6 @@ function MagicMarker:UnloadOptions()
    if C.OpenFrames[L["Magic Marker"]] then
       if not unloadTimer then
 	 unloadTimer = self:ScheduleRepeatingTimer("UnloadOptions", 5)
-	 log.trace("Attempting to unload options [%s]...", unloadTimer)
       end
       return
    end
