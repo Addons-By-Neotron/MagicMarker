@@ -233,8 +233,7 @@ function MagicMarker:CacheRaidMarkForUnit(unit)
 end
 
 function MagicMarker:CacheRaidMarks()
-   raidMarkCache = {}
-   
+   raidMarkCache = {}   
    if log.debug then log.debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
@@ -247,7 +246,6 @@ end
 
 function MagicMarker:IterateGroup(callback, useID, ...)
    local id, name, class
-   raidMarkCache = {}
 
    if log.trace then log.trace("Iterating group...") end
    
