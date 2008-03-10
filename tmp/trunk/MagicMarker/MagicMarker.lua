@@ -16,6 +16,7 @@ local GetRaidTargetIndex = GetRaidTargetIndex
 local GetRealZoneText = GetRealZoneText
 local GetTime = GetTime
 local IsAltKeyDown = IsAltKeyDown
+local InCombatLockdown = InCombatLockdown
 local SetRaidTarget = SetRaidTarget
 local UnitGUID = UnitGUID
 local UnitIsDead = UnitIsDead
@@ -51,13 +52,29 @@ local log
 local MagicMarker = MagicMarker
 local mobdata
 local targetdata
-
+local db
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
 local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false , "PRIEST", "WARLOCK", "ROGUE" }
 
+local defaultConfigDB = {
+   profile = {
+      logLevel = 3,
+      remarkDelay = 0.75,
+      honorMarks = false,
+      honorRaidMarks = true,
+      battleMarking = true,
+      resetRaidIcons = true,
+   }
+}
 
 function MagicMarker:OnInitialize()
-   -- Set up the database
+   -- Set up the config database
+   self.db = LibStub("AceDB-3.0"):New("MagicMarkerConfigDB", defaultConfigDB, "Default")
+   self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
+   self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
+   self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
+   
+   -- this is the mob database
    MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
    MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {} 
@@ -72,9 +89,14 @@ function MagicMarker:OnInitialize()
 
    log = self:GetLoggers()
 
-   self:SetLogLevel(MagicMarkerDB.logLevel or (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO)
+   db = self.db.profile
+
+   self:SetLogLevel(db.logLevel)
    
-   MagicMarkerDB.debug = nil -- no longer used
+   
+   -- no longer used
+   MagicMarkerDB.debug = nil   
+   MagicMarkerDB.logLevel = nil
 end
 
 function MagicMarker:OnEnable()
@@ -279,12 +301,12 @@ local function LowFindMark(list, value)
    local id, markedValue
    for _,id in ipairs(list) do
       markedValue = markedTargetValues[id]
-      if not markedValue or value > markedValue then
+      if not markedValue or (value > markedValue and (db.battleMarking or not InCombatLockdown())) then
 	 -- This will return the first free target or an already used target
 	 -- if the value of the new target is higher.
 	 if log.trace then log.trace("LowFindMark => "..tostring(id).." value "..tostring(value)) end
-	 markedTargetValues[id] = value
-	 return id
+	 markedTargetValues[id] = nil
+	 return id, value
       end
    end
 end
@@ -299,6 +321,23 @@ function MagicMarker:GetNextUnitMark(unit,value)
    tankFirst = true
    cc_list_used = 1 -- Tank
    
+   if db.honorRaidMarks then
+      -- Update list of marks used on the raid
+      for id,value in pairs(markedTargetValues) do
+	 if value > 100 then -- reserved player mark
+	    markedTargets[id]  = nil
+	    markedTargetValues[id] = nil
+	 end
+      end
+      self:IterateGroup(function(self, unit)
+			   local id = GetRaidTargetIndex(unit)
+			   if id then
+			      markedTargets[id]  = unit
+			      markedTargetValues[id] = 300
+			   end
+			end)
+   end
+   
    if unitHash then
       if self:IsUnitIgnored(unitHash.priority) then return -1 end
       unitValue = self:UnitValue(unitName, unitHash)
@@ -308,12 +347,12 @@ function MagicMarker:GetNextUnitMark(unit,value)
       end
    end
    if log.trace then log.trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue) end
-   local raidMarkList 
-   local raidMarkID
+
+   local raidMarkList, raidMarkID, raidMarkValue
    
    if tankFirst or not cc then
       raidMarkList = self:GetMarkForCategory(1) 
-      raidMarkID = LowFindMark(raidMarkList, unitValue)
+      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
       if raidMarkID and log.debug then log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID)) end
    end -- tank marks
 
@@ -323,7 +362,7 @@ function MagicMarker:GetNextUnitMark(unit,value)
 	 local cc_used_count = ccUsed[category] or 0
 	 if not class or cc_used_count < (raidClassList[class] or 0) then
 	    raidMarkList = self:GetMarkForCategory(category)
-	    raidMarkID = LowFindMark(raidMarkList, unitValue)
+	    raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
 	    if raidMarkID then
 	       ccUsed[category] = cc_used_count + 1
 	       cc_list_used = category
@@ -338,7 +377,7 @@ function MagicMarker:GetNextUnitMark(unit,value)
    -- no mark found, fall back to tank list for default
    if not raidMarkID then
       raidMarkList = self:GetMarkForCategory(1)
-      raidMarkID = LowFindMark(raidMarkList, unitValue)
+      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
       if raidMarkID and log.debug then
 	 log.debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID))
       end 
@@ -346,7 +385,7 @@ function MagicMarker:GetNextUnitMark(unit,value)
    
    -- None left for the specified category, 
    -- falling back to the "catch all"...
-   return raidMarkID or 0, cc_list_used -- no target found
+   return raidMarkID or 0, cc_list_used, raidMarkValue
 end
 
 local unitValueCache = {}
@@ -363,7 +402,7 @@ function MagicMarker:UnitValue(unit, hash)
       end
    end
    if log.trace then log.trace("Unit Value for %s = %d", unit, value) end
-   unitValueCache[unit]  = value
+--   unitValueCache[unit]  = value
    return value
 end
    
@@ -379,79 +418,89 @@ function MagicMarker:SmartMarkUnit(unit)
    if UnitIsDead(unit) then
       if log.trace then log.trace("Unit %s is dead...", unit) end
       self:PossiblyReleaseMark(unit, true)
-   elseif UnitIsEligable(unit) and (IsAltKeyDown() or unit ~= "mouseover") then
-      local unitGUID = GetUniqueUnitID(unit)
+   elseif UnitIsEligable(unit) then
       local unitTarget = GetRaidTargetIndex(unit)
-      
-      self:InsertNewUnit(unitName, GetRealZoneText()) -- This will insert it if it's missing
-      
-      if log.trace then log.trace("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")") end
-      
-      if markedTargets[unitTarget] and markedTargets[unitTarget].guid == unitGUID then
-	 if log.trace then log.trace("  already marked.") end
-	 return
-      end
-      
-      if recentlyAdded[unitGUID] then 
-	 if log.trace then log.trace("  recently marked.") end
-	 return
-      end
-      
-      local newTarget, ccID = self:GetNextUnitMark(unit)
-      
-      if newTarget == 0 then
-	 if log.trace then log.trace("  No more raid targets available -- disabling marking.") end
-	 if markingEnabled then
-	    self:ToggleMarkingMode()
+      local unitGUID = GetUniqueUnitID(unit)
+      -- This will insert the unit into the database if it's missing
+      self:InsertNewUnit(unitName, GetRealZoneText())
+
+      if unitTarget then
+	 if markedTargets[unitTarget] and markedTargets[unitTarget].guid == unitGUID then
+	    if log.trace then log.trace("  already marked.") end
+	    return
+	 elseif db.honorMarks then
+	    self:ReserveMark(unitTarget, unitGUID, 50)
+	    if log.debug then
+	       log.debug(L["Added third party mark (%s) for mob %s."],
+			 self:GetTargetName(unitTarget), unitName)
+	    end
+	    return
 	 end
-      elseif newTarget == -1 then
-	 if log.trace then log.trace("  Target on ignore list") end
-      else
-	 recentlyAdded[unitGUID] = true
-	 self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, 0.7, unitGUID) -- To clear it up
+      end
+            
+      if (IsAltKeyDown() or unit ~= "mouseover") then	 	 
+	 if log.trace then log.trace("Marking "..unitGUID.." ("..(unitTarget or "N/A")..")") end
+
+	 if recentlyAdded[unitGUID] then 
+	    if log.trace then log.trace("  recently marked.") end
+	    return
+	 end
 	 
-	 if log.trace then log.trace("  => "..newTarget) end
-	 if markedTargets[newTarget] then 
-	    ccUsed[ markedTargets[newTarget].ccid ] = ccID
-	    markedTargets[newTarget].ccid = ccID	    
-	    markedTargets[newTarget].guid = unitGUID
+	 local newTarget, ccID, value = self:GetNextUnitMark(unit)
+	 
+	 if newTarget == 0 then
+	    if log.trace then log.trace("  No more raid targets available -- disabling marking.") end
+	    if markingEnabled then
+	       self:ToggleMarkingMode()
+	    end
+	 elseif newTarget == -1 then
+	    if log.trace then log.trace("  Target on ignore list") end
 	 else
-	    markedTargets[newTarget] = { guid=unitGUID, ccid = ccID }
+	    recentlyAdded[unitGUID] = true
+	    self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, unitGUID) -- To clear it up
+	    
+	    if log.trace then log.trace("  => %s -- %s -- %s -- %s", unitGUID, tostring(newTarget), tostring(value), tostring(ccID)) end
+	    self:ReserveMark(newTarget, unitGUID, value, ccID)
+	    SetRaidTarget(unit, newTarget)
 	 end
-	 SetRaidTarget(unit, newTarget)
       end
-   else
-      if unitName and log.trace then log.trace("Ignoring "..unitName) end 
+   elseif unitName and log.trace then
+      log.trace("Ignoring "..unitName) 
    end
 end
 
-function MagicMarker:ReleaseMark(mark, target)
-   SetRaidTarget(target, 0)
+function MagicMarker:ReleaseMark(mark, target, setTarget)
+   if log.trace then log.trace("Releasing mark %d from %s.", mark, target) end
+   if setTarget then SetRaidTarget(target, 0) end
    if markedTargets[mark] then
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
       end
-      markedTargets[mark] = nil
+      markedTargets[mark].ccid = nil
+      markedTargets[mark].guid = nil
       markedTargetValues[mark] = nil
       return true
    end
 end
 
-function MagicMarker:ReserveMark(mark, unit, value)
-   if not markedTargets[mark] or markedTargetValues[mark] < value then
+function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget)
+   if log.trace then log.trace("Reserving mark %d for %s with value %d.", mark, unit, value) end
+   if not markedTargets[mark] or ( markedTargetValues[mark] or 0) < value then
       if markedTargets[mark] then
-	 local ccid = markedTargets[mark].ccid
-	 if ccid and ccUsed [ccid] then
-	    ccUsed[ ccid ] = ccUsed[ ccid ] - 1
-	 end
-	 markedTargets[mark].ccid = "NONE"
+	 self:ReleaseMark(mark, unit, setTarget)
+	 markedTargets[mark].ccid = ccID
 	 markedTargets[mark].guid = unit
       else
-	 markedTargets[mark] = { guid=unit, ccid = "NONE" }
+	 markedTargets[mark] = { guid=unit, ccid = ccID }
       end
-      markedTargetValues[mark] = value -- don't override
-      SetRaidTarget(unit, mark)
+      if ccID then
+	 ccUsed[ ccID ] = (ccUsed[ ccid ] or 0) + 1
+      end
+      
+      markedTargetValues[mark] = value
+      
+      if setTarget then SetRaidTarget(unit, mark) end
       return true
    end
    return false
@@ -468,20 +517,54 @@ function MagicMarker:UnmarkSingle()
    end
 end
 
+
 -- Disable memoried marksdata
 function MagicMarker:ResetMarkData()
    local id
    ccUsed = { }
+   local usedRaidIcons = { }
+   local playerIcon
+   local playerName = UnitName("player")
    recentlyAdded = {}
+
+   if db.honorRaidMarks then
+      self:IterateGroup(function(self, unit)
+			   local id = GetRaidTargetIndex(unit)
+			   if id then
+			      usedRaidIcons[id] = unit
+			      if unit == playerName then
+				 playerIcon = id
+			      end
+			   end
+		     end)
+   end
    for id = 8,0,-1 do
-      markedTargets[id]  = nil
-      markedTargetValues[id] = nil
-      SetRaidTarget("player", id)
+      if id > 0 and usedRaidIcons[id] then
+	 markedTargets[id]  = usedRaidIcons[id]
+	 markedTargetValues[id] = 300
+      else
+	 markedTargets[id]  = nil
+	 markedTargetValues[id] = nil
+	 if db.resetRaidIcons then SetRaidTarget("player", id) end
+      end
    end
    -- Hack, sometimes the last mark isn't removed.
-   self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.75)
+   
+   if db.resetRaidIcons then
+      if playerIcon then 
+	 SetRaidTarget("player", playerIcon)
+      else
+	 self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.75)
+      end
+   end
    self:Print(L["Resetting raid targets."])
    self:ScanGroupMembers()
 end
 
+
+function MagicMarker:OnProfileChanged(db,name)
+   if log.trace then log.trace("Profile changed to %s", name) end
+   db = self.db.profile
+   self:NotifyChange()
+end
 

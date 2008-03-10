@@ -1,7 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
-local CONFIG_VERSION = 2
+local CONFIG_VERSION = 3
 local format = format
 local sub = string.sub
 local tonumber = tonumber
@@ -20,9 +20,11 @@ local MobNotesDB
 local options, standardZoneOptions, standardMobOptions
 BabbleZone = nil
 
-local db = MagicMarkerDB
+local db
 
 local mobdata, targetdata
+
+local configBuilt
 
 local log = MagicMarker:GetLoggers()
 
@@ -151,32 +153,86 @@ do
 	    args = { }
 	 }, 
 	 options = {
-	    childGroups = "tab",
 	    type = "group",
 	    name = L["Options"],
 	    order = 0,
-	    handler = KeybindHelper,
-	    get = "GetKeybind",
-	    set = "SetKeybind",
+	    handler = MagicMarker,
+	    set = "SetProfileParam",
+	    get = "GetProfileParam",
 	    args = {
-	       generalHeader = {
-		  type = "header",
-		  name = L["General Options"],
-		  order = 0,
-	       },
-	       debug = {
-		  type = "select",
-		  name = L["Log level"],
-		  handler = MagicMarker,
-		  set = "SetLogLevel",
-		  get = "GetLogLevel",
-		  order = 1,
-		  values = logLevelsDropdown,
-	       },
-	       bindingHeader = {
-		  type = "header",
+	       keybindings = {
+		  type = "group",
 		  name = L["Key Bindings"],
 		  order = 100,
+		  handler = KeybindHelper, 
+		  get = "GetKeybind",
+		  set = "SetKeybind",
+		  args = {
+		     bindingHeader = {
+			type = "header",
+			name = L["Key Bindings"],
+			order = 100,
+		     },
+		  }
+	       },
+	       settings = { 
+		  type = "group",
+		  name = L["General Options"],
+		  order = 1,
+		  args = {
+		     generalHeader = {
+			type = "header",
+			name = L["General Options"],
+			order = 0,
+		     },
+		     logLevel = {
+			type = "select",
+			name = L["Log level"],
+			values = logLevelsDropdown,
+			order = 1,
+		     },
+		     remarkDelay = {
+			name = L["Delay between remarking"],
+			desc = L["MARKDELAYHELPTEXT"], 
+			type = "range",
+			min = 0.1, max = 1.5,
+			step = 0.05,
+			order = 10,
+		     },
+		     markHeader = {
+			type = "header",
+			name = L["Marking Behavior"],
+			order = 100,
+		     },
+		     honorMarks = {
+			name = L["Honor pre-existing raid icons"],
+			desc = L["HONORHELPTEXT"], 
+			type = "toggle",
+			order = 110,
+			width = "full",
+		     },
+		     honorRaidMarks = {
+			name = L["Reserve raid group icons"],
+			desc = L["NOREUSEHELPTEXT"], 
+			type = "toggle",
+			order = 120,
+			width = "full",
+		     },
+		     battleMarking = {
+			name = L["Enable target re-prioritization during combat"],
+			desc = L["INCOMBATHELPTEXT"], 
+			type = "toggle",
+			order = 130,
+			width = "full",
+		     },
+		     resetRaidIcons = {
+			name = L["Reset raid icons when resetting the cache"],
+			desc = L["RESETICONHELPTEXT"], 
+			type = "toggle",
+			order = 130,
+			width = "full",
+		     },
+		  },
 	       },
 	    },
 	 },
@@ -278,6 +334,27 @@ do
 	 hidden = "IsHiddenCC",
       }
    end
+end
+
+
+function MagicMarker:SetProfileParam(var, value)
+   local varName = var[#var]
+   db[varName] = value
+   if log.trace then 
+      log.trace("Setting parameter %s to %s.", varName, tostring(value))
+   end
+
+   if varName == "logLevel" then
+      self:SetLogLevel(value)
+   end
+end
+
+function MagicMarker:GetProfileParam(var) 
+   local varName = var[#var]
+   if log.trace then
+      log.trace("Getting parameter %s as %s.", varName, tostring(db[varName]))
+   end
+   return db[varName]
 end
 
 function MagicMarker:GetMarkForCategory(category)
@@ -545,6 +622,8 @@ function MagicMarker:BuildMobConfig(var)
    local subopts = options.args.mobs.args[zone].plugins.mobList
    local name = subopts[mob].name
    
+   configBuilt = true
+
    if log.trace then log.trace("Generating configuration for %s in zone %s", mob, zone) end
 
    subopts[mob].args.loader.hidden = true
@@ -567,11 +646,13 @@ function MagicMarker:BuildMobConfig(var)
 end
 
 function MagicMarker:NotifyChange()
-   self:UnloadOptions()
+   db = self.db.profile
+   if configBuilt then self:UnloadOptions() end
    R:NotifyChange(L["Magic Marker"])
 end
  
 local unloadTimer
+
 function MagicMarker:UnloadOptions()
    if C.OpenFrames[L["Magic Marker"]] then
       if not unloadTimer then
@@ -591,6 +672,7 @@ function MagicMarker:UnloadOptions()
 	 if log.trace then log.trace("Unloaded mob options for %s.", hash.name) end
       end
    end
+   configBuilt = false
    R:NotifyChange(L["Magic Marker"])
 end
 
@@ -598,6 +680,8 @@ function MagicMarker:GenerateOptions()
    local opts = options.args.categories.args
    local subopts
 
+   db = self.db.profile
+   
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
    
@@ -697,6 +781,8 @@ function MagicMarker:LoadMobListForZone(var)
    local name = mobdata[zone].name
    local subopts = {}
 
+   configBuilt = true
+
    name = ZoneReverse[name] or name
 
    if log.trace then log.trace("Loading mob list for zone %s", name) end
@@ -755,14 +841,19 @@ function MagicMarker:UpgradeDatabase()
       end
    end
 
+   if version < 3 then
+      self.db.profile.logLevel = MagicMarkerDB.logLevel
+   end
+   
    MagicMarkerDB.version = CONFIG_VERSION
 end
+
 
 local keyBindingOrder = 1000
 
 local function AddKeyBinding(keyname, desc)
    _G["BINDING_NAME_"..keyname] = desc
-   options.args.options.args[keyname] = {
+   options.args.options.args.keybindings.args[keyname] = {
       name = desc, 
       desc = desc, 
       type = "keybinding",
@@ -776,7 +867,7 @@ end
 
 BINDING_HEADER_MagicMarker = L["Magic Marker"]
 
-AddKeyBinding("MAGICMARKRESET", L["Reset raid icons"])
+AddKeyBinding("MAGICMARKRESET", L["Reset raid icon cache"])
 AddKeyBinding("MAGICMARKMARK", L["Mark selected target"])
 AddKeyBinding("MAGICMARKUNMARK", L["Unmark selected target"])
 AddKeyBinding("MAGICMARKTOGGLE", L["Toggle config dialog"])
