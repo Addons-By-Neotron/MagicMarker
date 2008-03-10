@@ -8,7 +8,7 @@
 ## X-eMail: neotron@gmail.com
 
 ## OptionalDeps: Ace3, MobNotes, LibBabble-Zone-3.0
-## X-Embeds: Ace3
+## X-Embeds: Ace3, LibBabble-Zone-3.0
 ## SavedVariables: MagicMarkerDB
 
 # Library files
