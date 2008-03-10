@@ -131,7 +131,7 @@ function MagicMarker:PossiblyReleaseMark(unit, noTarget)
       
       if raidMark then
 	 if log.trace then log.trace("  => found mark %d on dead mob %s ...", raidMark, unitName) end
-	 if self:ReleaseMark(raidMark, unitID) then
+	 if self:ReleaseMark(raidMark, unitID, true) then
 	    if log.debug then log.debug("Released target %s for %s", self:GetTargetName(raidMark), unitName) end
 	    return true;
 	 end
@@ -332,7 +332,7 @@ function MagicMarker:GetNextUnitMark(unit,value)
       self:IterateGroup(function(self, unit)
 			   local id = GetRaidTargetIndex(unit)
 			   if id then
-			      markedTargets[id]  = unit
+			      markedTargets[id]  = { guid = unit }
 			      markedTargetValues[id] = 300
 			   end
 			end)
@@ -513,7 +513,7 @@ end
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
       local mark = GetRaidTargetIndex("target")
-      if mark then self:ReleaseMark(mark, "target") end
+      if mark then self:ReleaseMark(mark, "target", true) end
    end
 end
 
@@ -540,7 +540,7 @@ function MagicMarker:ResetMarkData()
    end
    for id = 8,0,-1 do
       if id > 0 and usedRaidIcons[id] then
-	 markedTargets[id]  = usedRaidIcons[id]
+	 markedTargets[id] = { guid = usedRaidIcons[id] }
 	 markedTargetValues[id] = 300
       else
 	 markedTargets[id]  = nil
