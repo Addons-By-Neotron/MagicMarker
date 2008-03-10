@@ -212,7 +212,7 @@ do
 			width = "full",
 		     },
 		     honorRaidMarks = {
-			name = L["Reserve raid group icons"],
+			name = L["Preserve raid group icons"],
 			desc = L["NOREUSEHELPTEXT"], 
 			type = "toggle",
 			order = 120,

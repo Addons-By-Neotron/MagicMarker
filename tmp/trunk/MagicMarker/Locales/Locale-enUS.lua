@@ -39,7 +39,7 @@ L["Introduction"] = true
 L["Delay between remarking"] = true
 L["Marking Behavior"] = true
 L["Honor pre-existing raid icons"] = true
-L["Reserve raid group icons"] = true
+L["Preserve raid group icons"] = true
 L["Reset raid icons when resetting the cache"] = true
 L["Enable target re-prioritization during combat"] = true
  
@@ -94,7 +94,7 @@ L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this
 L["MOBDATAHELPTEXT"] = "Welcome to the Mob Database. Here you configure the priority, category and desired crowd control methods for all the mobs in the database. For mobs of category tank the crowd control methods can be ignored. If you choose to ignore a mob it will still be present in the list (in case you decide to unignore it). Once ignored, it will never get any raid targets assigned to it.\n\nYou can also delete a zone or individual mob entries in the zone. Please be aware that this action can't be reversed."
 L["MARKDELAYHELPTEXT"] = "After setting a raid mark there's a delay before the client sees it. Since names are non-unique, this can cause a race condition. This value is the time in seconds between marking two mobs with the same name."
 L["HONORHELPTEXT"] = "When enabled Magic Marker will honor raid icons assigned by a third party. If detected, they will be reserved and blocked from automatic use reused until a cache reset is preformed."
-L["NOREUSEHELPTEXT"] = "When enabled, Magic Marker will not use any raid icons that have been manually assigned to the raid/party members."
+L["NOREUSEHELPTEXT"] = "When enabled, Magic Marker will preserve all raid icons on the raid/party members, even through cache resets."
 L["INCOMBATHELPTEXT"] = "Whether or not Magic Marker should be allowed to change assigned raid marks during combat if it sees higher priority targets. Note that this only decides whether to unmark lower priority mobs. Unassigned icons will always be used on unmarked target, regardless of combat status."
 L["RESETICONHELPTEXT"] = "When resetting the raid icon cache, also reset all raid icons. Note that if the option to reserve raid group icons is enabled, those icons will remain regardless of status of this parameter."
 
