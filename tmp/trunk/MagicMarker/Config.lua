@@ -150,7 +150,8 @@ do
 	    type = "group",
 	    name = L["Raid Target Settings"],
 	    order = 1,
-	    args = { }
+	    args = {
+	    }
 	 }, 
 	 options = {
 	    type = "group",
@@ -174,6 +175,67 @@ do
 			order = 100,
 		     },
 		  }
+	       },
+	       commsettings = {
+		  type = "group",
+		  name = L["Data Sharing"],
+		  order = 2,
+		  args = {
+		     header =  {
+			type = "header",
+			name = L["Data Sharing"],
+			order = 0,
+		     },
+		     acceptRaidMarks = {
+			type = "toggle",
+			width = "full",
+			name = L["Accept raid mark broadcast messages"],
+			desc = L["MARKBROADHELPTEXT"],
+			order = 10,
+		     },
+		     acceptMobData = {
+			type = "toggle",
+			width = "full",
+			name = L["Accept mobdata broadcast messages"],
+			desc = L["MOBBROADHELPTEXT"],
+			order = 15,
+		     },
+		     mobDataBehavior = {
+			type = "select",
+			name = L["Mobdata data import behavior"],
+			desc = L["IMPORTHELPTEXT"],
+			values = {
+			   L["Merge - local priority"],
+			   L["Merge - remote priority"],
+			   L["Replace with remote data"],
+			},
+			disabled = function() return not db or not db.acceptMobData end
+		     },
+		     broadcastHeader = {
+			type = "header",
+			name = L["Data Broadcasting"],
+			order = 200
+		     },
+		     broadcastTargets = {
+			type = "execute",
+			name = L["Broadcast raid target settings to the raid group."],
+			order = 1000,
+			width = "full", 
+			func = "BroadcastRaidTargets",
+			handler = MagicMarker,
+			disabled = not IsRaidLeader() and not IsRaidOfficer(),
+		     },
+		     broadcastMobs = {
+			type = "execute",
+			name = L["Broadcast all zone data to the raid group."],
+			desc = L["BROADALLHELP"],
+			order = 1001,
+			width = "full", 
+			func = "BroadcastAllZones",
+			handler = MagicMarker,
+			disabled = not IsRaidLeader() and not IsRaidOfficer(),
+		     },
+		  },		  
 	       },
 	       settings = { 
 		  type = "group",
@@ -238,6 +300,7 @@ do
 	 },
       }
    }
+   
    standardZoneOptions = {
       optionHeader = {
 	 type = "header",
@@ -261,6 +324,14 @@ do
 	 set = "SetZoneConfig",
 	 get = "GetZoneConfig",
 	 order = 10,
+      },
+      broadcastMobs = {
+	 type = "execute",
+	 name = L["Broadcast zone data to the raid group."],
+	 order = 1001,
+	 width = "full", 
+	 func = function(var) MagicMarker:BroadcastZoneData(var[#var-1]) end,
+	 disabled = not IsRaidLeader() and not IsRaidOfficer(),
       },
       deletehdr = {
 	 type = "header",
@@ -335,7 +406,6 @@ do
       }
    end
 end
-
 
 function MagicMarker:SetProfileParam(var, value)
    local varName = var[#var]
@@ -647,6 +717,8 @@ end
 
 function MagicMarker:NotifyChange()
    db = self.db.profile
+   mobdata = MagicMarkerDB.mobdata
+   targetdata = MagicMarkerDB.targetdata
    if configBuilt then self:UnloadOptions() end
    R:NotifyChange(L["Magic Marker"])
 end
@@ -737,6 +809,10 @@ function MagicMarker:GenerateOptions()
    for id, zone in pairs(mobdata) do
       opts[id] = self:ZoneConfigData(id, zone)
    end
+end
+
+function MagicMarker:AddZoneConfig(zone, zonedata)
+   options.args.mobs.args[zone] = self:ZoneConfigData(zone, zonedata)
 end
 
 function MagicMarker:ZoneConfigData(id, zone)

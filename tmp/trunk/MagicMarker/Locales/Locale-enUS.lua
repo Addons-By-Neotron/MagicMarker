@@ -42,6 +42,17 @@ L["Honor pre-existing raid icons"] = true
 L["Preserve raid group icons"] = true
 L["Reset raid icons when resetting the cache"] = true
 L["Enable target re-prioritization during combat"] = true
+L["Broadcast zone data to the raid group."] = true
+L["Data Sharing"] = true
+L["Accept raid mark broadcast messages"] = true
+L["Accept mobdata broadcast messages"] = true
+L["Mobdata data import behavior"] = true
+L["Merge - local priority"] = true
+L["Merge - remote priority"] = true
+L["Replace with remote data"] = true
+L["Data Broadcasting"] = true
+L["Broadcast raid target settings to the raid group."] = true
+L["Broadcast all zone data to the raid group."] = true
  
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -97,6 +108,10 @@ L["HONORHELPTEXT"] = "When enabled Magic Marker will honor raid icons assigned b
 L["NOREUSEHELPTEXT"] = "When enabled, Magic Marker will preserve all raid icons on the raid/party members, even through cache resets."
 L["INCOMBATHELPTEXT"] = "Whether or not Magic Marker should be allowed to change assigned raid marks during combat if it sees higher priority targets. Note that this only decides whether to unmark lower priority mobs. Unassigned icons will always be used on unmarked target, regardless of combat status."
 L["RESETICONHELPTEXT"] = "When resetting the raid icon cache, also reset all raid icons. Note that if the option to reserve raid group icons is enabled, those icons will remain regardless of status of this parameter."
+L["IMPORTHELPTEXT"] = "This option dictates the behavior when you receive a mob data broadcast. Merging will keep data from both databases. If you choose local priority, your own settings won't be replaced - only new data will be added. With remote priority your local entries will be overriden by the remote data. The replace option will completely replace your database with the received data."
+L["MOBBROADHELPTEXT"] = "If enabled you will accept zone mob data sent to you by the raid leader or assistant."
+L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration that is broadcasted by your raid leader. The new configuration will entirely replace your own settings."
+L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

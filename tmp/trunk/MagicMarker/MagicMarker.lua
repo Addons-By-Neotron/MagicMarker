@@ -6,7 +6,9 @@ more details.
 ]]
 
 
-MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
+MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
+					       "AceEvent-3.0", "AceTimer-3.0",
+					       "AceComm-3.0", "AceSerializer-3.0")
 
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
@@ -64,6 +66,9 @@ local defaultConfigDB = {
       honorRaidMarks = true,
       battleMarking = true,
       resetRaidIcons = true,
+      acceptMobData = false,
+      mobDataBehavior = 1,
+      acceptRaidMarks = false, 
    }
 }
 
@@ -92,7 +97,7 @@ function MagicMarker:OnInitialize()
    db = self.db.profile
 
    self:SetLogLevel(db.logLevel)
-   
+   self.commPrefix = "MagicMarker"
    
    -- no longer used
    MagicMarkerDB.debug = nil   
@@ -107,12 +112,100 @@ function MagicMarker:OnEnable()
    self:RegisterChatCommand("mm", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
    self:RegisterChatCommand("mmtmpl", "MarkRaidFromTemplate", false, true)
    self:ScanGroupMembers()
+   self:RegisterComm(self.commPrefix, "OnCommReceive")
 end
 
 function MagicMarker:OnDisable()
+   self:UnregisterComm(self.commPrefix)
    self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
    self:UnregisterChatCommand("magic")
    self:DisableEvents()
+end
+
+function MagicMarker:OnCommReceive(prefix, encmsg, dist, sender)
+   local decodeOk, message = self:Deserialize(encmsg)
+   if sender == UnitName("player") then
+      return -- don't want my own messages!
+   end
+   if message then
+      if message.type == "MOBDATA" then
+	 if db.acceptMobData then
+	    if log.debug then log.debug("Received mob data for %s from %s.", message.data.name, sender) end
+	    self:MergeZoneData(message.zone, message.data)
+	 end
+      elseif message.type == "TARGETS" then
+	 if log.debug then log.debug("Received raid mark configuration from %s.", sender) end
+	 MagicMarkerDB.targetdata = message.data
+	 targetdata = message.data
+      end
+      self:NotifyChange()
+   end
+end
+
+
+function MagicMarker:MergeZoneData(zone,zoneData)
+   local localData = mobdata[zone]
+   local localMob, simpleName
+   if not localData or db.mobDataBehavior == 3 then  -- replace
+      mobdata[zone] = zoneData
+   else 
+      localData = localData.mobs
+      for mob, data in pairs(zoneData.mobs) do
+	 -- Enable me for 2.4 to handle numeric ID keys
+	 --	 simpleName = self:SimplifyName(mob.name)
+	 --	 if simpleName ~= mob then
+	 --	    -- mob is a 2.4 numeric ID
+	 --	    if localData[simpleName] then
+	 --	       localData[mob] = localData[simpleName]
+	 --	       localData[simpleName] = nil
+	 --	    end
+	 --	 else
+	 --	    for lm, ld in pairs(localData) do
+	 --	       simpleName = self:SimplifyName(ld.name)
+	 --	       if simpleName == mob then
+	 --		  -- We found a numeric id locally, use that instead
+	 --		  mob = lm
+	 --		  break
+	 --	       end
+	 --	    end
+	 --	 end
+	 if not localData[mob] or db.mobDataBehavior == 2 then
+	    if log.trace then log.trace("Replacing entry for %s from remote data.", data.name) end
+	    localData[mob] = data
+	 end
+      end
+   end
+   
+   self:AddZoneConfig(zone, zoneData)
+end
+
+function MagicMarker:BroadcastZoneData(zone)
+   zone = MagicMarker:SimplifyName(zone)
+   if mobdata[zone] then
+      self:SendCommMessage(self.commPrefix, self:Serialize({
+							      type = "MOBDATA",
+							      zone = zone,
+							      data = mobdata[zone]
+							   }), "RAID", nil, "BULK")
+   end
+end
+
+function MagicMarker:BroadcastAllZones()
+   for zone, data in pairs(mobdata) do 
+      self:SendCommMessage(self.commPrefix, self:Serialize({
+							      type = "MOBDATA",
+							      zone = zone,
+							      data = data,
+							   }), "RAID", nil, "BULK")
+   end
+end
+
+function MagicMarker:BroadcastRaidTargets()
+   if log.trace then log.trace("Broadcast raid target data to the raid.") end
+   self:SendCommMessage(self.commPrefix, self:Serialize({
+							   type = "TARGETS",
+							   data = targetdata,
+							}), "RAID", nil, "BULK")
 end
 
 local function GetUniqueUnitID(unit)
@@ -219,8 +312,10 @@ end
 
 function MagicMarker:ScanGroupMembers()
    raidClassList = {}
-   if log.debug then log.debug("Rescanning raid/party member classes.") end
-   self:IterateGroup(self.LogClassInformation)
+   if UnitClass("player") then
+      if log.debug then log.debug("Rescanning raid/party member classes.") end
+      self:IterateGroup(self.LogClassInformation)
+   end
 end
 
 
