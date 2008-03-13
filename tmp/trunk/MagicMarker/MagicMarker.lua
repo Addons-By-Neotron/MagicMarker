@@ -98,6 +98,7 @@ function MagicMarker:OnInitialize()
 
    self:SetLogLevel(db.logLevel)
    self.commPrefix = "MagicMarker"
+   self.commPrefixRT = "MagicMarkerRT"
    
    -- no longer used
    MagicMarkerDB.debug = nil   
@@ -112,7 +113,8 @@ function MagicMarker:OnEnable()
    self:RegisterChatCommand("mm", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
    self:RegisterChatCommand("mmtmpl", "MarkRaidFromTemplate", false, true)
    self:ScanGroupMembers()
-   self:RegisterComm(self.commPrefix, "OnCommReceive")
+   self:RegisterComm(self.commPrefix, "BulkReceive")
+   self:RegisterComm(self.commPrefixRT, "UrgentReceive")
 end
 
 function MagicMarker:OnDisable()
@@ -122,19 +124,49 @@ function MagicMarker:OnDisable()
    self:DisableEvents()
 end
 
-function MagicMarker:OnCommReceive(prefix, encmsg, dist, sender)
-   local decodeOk, message = self:Deserialize(encmsg)
+function MagicMarker:UrgentReceive(prefix, encmsg, dist, sender)
    if sender == UnitName("player") then
       return -- don't want my own messages!
    end
+   local _, message = self:Deserialize(encmsg)
+   
    if message then
-      if message.type == "MOBDATA" then
+      if message.cmd == "MARK" then
+	 if log.debug then
+	    _,_,name =  strfind(message.guid, "([^:]*):")
+	    log.debug("[Net] Marking unit %s as %d, value %d, ccid %s",
+		      name, message.target, message.value, tostring(message.ccid))
+	 end
+	 self:ReserveMark(message.target, message.guid, message.value, message.ccid, false, true)
+      elseif message.cmd == "UNMARK" then
+	 if log.debug then
+	    log.debug("[Net] Unmarking target %d from %s.", message.target, message.guid)
+	 end
+	 self:ReleaseMark(message.target, message.guid, nil, true) 
+      elseif message.cmd == "CLEAR" then
+	 if log.debug then
+	    log.debug("[Net] Raid cache clear received.")
+	 end
+	 for target,guid in pairs(message.targets) do
+	    self:ReleaseMark(target, guid, nil, true)
+	 end
+      end
+   end
+end
+
+function MagicMarker:BulkReceive(prefix, encmsg, dist, sender)
+   if sender == UnitName("player") then
+      return -- don't want my own messages!
+   end
+   local _, message = self:Deserialize(encmsg)
+   if message then
+      if message.cmd == "MOBDATA" then
 	 if db.acceptMobData then
-	    if log.debug then log.debug("Received mob data for %s from %s.", message.data.name, sender) end
+	    if log.debug then log.debug("[Net] Received mob data for %s from %s.", message.data.name, sender) end
 	    self:MergeZoneData(message.zone, message.data)
 	 end
-      elseif message.type == "TARGETS" then
-	 if log.debug then log.debug("Received raid mark configuration from %s.", sender) end
+      elseif message.cmd == "TARGETS" then
+	 if log.debug then log.debug("[Net] Received raid mark configuration from %s.", sender) end
 	 MagicMarkerDB.targetdata = message.data
 	 targetdata = message.data
       end
@@ -182,30 +214,23 @@ end
 function MagicMarker:BroadcastZoneData(zone)
    zone = MagicMarker:SimplifyName(zone)
    if mobdata[zone] then
-      self:SendCommMessage(self.commPrefix, self:Serialize({
-							      type = "MOBDATA",
-							      zone = zone,
-							      data = mobdata[zone]
-							   }), "RAID", nil, "BULK")
+      self:SendBulkMessage({  cmd = "MOBDATA", zone = zone, data = mobdata[zone]
+			   })
    end
 end
 
 function MagicMarker:BroadcastAllZones()
    for zone, data in pairs(mobdata) do 
-      self:SendCommMessage(self.commPrefix, self:Serialize({
-							      type = "MOBDATA",
-							      zone = zone,
-							      data = data,
-							   }), "RAID", nil, "BULK")
+      self:SendBulkMessage({ cmd = "MOBDATA", zone = zone, data = data })
    end
 end
 
 function MagicMarker:BroadcastRaidTargets()
    if log.trace then log.trace("Broadcast raid target data to the raid.") end
-   self:SendCommMessage(self.commPrefix, self:Serialize({
-							   type = "TARGETS",
-							   data = targetdata,
-							}), "RAID", nil, "BULK")
+   self:SendBulkMessage({
+			   cmd = "TARGETS",
+			   data = targetdata,
+			})
 end
 
 local function GetUniqueUnitID(unit)
@@ -295,7 +320,7 @@ local party_idx = { "party1", "party2", "party3", "party4" }
 
 function MagicMarker:MarkRaidTargets()
    if log.debug then log.debug("Making all targets of the raid.") end
-   self:IterateGroup(function (self, unit) self.SmartMarkUnit(unit.."target") end, true)
+   self:IterateGroup(function (self, unit) self:SmartMarkUnit(unit.."target") end, true)
 end
 
 local groupScanTimer
@@ -313,7 +338,7 @@ end
 function MagicMarker:ScanGroupMembers()
    raidClassList = {}
    if UnitClass("player") then
-      if log.debug then log.debug("Rescanning raid/party member classes.") end
+      if log.trace then log.trace("Rescanning raid/party member classes.") end
       self:IterateGroup(self.LogClassInformation)
    end
 end
@@ -335,7 +360,7 @@ end
 
 function MagicMarker:MarkRaidFromCache()
    for unit,id in pairs(raidMarkCache) do
-      self:ReserveMark(id, unit, 1000)
+      self:ReserveMark(id, unit, -1, nil, true)
    end
 end
 
@@ -347,11 +372,7 @@ function MagicMarker:IterateGroup(callback, useID, ...)
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
 	 name, _, _, _, _, class = GetRaidRosterInfo(id)
-	 if useID then
-	    callback(self, "raid"..id, class, ...)
-	 else
-	    callback(self, name, class, ...)
-	 end
+	 callback(self, (useID and "raid"..id) or name, class, ...)
       end
    else
       if GetNumPartyMembers() > 0 then
@@ -365,7 +386,10 @@ end
 
 function MagicMarker:MarkRaidFromTemplate(template)
    if log.debug then log.debug("Marking from template: "..template) end
-   if MagicMarker.MarkTemplates[template] then
+   if template == "arch" or template == "archimonde" then
+      self:IterateGroup(MagicMarker.MarkTemplates.decursers)
+      self:IterateGroup(MagicMarker.MarkTemplates.shamans)
+   elseif MagicMarker.MarkTemplates[template] then
       self:IterateGroup(MagicMarker.MarkTemplates[template])
    end
 end
@@ -503,6 +527,7 @@ local function unitValue(unit1, unit2)
    return MagicMarker:UnitValue(unit1) >  MagicMarker:UnitValue(unit2)
 end
 
+
 function MagicMarker:SmartMarkUnit(unit)
    if not UnitExists(unit) then return end
    if log.trace then log.trace("Unit => "..unit) end
@@ -562,10 +587,10 @@ function MagicMarker:SmartMarkUnit(unit)
    end
 end
 
-function MagicMarker:ReleaseMark(mark, target, setTarget)
+function MagicMarker:ReleaseMark(mark, target, setTarget, fromNetwork)
    if log.trace then log.trace("Releasing mark %d from %s.", mark, target) end
    if setTarget then SetRaidTarget(target, 0) end
-   if markedTargets[mark] then
+   if markedTargets[mark] and markedTargets[mark].guid then
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
@@ -573,15 +598,18 @@ function MagicMarker:ReleaseMark(mark, target, setTarget)
       markedTargets[mark].ccid = nil
       markedTargets[mark].guid = nil
       markedTargetValues[mark] = nil
+      if not fromNetwork then
+	 self:SendUrgentMessage( { cmd = "UNMARK", guid = UnitName(target) or target, target = mark })
+      end
       return true
    end
 end
 
-function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget)
-   if log.trace then log.trace("Reserving mark %d for %s with value %d.", mark, unit, value) end
-   if not markedTargets[mark] or ( markedTargetValues[mark] or 0) < value then
+function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget, fromNetwork)
+   if log.trace then log.trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccID), tostring(setTarget)) end
+   if not markedTargets[mark] or value == -1 or ( markedTargetValues[mark] or 0) < value then
       if markedTargets[mark] then
-	 self:ReleaseMark(mark, unit, setTarget)
+	 self:ReleaseMark(mark, unit, setTarget, fromNetwork)
 	 markedTargets[mark].ccid = ccID
 	 markedTargets[mark].guid = unit
       else
@@ -591,12 +619,28 @@ function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget)
 	 ccUsed[ ccID ] = (ccUsed[ ccid ] or 0) + 1
       end
       
-      markedTargetValues[mark] = value
+      markedTargetValues[mark] = (value == -1 and 2000) or value
       
       if setTarget then SetRaidTarget(unit, mark) end
+      if not fromNetwork then
+	 self:SendUrgentMessage({  cmd = "MARK", guid = unit, target = mark,
+				   value = value, ccid = ccID })
+      end
       return true
    end
    return false
+end
+
+function MagicMarker:SendUrgentMessage(msg)
+   if IsRaidLeader() or IsRaidOfficer() then
+      self:SendCommMessage(self.commPrefixRT, self:Serialize(msg), "RAID", nil, "ALERT")
+   end
+end
+
+function MagicMarker:SendBulkMessage(msg)
+   if IsRaidLeader() or IsRaidOfficer() then
+      self:SendCommMessage(self.commPrefix, self:Serialize(msg), "RAID", nil, "BULK")
+   end
 end
 
 function MagicMarker:MarkSingle()
@@ -631,15 +675,29 @@ function MagicMarker:ResetMarkData()
 			   end
 		     end)
    end
+   local toclear = false
+
+   local message = {
+      cmd = "CLEAR",
+      targets = {}
+   }
+      
    for id = 8,0,-1 do
       if id > 0 and usedRaidIcons[id] then
 	 markedTargets[id] = { guid = usedRaidIcons[id] }
 	 markedTargetValues[id] = 300
       else
+	 if markedTargets[id] and markedTargets[id].guid then
+	    message.targets[id] = markedTargets[id].guid
+	    toclear = true
+	 end
 	 markedTargets[id]  = nil
 	 markedTargetValues[id] = nil
 	 if db.resetRaidIcons then SetRaidTarget("player", id) end
       end
+   end
+   if toclear then
+      self:SendUrgentMessage(message)
    end
    -- Hack, sometimes the last mark isn't removed.
    

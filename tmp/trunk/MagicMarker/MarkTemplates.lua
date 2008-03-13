@@ -25,9 +25,6 @@ end
 
 MagicMarker.MarkTemplates = {
    decursers  = function (self, unit) MarkIfClassHelper(self, unit, decursers) end,
-   archimonde = function (self, unit)
-		   MarkIfClassHelper(self, unit, decursers)
-		   MarkIfClassHelper(self, unit, shamans) -- lower priority
-		end,
+   shamans    = function (self, unit) MarkIfClassHelper(self, unit, shamans) end,
    mages = function (self, unit) MarkIfClassHelper(self, unit, mages) end,
 }
