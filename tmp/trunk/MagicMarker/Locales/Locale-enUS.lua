@@ -15,7 +15,7 @@ L["Mark party/raid targets"] = true
 
 -- Options Config
 L["Options"] = true
-L["Crowd Control Config"] = true
+L["Config"] = true
 L["Priority"] = true
 L["Category"] = true
 L["Mob Database"] = true
@@ -58,13 +58,6 @@ L["Broadcast all zone data to the raid group."] = true
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
 L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = true
 
--- Mark categories
-L["Tank"] = true
-L["Crowd Control - Sheep"] = true
-L["Crowd Control - Banish"] = true
-L["Crowd Control - Other"] = true
-L["Ignored"] = true
-
 -- CC Names
 L["SHEEP"] = "Sheep"
 L["BANISH"] = "Banish"
@@ -75,6 +68,8 @@ L["KITE"] = "Kite"
 L["MC"] = "Mind Control"
 L["FEAR"] = "Fear"
 L["SAP"] = "Sap"
+L["ENSLAVE"] = "Enslave"
+L["ROOT"] = "Root"
 L["00NONE"] = "None "
 
 -- Priority names
@@ -132,3 +127,6 @@ L["WARN"] = "Errors and warnings"
 L["INFO"] = "Informational messages"
 L["DEBUG"] = "Debug messaging"
 L["TRACE"] = "Debug trace messages"
+
+-- Other
+L["Heroic"] = true

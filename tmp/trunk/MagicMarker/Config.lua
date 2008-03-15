@@ -4,6 +4,7 @@
 local CONFIG_VERSION = 3
 local format = format
 local sub = string.sub
+local strmatch = strmatch
 local tonumber = tonumber
 local tolower = strlower
 
@@ -30,12 +31,11 @@ local log = MagicMarker:GetLoggers()
 
 -- Config UI name => ID
 local CONFIG_MAP = {
-   NUMCC=9, 
 }
 
 -- ID => Config UI name
 local ACT_LIST = { "TANK", "CC" }
-local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP" }
+local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT" }
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
@@ -109,6 +109,8 @@ do
    raidIconDropdown = {}
    logLevelsDropdown = {}
 
+   CONFIG_MAP.NUMCC = #CC_LIST-1
+
    for num, txt in ipairs(CC_LIST) do
       ccDropdown[txt] = L[txt]
       CONFIG_MAP[txt] = num
@@ -146,11 +148,19 @@ do
 	    order = 300
 	 }, 
 	 categories = {
-	    childGroups = "tab",
+	    childGroups = "tree",
 	    type = "group",
 	    name = L["Raid Target Settings"],
 	    order = 1,
 	    args = {
+	       cc = {
+		  childGroups = "tree",
+		  type = "group",
+		  name = L["CC"],
+		  order = 2,
+		  args = {
+		  }
+	       }, 
 	    }
 	 }, 
 	 options = {
@@ -359,7 +369,7 @@ do
 	 hidden = "IsIgnored",
       },
       ccheader = {
-	 name = L["Crowd Control Config"], 
+	 name = L["CC"].." "..L["Config"], 
 	 type = "header",
 	 hidden = "IsIgnored",
 	 order = 40
@@ -395,10 +405,10 @@ do
 	 order = 10000
       }
    }
-
+   
    for num = 1,CONFIG_MAP.NUMCC do
       standardMobOptions["ccopt"..num] = {
-	 name = L["Crowd Control #"]..num,
+	 name = string.format("%s #%d", L["CC"], num), 
 	 type = "select",
 	 values = ccDropdown,
 	 order = 100+num,
@@ -439,7 +449,7 @@ function MagicMarker:IsUnitIgnored(pri)
 end
 
 local function getID(value)
-   return tonumber(sub(value, -1))
+   return tonumber(strmatch(value, "%d+"))
 end
 
 local function uniqList(list, id, newValue, empty, max)
@@ -539,7 +549,7 @@ function MagicMarker:SetZoneConfig(info, value)
    local region = info[#info-1]
    mobdata[region][var] = value
    if log.trace then log.trace("Setting %s:%s to %s", region, var, tostring(value)) end
-   if region == self:SimplifyName(GetRealZoneText()) then
+   if region == self:GetZoneName() then
       if var == "mm" then
 	 self:ZoneChangedNewArea()
       elseif var == "targetMark" then
@@ -602,7 +612,22 @@ function MagicMarker:AddNewRT(var)
    val[#val+1] = 9
    targetdata[var[#var-1]] = val
 end
-   
+
+function MagicMarker:GetZoneName(zone)
+   local simple, heroic 
+   if not zone then
+      zone = GetRealZoneText()
+   end
+   zone = ZoneReverse[zone] or zone
+
+   simple = self:SimplifyName(zone)
+   if IsInInstance() and GetCurrentDungeonDifficulty() == 2 then
+      simple = simple .. "Heroic"
+      heroic = true
+   end
+   return simple, zone, heroic
+end
+
 function MagicMarker:SimplifyName(name)
    if not name then return "" end
    return gsub(name, " ", "")
@@ -630,11 +655,10 @@ end
 
 local optionsCallout
 
-function MagicMarker:InsertNewUnit(name, zone)
+function MagicMarker:InsertNewUnit(name)
    local simpleName = self:SimplifyName(name)
-   zone = ZoneReverse[zone] or zone
-   local simpleZone = self:SimplifyName(zone)
-   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1 }
+   local simpleZone,zone, isHeroic = self:GetZoneName()
+   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1, heroic = isHeroic }
 
    mobdata[simpleZone] = zoneHash
    
@@ -646,9 +670,11 @@ function MagicMarker:InsertNewUnit(name, zone)
 	 priority = 3,
 	 cc = {}
       }
-      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
+	 
+      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone))
+      end
    end
-
+   
    if not options.args.mobs.args[simpleZone] then
       options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
    else 
@@ -750,7 +776,7 @@ end
 
 function MagicMarker:GenerateOptions()
    local opts = options.args.categories.args
-   local subopts
+   local subopts, order
 
    db = self.db.profile
    
@@ -760,13 +786,20 @@ function MagicMarker:GenerateOptions()
    options.handler = MagicMarker
    options.args.categories.set = "SetRaidTargetConfig"
    options.args.categories.get = "GetRaidTargetConfig"
-
    for id, catName in ipairs(CC_LIST) do
-      if id == 1 then catName = "TANK" end -- hack
-      opts[catName] = {
+      if id == 1 then
+	 catName = "TANK"
+	 subopts = opts
+	 order = 1
+      else
+	 subopts = opts.cc.args
+	 order = 0
+      end 
+      
+      subopts[catName] = {
 	 type = "group",
 	 name = L[catName],
-	 order = id,
+	 order = order,
 	 args = {
 	    addcc = {
 	       type = "execute",
@@ -777,8 +810,9 @@ function MagicMarker:GenerateOptions()
 	    }
 	 },
       }
+
       for icon = 1,8 do
-	 opts[catName].args["icon"..icon] = {
+	 subopts[catName].args["icon"..icon] = {
 	    type = "select",
 	    name = "Raid Icon #"..icon,
 	    dialogControl = "MMRaidIcon",
@@ -816,9 +850,14 @@ function MagicMarker:AddZoneConfig(zone, zonedata)
 end
 
 function MagicMarker:ZoneConfigData(id, zone)
+   local name = ZoneLookup[zone.name] or zone.name;
+   if zone.heroic then
+      name = L["Heroic"] .. " " .. name 
+   end
+
    return {
       type = "group",
-      name = ZoneLookup[zone.name] or zone.name,
+      name = name,
       handler = MagicMarker, 
       args = {
 	 zoneInfo = {

@@ -259,7 +259,6 @@ end
 
 --------------------------------
 -- THIS IS A HACK UNTIL 2.4  ---
--- IT IS ENGLISH LOCALE ONLY ---
 --------------------------------
 function MagicMarker:UnitDeath()
    if log.trace then log.trace("Something died, checking for marks to free") end
@@ -267,12 +266,11 @@ function MagicMarker:UnitDeath()
 end
 
 function MagicMarker:ZoneChangedNewArea()
-   local zone = GetRealZoneText()
+   local zone,name = self:GetZoneName()
    
    if zone == nil or zone == "" then
       self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
    else
-      zone = MagicMarker:SimplifyName(zone)
       local zoneData = mobdata[zone]
       local enableLogging
       if not zoneData or zoneData.mm == nil then
@@ -408,7 +406,8 @@ end
 
 -- Return the hash for the unit of NIL if it's not available
 local function GetUnitHash(unitName, zoneName)
-   local tmpHash = mobdata[MagicMarker:SimplifyName(zoneName or GetRealZoneText())]
+   local zone = MagicMarker:GetZoneName(zoneName)
+   local tmpHash = mobdata[zone]
    if tmpHash then
       return tmpHash.mobs[MagicMarker:SimplifyName(unitName)]
    end
@@ -540,7 +539,7 @@ function MagicMarker:SmartMarkUnit(unit)
       local unitTarget = GetRaidTargetIndex(unit)
       local unitGUID = GetUniqueUnitID(unit)
       -- This will insert the unit into the database if it's missing
-      self:InsertNewUnit(unitName, GetRealZoneText())
+      self:InsertNewUnit(unitName)
 
       if unitTarget then
 	 if markedTargets[unitTarget] and markedTargets[unitTarget].guid == unitGUID then
