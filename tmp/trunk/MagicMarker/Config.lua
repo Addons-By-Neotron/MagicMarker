@@ -1,7 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
-local CONFIG_VERSION = 3
+local CONFIG_VERSION = 4
 local format = format
 local sub = string.sub
 local strmatch = strmatch
@@ -233,7 +233,7 @@ do
 			width = "full", 
 			func = "BroadcastRaidTargets",
 			handler = MagicMarker,
-			disabled = not IsRaidLeader() and not IsRaidOfficer(),
+			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
 		     },
 		     broadcastMobs = {
 			type = "execute",
@@ -243,7 +243,7 @@ do
 			width = "full", 
 			func = "BroadcastAllZones",
 			handler = MagicMarker,
-			disabled = not IsRaidLeader() and not IsRaidOfficer(),
+			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
 		     },
 		  },		  
 	       },
@@ -341,7 +341,7 @@ do
 	 order = 1001,
 	 width = "full", 
 	 func = function(var) MagicMarker:BroadcastZoneData(var[#var-1]) end,
-	 disabled = not IsRaidLeader() and not IsRaidOfficer(),
+	 disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
       },
       deletehdr = {
 	 type = "header",
@@ -362,10 +362,19 @@ do
 	 order = 2,
       },
       category = {
-	 name = "Category",
+	 name = L["Category"],
 	 type = "select",
 	 values = catDropdown, 
 	 order = 3,
+	 hidden = "IsIgnored",
+      },
+      ccnum = {
+	 name = L["Max # to Crowd Control"],
+	 desc = L["MAXCCHELP"], 
+	 type = "range",
+	 min = 1, max = 8,
+	 step = 1, 
+	 order = 4,
 	 hidden = "IsIgnored",
       },
       ccheader = {
@@ -508,7 +517,9 @@ function MagicMarker:SetMobConfig(info, value)
    local region = info[#info-2]
    local ccid = getID(var)
 
-   value = CONFIG_MAP[value]
+   if var ~= "ccnum" then
+      value = CONFIG_MAP[value]
+   end
    
    if ccid  then
       value = uniqList(mobdata[region].mobs[mob].cc or {}, ccid, value, 1, CONFIG_MAP.NUMCC)
@@ -628,9 +639,14 @@ function MagicMarker:GetZoneName(zone)
    return simple, zone, heroic
 end
 
+local simpleNameCache = {}
+
 function MagicMarker:SimplifyName(name)
    if not name then return "" end
-   return gsub(name, " ", "")
+   if not simpleNameCache[name] then
+      simpleNameCache[name] = gsub(name, " ", "")
+   end
+   return simpleNameCache[name]
 end
 
 local function GetZoneInfo(hash)
@@ -655,34 +671,49 @@ end
 
 local optionsCallout
 
-function MagicMarker:InsertNewUnit(name)
+function MagicMarker:InsertNewUnit(uid, name)
    local simpleName = self:SimplifyName(name)
    local simpleZone,zone, isHeroic = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1, heroic = isHeroic }
-
-   mobdata[simpleZone] = zoneHash
+   local changed
    
-   if not zoneHash.mobs[simpleName] then
-      zoneHash.mobs[simpleName] = {
-	 name = name,
-	 new = true,
-	 category = 1,
-	 priority = 3,
-	 cc = {}
-      }
-	 
-      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone))
+   if not zoneHash.mobs[uid] then
+      if zoneHash.mobs[simpleName] then
+	 -- 2.4 conversion to use mob id instead of simplified mob name
+	 zoneHash.mobs[uid] = zoneHash.mobs[simpleName]
+	 zoneHash.mobs[simpleName] = nil
+      else
+	 mobdata[simpleZone] = zoneHash -- new zone
+	 zoneHash.mobs[uid] = {
+	    name = name, 
+	    new = true,
+	    category = 1,
+	    priority = 3,
+	    cc = {},
+	    ccnum = 8
+	 }
       end
+
+      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
+
+      changed = true
    end
    
-   if not options.args.mobs.args[simpleZone] then
-      options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
-   else 
-      options.args.mobs.args[simpleZone].args.loader.hidden = false
-      options.args.mobs.args[simpleZone].args.zoneInfo.name = GetZoneInfo(zoneHash)
+   if zoneHash.mobs[uid].name ~= name then
+      -- different locale, update name
+      zoneHash.mobs[uid].name = name
+      changed = true
    end
-   self:NotifyChange()
-   return mobdata[simpleZone].mobs[simpleName]
+
+   if changed then
+      if not options.args.mobs.args[simpleZone] then
+	 options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
+      else 
+	 options.args.mobs.args[simpleZone].args.loader.hidden = false
+	 options.args.mobs.args[simpleZone].args.zoneInfo.name = GetZoneInfo(zoneHash)
+      end
+      self:NotifyChange()
+   end
 end
 
 function MagicMarker:RemoveZone(var)
@@ -924,7 +955,11 @@ function MagicMarker:LoadMobListForZone(var)
 end
 
 function MagicMarker:GetCCName(ccid)
-   return tolower(CC_LIST[ccid])
+   if ccid == 1 then
+      return tolower(L["TANK"])
+   else
+      return tolower(CC_LIST[ccid])
+   end
 end
 
 function MagicMarker:GetTargetName(ccid)
@@ -958,6 +993,15 @@ function MagicMarker:UpgradeDatabase()
 
    if version < 3 then
       self.db.profile.logLevel = MagicMarkerDB.logLevel
+   end
+
+   if version < 4 then
+      -- Added "max mobs to CC" option, default to 8 (max)
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 for mob, mobData in pairs(zoneData.mobs) do
+	    mobData.ccnum = 8
+	 end
+      end
    end
    
    MagicMarkerDB.version = CONFIG_VERSION

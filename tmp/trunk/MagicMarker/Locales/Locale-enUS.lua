@@ -14,62 +14,62 @@ L["Toggle config dialog"] = true
 L["Mark party/raid targets"] = true
 
 -- Options Config
-L["Options"] = true
-L["Config"] = true
-L["Priority"] = true
-L["Category"] = true
-L["Mob Database"] = true
-L["Raid Target Settings"] = true
+L["%s has a total of %d mobs. %s of these are newly discovered."] = true
+L["Accept mobdata broadcast messages"] = true
+L["Accept raid mark broadcast messages"] = true
 L["Add new crowd control"] = true
 L["Add raid icon"] = true
-L["Crowd Control #"] = true
+L["Broadcast all zone data to the raid group."] = true
+L["Broadcast raid target settings to the raid group."] = true
+L["Broadcast zone data to the raid group."] = true
+L["Category"] = true
+L["Config"] = true
+L["Data Broadcasting"] = true
+L["Data Sharing"] = true
+L["Delay between remarking"] = true
+L["Enable Magic Marker in this zone"] = true
+L["Enable auto-marking on target change"] = true
+L["Enable target re-prioritization during combat"] = true
+L["General Options"] = true
+L["Honor pre-existing raid icons"] = true
+L["Introduction"] = true
 L["Key Bindings"] = true
 L["Log level"] = true
-L["General Options"] = true
-L["%s has a total of %d mobs. %s of these are newly discovered."] = true
-L["Out of these mobs %d are ignored."] = true
-L["None"] = true
-L["Mob Notes"] = true
-L["Zone Options"] = true
-L["Enable auto-marking on target change"] = true
-L["Enable Magic Marker in this zone"] = true
-L['Delete mob from database (not recoverable)'] = true 
-L['Delete entire zone from database (not recoverable)'] = true
-L["Introduction"] = true
-L["Delay between remarking"] = true
 L["Marking Behavior"] = true
-L["Honor pre-existing raid icons"] = true
-L["Preserve raid group icons"] = true
-L["Reset raid icons when resetting the cache"] = true
-L["Enable target re-prioritization during combat"] = true
-L["Broadcast zone data to the raid group."] = true
-L["Data Sharing"] = true
-L["Accept raid mark broadcast messages"] = true
-L["Accept mobdata broadcast messages"] = true
-L["Mobdata data import behavior"] = true
+L["Max # to Crowd Control"] = true
 L["Merge - local priority"] = true
 L["Merge - remote priority"] = true
+L["Mob Database"] = true
+L["Mob Notes"] = true
+L["Mobdata data import behavior"] = true
+L["None"] = true
+L["Options"] = true
+L["Out of these mobs %d are ignored."] = true
+L["Preserve raid group icons"] = true
+L["Priority"] = true
+L["Raid Target Settings"] = true
 L["Replace with remote data"] = true
-L["Data Broadcasting"] = true
-L["Broadcast raid target settings to the raid group."] = true
-L["Broadcast all zone data to the raid group."] = true
- 
+L["Reset raid icons when resetting the cache"] = true
+L["Zone Options"] = true
+L['Delete entire zone from database (not recoverable)'] = true
+L['Delete mob from database (not recoverable)'] = true 
+
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
 L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = true
 
 -- CC Names
-L["SHEEP"] = "Sheep"
 L["BANISH"] = "Banish"
-L["SHACKLE"] = "Shackle"
+L["ENSLAVE"] = "Enslave"
+L["FEAR"] = "Fear"
 L["HIBERNATE"] = "Hibernate"
-L["TRAP"] = "Trap" 
 L["KITE"] = "Kite"
 L["MC"] = "Mind Control"
-L["FEAR"] = "Fear"
-L["SAP"] = "Sap"
-L["ENSLAVE"] = "Enslave"
 L["ROOT"] = "Root"
+L["SAP"] = "Sap"
+L["SHACKLE"] = "Shackle"
+L["SHEEP"] = "Sheep"
+L["TRAP"] = "Trap" 
 L["00NONE"] = "None "
 
 -- Priority names
@@ -107,6 +107,7 @@ L["IMPORTHELPTEXT"] = "This option dictates the behavior when you receive a mob 
 L["MOBBROADHELPTEXT"] = "If enabled you will accept zone mob data sent to you by the raid leader or assistant."
 L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration that is broadcasted by your raid leader. The new configuration will entirely replace your own settings."
 L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
+L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true
