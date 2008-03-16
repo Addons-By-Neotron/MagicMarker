@@ -1,7 +1,6 @@
 --[[
   MagicMarker configuration
 ]]
-local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
 local CONFIG_VERSION = 4
 local format = format
 local sub = string.sub
@@ -13,9 +12,6 @@ local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 local R = LibStub("AceConfigRegistry-3.0")
 local C = LibStub("AceConfigDialog-3.0")
-
-MagicMarker.version = "1.0 r" .. MINOR_VERSION
-MagicMarker.revision = MINOR_VERSION
 
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
@@ -71,7 +67,7 @@ do
 	 end
       else
 	 local oldAction = GetBindingAction(key)
-	 local frame = LibStub("AceConfigDialog-3.0").OpenFrames["Magic Marker"]
+	 local frame = C.OpenFrames["Magic Marker"]
 	 if frame then
 	    if ( oldAction ~= "" and oldAction ~= info.arg ) then
 	       frame:SetStatusText(KEY_UNBOUND_ERROR:format(GetBindingText(oldAction, "BINDING_NAME_")))
@@ -103,6 +99,14 @@ end
 
 function MagicMarker:NoMobNote(arg)
    return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
+end
+
+function MagicMarker:ToggleConfigDialog()
+   if C.OpenFrames["Magic Marker"] then
+      C:Close("Magic Marker")
+   else
+      C:Open("Magic Marker")
+   end
 end
 
 do
@@ -148,17 +152,22 @@ do
       args = {
 	 config = {
 	    type = "execute",
-	    name = L["Open configuration dialog."],
-	    func = function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end,
+	    name = L["Toggle configuration dialog"],
+	    func = "ToggleConfigDialog",
+	 },
+	 toggle = {
+	    type = "execute",
+	    name = L["Toggle Magic Marker event handling"],
+	    func = "ToggleMagicMarker",
 	 },
 	 tmpl = {
 	    type = "group",
-	    name = L["Raid group target templates."],
+	    name = L["Raid group target templates"],
 	    args = { }
 	 },
 	 about = {
 	    type = "execute",
-	    name = L["About Magic Marker."],
+	    name = L["About Magic Marker"],
 	    func = "AboutMagicMarker"
 	 },
 	 reset = {
@@ -168,7 +177,7 @@ do
 	 },
 	 cache = {
 	    type = "group",
-	    name = L["Raid mark layout caching."],
+	    name = L["Raid mark layout caching"],
 	    args = {
 	       save = {
 		  type = "execute",
@@ -180,7 +189,6 @@ do
 		  name = L["Load party/raid mark layout"]..".",
 		  func = "MarkRaidFromCache",
 	       },
-
 	    }
 	 }
       }
@@ -705,7 +713,7 @@ function MagicMarker:SimplifyName(name)
    return simpleNameCache[name]
 end
 
-local function GetZoneInfo(hash)
+function MagicMarker:GetZoneInfo(hash)
    local new = 0
    local total = 0
    local ignored = 0
@@ -717,10 +725,10 @@ local function GetZoneInfo(hash)
    end
    if new > 0 then new = tostring(new) else new = L["None"] end
 
-   local ret =  format(L["%s has a total of %d mobs. %s of these are newly discovered."],
+   local ret =  format(L["%s has a total of %d mobs.\n%s of these are newly discovered."],
 			      hash.name, total, new)
    if ignored > 0 then
-      ret = ret .. " "..format(L["Out of these mobs %d are ignored."], ignored)
+      ret = ret .. " "..format(L["\nOut of these mobs %d are ignored."], ignored)
    end
    return ret
 end
@@ -766,7 +774,7 @@ function MagicMarker:InsertNewUnit(uid, name)
 	 options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
       else 
 	 options.args.mobs.args[simpleZone].args.loader.hidden = false
-	 options.args.mobs.args[simpleZone].args.zoneInfo.name = GetZoneInfo(zoneHash)
+	 options.args.mobs.args[simpleZone].args.zoneInfo.name = self:GetZoneInfo(zoneHash)
       end
       self:NotifyChange()
    end
@@ -794,7 +802,7 @@ function MagicMarker:RemoveMob(var)
    end
    hash.mobs[mob] = nil
    options.args.mobs.args[zone].plugins.mobList[mob] = nil
-   options.args.mobs.args[zone].args.zoneInfo.name = GetZoneInfo(hash)
+   options.args.mobs.args[zone].args.zoneInfo.name = self:GetZoneInfo(hash)
    self:NotifyChange()
 end
 
@@ -962,7 +970,7 @@ function MagicMarker:ZoneConfigData(id, zone)
       args = {
 	 zoneInfo = {
 	    type = "description",
-	    name = GetZoneInfo(zone), 
+	    name = self:GetZoneInfo(zone), 
 	    order = 0,
 	 },
 	 delete = {

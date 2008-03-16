@@ -4,14 +4,17 @@ MagicMarker - your best friend for raid marking. See README.txt for
 more details.
 **********************************************************************
 ]]
-
+local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
 
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 					       "AceEvent-3.0", "AceTimer-3.0",
 					       "AceComm-3.0", "AceSerializer-3.0")
-
+local MagicMarker = MagicMarker
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
+
+MagicMarker.version = "1.0 r" .. MINOR_VERSION
+MagicMarker.revision = MINOR_VERSION
 
 -- Upvalue of global functions
 local GetRaidTargetIndex = GetRaidTargetIndex
@@ -118,6 +121,7 @@ function MagicMarker:OnInitialize()
       markedTargets[id] = {}
    end
 end
+
 
 local function CmdRedirect()
    MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r instead.") 
@@ -352,6 +356,7 @@ end
 function MagicMarker:EnableEvents(markOnTarget)
    if not self.addonEnabled then
       self.addonEnabled = true
+      if MMFu then MMFu:Update() end
       if log.info then log.info(L["Magic Marker enabled."]) end
       if markOnTarget then
 	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
@@ -371,6 +376,7 @@ end
 function MagicMarker:DisableEvents()
    if self.addonEnabled then
       self.addonEnabled = false
+      if MMFu then MMFu:Update() end
       if log.info then log.info(L["Magic Marker disabled."]) end
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
@@ -382,6 +388,14 @@ function MagicMarker:DisableEvents()
 	 self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
       end
    end
+end
+
+function MagicMarker:ToggleMagicMarker()
+   if self.addonEnabled then
+      self:DisableEvents()
+   else
+      self:EnableEvents()
+   end      
 end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
@@ -749,7 +763,7 @@ end
 
 
 -- Disable memoried marksdata
-function MagicMarker:ResetMarkData()
+function MagicMarker:ResetMarkData(hardReset)
    local id
    local usedRaidIcons
    local playerIcon
@@ -760,7 +774,7 @@ function MagicMarker:ResetMarkData()
    for id,_ in pairs(recentlyAdded) do recentlyAdded[id] = nil end
    for id,_ in pairs(numCcTargets) do numCcTargets[id] = nil end
 
-   if db.honorRaidMarks then
+   if db.honorRaidMarks and not hardReset then
       usedRaidIcons = {}
       -- Look at the marks in the raid to ensure we don't reset them.
       self:IterateGroup(function(self, unit)
@@ -783,7 +797,7 @@ function MagicMarker:ResetMarkData()
 	    targets[id] = markedTargets[id].uid
 	 end
 	 LowSetTarget(id)
-	 if db.resetRaidIcons then SetRaidTarget("player", id) end
+	 if hardReset or db.resetRaidIcons then SetRaidTarget("player", id) end
       end
    end
    if targets then
@@ -792,7 +806,7 @@ function MagicMarker:ResetMarkData()
    end
    -- Hack, sometimes the last mark isn't removed.
    
-   if db.resetRaidIcons then
+   if hardReset or db.resetRaidIcons then
       if playerIcon then 
 	 SetRaidTarget("player", playerIcon)
       else

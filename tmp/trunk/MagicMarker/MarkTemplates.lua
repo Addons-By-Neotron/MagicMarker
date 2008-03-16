@@ -25,19 +25,19 @@ end
 MagicMarker.MarkTemplates = {
    decursers  = {
       func = function (self, unit) MarkIfClassHelper(self, unit, decursers) end,
-      desc = L["Mark all mages and druids in the raid."],
+      desc = L["Mark all mages and druids in the raid"],
    },
    shamans = {
       func = function (self, unit) MarkIfClassHelper(self, unit, shamans) end,
-      desc = L["Mark all shamans in the raid."],
+      desc = L["Mark all shamans in the raid"],
       
    },
    archimonde = {
-      desc = L["Mark the decursers followed by the shamans."],
+      desc = L["Mark the decursers followed by the shamans"],
       order = 1,
    },
    arch = {
-      desc = L["Alias for archimonde."],
+      desc = L["Alias for archimonde"],
       order = 2,
    }
 }

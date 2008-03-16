@@ -15,7 +15,7 @@ L["Unmark selected target"] = "Markierung auf aktuellem Ziel entfernen";
 --L["Mark party/raid targets"] = true
 
 -- Options Config
-L["%s has a total of %d mobs. %s of these are newly discovered."] = "%s hat insgesamt %d Mobs. %s davon sind neu entdeckt."
+L["%s has a total of %d mobs.\n%s of these are newly discovered."] = "%s hat insgesamt %d Mobs.\n%s davon sind neu entdeckt."
 --L["Accept mobdata broadcast messages"] = true
 --L["Accept raid mark broadcast messages"] = true
 L["Add new crowd control"] = "Neue Gruppenkontrolle hinzuf\195\188gen"
@@ -53,7 +53,7 @@ L["Mob Database"] = "Mob Datenbank"
 L["Mob Notes"] = "Mob Notizen"
 L["None"] = "Keines"
 L["Options"] = "Einstellungen"
-L["Out of these mobs %d are ignored."] = "Von diesen Mobs sind %d ignoriert."
+L["\nOut of these mobs %d are ignored."] = "\nVon diesen Mobs sind %d ignoriert."
 --L["Preserve raid group icons"] = true
 L["Priority"] = "Priorit\195\164t"
 L["Raid Target Settings"] = "Schlachtzugs-Zieleinstellungen"
@@ -141,16 +141,40 @@ L["Resetting raid targets."] = "Schlachtzugs-Ziele zur\195\188cksetzen."
 -- Other
 --L["Heroic"] = true
 
+
 -- Command line options
---L["Open configuration dialog."] = true
---L["Unknown raid template: %s"] = true
---L["Raid group target templates."] = true
---L["About Magic Marker."] = true
---L["Raid mark layout caching."] = true
-
+-- L["Toggle configuration dialog"] = true
+-- L["Unknown raid template: %s"] = true
+-- L["Raid group target templates"] = true
+-- L["About Magic Marker"] = true
+-- L["Raid mark layout caching"] = true
+-- L["Toggle Magic Marker event handling"] = true
+--    
 -- Raid mark templates
---L["Mark all mages and druids in the raid."] = true
---L["Mark all shamans in the raid."]= true
---L["Mark the decursers followed by the shamans."] = true
---L["Alias for archimonde."] = true
+-- L["Mark all mages and druids in the raid"] = true
+-- L["Mark all shamans in the raid"]= true
+-- L["Mark the decursers followed by the shamans"] = true
+-- L["Alias for archimonde"] = true
 
+-- FuBar plugin
+-- L["Disabled"] = true
+-- L["Enabled"] = true
+-- L["Zone"] = true
+-- L["Status"] = true
+-- L["Toggle event handling"] = true
+-- L["Load the currently saved raid mark layout."] = true
+-- L["Save the current raid mark layout."] = true
+-- L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
+-- L["Short FuBar Text"] = true
+-- L["Hide Magic Marker from the FuBar status text."] = true
+-- L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
+-- L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = true
+-- L["Toggle the Magic Marker configuration dialog."] = true
+-- 
+-- L["RAIDMARKCACHEHELP"] = "This functionality lets you save the raid mark layout of the raid and then recall it. Useful to, for example, have raid marks enabled during phase 2 of Illidan but disabled in the other phases."
+-- L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or roles in the raid."
+-- 
+-- L["Hint: Click to toggle config dialog."] = true
+-- L["Shift-Click to toggle events."] = true
+-- L["Alt-Click to reset raid icon cache."] = true
+-- L["Alt-Shift-Click to hard reset raid icon cache."] = true

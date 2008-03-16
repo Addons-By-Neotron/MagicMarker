@@ -1,11 +1,6 @@
 <Bindings>
 	<Binding name="MAGICMARKTOGGLE" header="MagicMarker">
-                local aceconf = LibStub("AceConfigDialog-3.0")
-                if aceconf.OpenFrames["Magic Marker"] then
-                  aceconf:Close("Magic Marker")
-                else
-                  aceconf:Open("Magic Marker")
-                end
+		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ToggleConfigDialog()
 	</Binding>
 	<Binding name="MAGICMARKRESET" header="MagicMarker">
 		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ResetMarkData()
