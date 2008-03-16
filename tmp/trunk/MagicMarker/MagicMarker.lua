@@ -628,7 +628,7 @@ function MagicMarker:SmartMarkUnit(unit)
       local unitTarget = GetRaidTargetIndex(unit)
       local guid, uid = MagicMarker:GetUnitID(unit)
       -- This will insert the unit into the database if it's missing
-      self:InsertNewUnit(uid, unitName)
+      self:InsertNewUnit(uid, unitName, unit)
       if not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader() then
 	 return
       end

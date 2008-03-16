@@ -179,3 +179,8 @@ L["TOOLTIP_HINT"] =
    "|cffeda55fAlt-Maj-Clic|r pour faire un reset complet du cache.\n"..
    "|cffeda55fClic-Milieu|r pour signaler les affectations de raid sur le chat."
 
+-- creature description
+-- L["Creature type"] = true
+-- L["family"] = true
+-- L["classification"] = true
+-- L["unit is a caster"] = true

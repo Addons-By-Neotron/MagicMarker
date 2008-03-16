@@ -179,3 +179,8 @@ L["TOOLTIP_HINT"] =
    "|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache.\n"..
    "|cffeda55fMiddle-Click|r to print raid assignments to group chat."
 
+-- creature description
+L["Creature type"] = true
+L["family"] = true
+L["classification"] = true
+L["unit is a caster"] = true

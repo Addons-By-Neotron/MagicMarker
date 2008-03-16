@@ -89,21 +89,30 @@ end
 local function GetMobName(arg)
    return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
 end
-    
+local function GetMobDesc(arg)
+   return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].desc
+end
+
 local function GetMobNote(arg)
+   local note, desc
    if not MobNotesDB then
       if _G.MobNotesDB then
 	 MobNotesDB = _G.MobNotesDB
-      else
-	 return ""
+	 note = MobNotesDB[GetMobName(arg)]
       end
    end
-   local name = GetMobName(arg)
-   return MobNotesDB[GetMobName(arg)] or "N/A"
+   local desc = GetMobDesc(arg)
+   if note and desc then
+      return note .."\n"..desc
+   elseif desc then
+      return desc
+   else
+      return note or "N/A"
+   end
 end
 
 function MagicMarker:NoMobNote(arg)
-   return not MobNotesDB or not MobNotesDB[GetMobName(arg)] 
+   return not (( MobNotesDB and MobNotesDB[GetMobName(arg)]) or GetMobDesc(arg))
 end
 
 function MagicMarker:ToggleConfigDialog()
@@ -745,11 +754,15 @@ end
 
 local optionsCallout
 
-function MagicMarker:InsertNewUnit(uid, name)
+local function white(str)
+   return string.format("|cffffffff%s|r", str)
+end
+function MagicMarker:InsertNewUnit(uid, name, unit)
    local simpleName = self:SimplifyName(name)
    local simpleZone,zone, isHeroic = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1, heroic = isHeroic }
    local changed
+
    
    if not zoneHash.mobs[uid] then
       if zoneHash.mobs[simpleName] then
@@ -770,6 +783,24 @@ function MagicMarker:InsertNewUnit(uid, name)
 
       if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
 
+      changed = true
+   end
+   
+   if not zoneHash.mobs[uid].desc then
+      local family = UnitCreatureFamily(unit)
+      local type = UnitCreatureType(unit)
+      local mana = UnitManaMax(unit)
+      local class = UnitClassification(unit)
+      local desc = L["Creature type"]..": ".. white(type)
+      if family then
+	 desc =  desc ..", ".. L["family"] ..": " ..white(family)
+      end
+      desc =  desc ..", ".. L["classification"]..": "..white(class)
+      if mana and mana > 0 then
+	 desc =  desc ..", ".. L["unit is a caster"].."."
+      end
+      
+      zoneHash.mobs[uid].desc  = desc
       changed = true
    end
    
