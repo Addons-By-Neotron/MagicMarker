@@ -1136,5 +1136,5 @@ AddKeyBinding("MAGICMARKLOAD", L["Load party/raid mark layout"])
 
 LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"],
 					      function(name) return (name == "dialog" and options) or cmdoptions end,
-					      "mm")
+					      { "mm", "magic", "magicmarker" })
 

@@ -122,16 +122,11 @@ function MagicMarker:OnInitialize()
    end
 end
 
-
-local function CmdRedirect()
-   MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r instead.") 
-end
 function MagicMarker:OnEnable()
    self:RegisterEvent("ZONE_CHANGED_NEW_AREA","ZoneChangedNewArea")
    self:ZoneChangedNewArea()
    self:GenerateOptions()
-   self:RegisterChatCommand("magic", CmdRedirect, false, true)
-   self:RegisterChatCommand("mmtmpl", CmdRedirect, false, true)
+   self:RegisterChatCommand("mmtmpl", function() MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r or |cffdfa9cf/magic tmpl|r instead.")  end, false, true)
    self:RegisterComm(self.commPrefix, "BulkReceive")
    self:RegisterComm(self.commPrefixRT, "UrgentReceive")
 end
