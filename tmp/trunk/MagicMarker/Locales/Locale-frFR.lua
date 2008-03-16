@@ -37,7 +37,7 @@ L["Introduction"] = "Introduction"
 L["Key Bindings"] = "Raccourcis"
 L["Log level"] = "Niveau de log"
 L["Marking Behavior"] = "Comportement du marquage"
---L["Max # to Crowd Control"] = nil -- NEW
+L["Max # to Crowd Control"] = "Nombre max de monstres à contrôler"
 L["Merge - local priority"] = "Fusion - priorité locale"
 L["Merge - remote priority"] = "Fusion - priorité distante"
 L["Mob Database"] = "Base des monstres"
@@ -115,12 +115,12 @@ L["Added new mob %s in zone %s."] = "Ajout du nouveau monstre %s dans la zone %s
 L["Resetting raid targets."] = "Réinitialisation des icônes de raid."
 L["Magic Marker enabled."] = "Magic Marker activé."
 L["Magic Marker disabled."] = "Magic Marker désactivé."
-L["Save party/raid mark layout"] = "Sauvegarde du plan de marquage du groupe/raid."
-L["Load party/raid mark layout"] = "Chargement du plan de marquage du groupe/raid."
+L["Save party/raid mark layout"] = "Sauvegarde du modèle de marquage du groupe/raid."
+L["Load party/raid mark layout"] = "Chargement du modèle de marquage du groupe/raid."
 L["Unable to determine the class for %s."] = "Impossible de déterminer la classe pour %s."
 L["Deleting zone %s from the database!"] = "Suppression de la zone %s de la base!"
 L["Deleting mob %s from zone %s from the database!"] = "Suppression du monstre %s dans la zone %s de la base!"
-L["Added third party mark (%s) for mob %s."] = "Ajout d'une marque d'une tierce partie (%s) pour le monstre %s."
+L["Added third party mark (%s) for mob %s."] = "Ajout d'une icône d'une tierce partie (%s) pour le monstre %s."
 
 -- Log levels
 L["NONE"] = "Désactivé"
@@ -134,38 +134,37 @@ L["TRACE"] = "Messages de trace de debug"
 L["Heroic"] = "Héroïque"
 
 -- Command line options
--- L["Toggle configuration dialog"] = true
--- L["Unknown raid template: %s"] = true
--- L["Raid group target templates"] = true
--- L["About Magic Marker"] = true
--- L["Raid mark layout caching"] = true
--- L["Toggle Magic Marker event handling"] = true
+L["Toggle configuration dialog"] = "Affiche/Cache la fenêtre de configuration"
+L["Unknown raid template: %s"] = "Modèle de raid inconnu : %s"
+L["Raid group target templates"] = "Modèles de cible du groupe de raid"
+L["About Magic Marker"] = "A propos de Magic Marker"
+L["Raid mark layout caching"] = "Modèles d'icônes de raid en cache"
+L["Toggle Magic Marker event handling"] = "Active/Désactive le traitement des événements"
 --    
 -- Raid mark templates
--- L["Mark all mages and druids in the raid"] = true
--- L["Mark all shamans in the raid"]= true
--- L["Mark the decursers followed by the shamans"] = true
--- L["Alias for archimonde"] = true
+L["Mark all mages and druids in the raid"] = "Marque tous les mages et druides  du raid"
+L["Mark all shamans in the raid"]= "Marque tous les chamans du raid"
+L["Mark the decursers followed by the shamans"] = "Marque tous les décurseurs puis les chamans"
+L["Alias for archimonde"] = "Alias pour Archimonde"
 
 -- FuBar plugin
--- L["Disabled"] = true
--- L["Enabled"] = true
--- L["Zone"] = true
--- L["Status"] = true
--- L["Toggle event handling"] = true
--- L["Load the currently saved raid mark layout."] = true
--- L["Save the current raid mark layout."] = true
--- L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
--- L["Short FuBar Text"] = true
--- L["Hide Magic Marker from the FuBar status text."] = true
--- L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
--- L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = true
--- L["Toggle the Magic Marker configuration dialog."] = true
--- 
--- L["RAIDMARKCACHEHELP"] = "This functionality lets you save the raid mark layout of the raid and then recall it. Useful to, for example, have raid marks enabled during phase 2 of Illidan but disabled in the other phases."
--- L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or roles in the raid."
--- 
--- L["Hint: Click to toggle config dialog."] = true
--- L["Shift-Click to toggle events."] = true
--- L["Alt-Click to reset raid icon cache."] = true
--- L["Alt-Shift-Click to hard reset raid icon cache."] = true
+L["Disabled"] = "Désactivé"
+L["Enabled"] = "Activé"
+L["Zone"] = "Zone"
+L["Status"] = "Etat"
+L["Toggle event handling"] = "Active/Désactive le traitement des événements"
+L["Load the currently saved raid mark layout."] = "Charge le modèle d'icônes de raid actuellement enregistré"
+L["Save the current raid mark layout."] = "Sauvegarde le modèle actuel d'icônes de raid"
+L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = "Réinitialise le cache des icônes de raid. Notez que ceci préserve les options de Magic Marker ainsi que les icônes sur le raid."
+L["Short FuBar Text"] = "Texte FuBar court"
+L["Hide Magic Marker from the FuBar status text."] = "Cache Magic Marker de la barre d'état de FuBar."
+L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = "Active ou désactive le traitement des événements, i.e. si Magic Marker doit insérer ou non les monstres dans la base, marquer les monstres, etc."
+L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre de configuration de Magic MArker"
+ 
+L["RAIDMARKCACHEHELP"] = "Cette fonctionnalité vous permet d'enregistrer un modèle d'icônes de raid et de le réutiliser. Utile, par exemple, pour avoir les icônes de raid en phase 2 d'Illidan mais pas lors des autres phases."
+L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidement certaines classes ou rôles dans le raid."
+ 
+L["Hint: Click to toggle config dialog."] = "Astuce : Clic pour afficher/cacher la fenêtre de config"
+L["Shift-Click to toggle events."] = "Maj-Clic pour activer/désactiver les événements"
+L["Alt-Click to reset raid icon cache."] = "Alt-Clic pour réinitialiser le cache des icônes de raid"
+L["Alt-Shift-Click to hard reset raid icon cache."] = "Alt-Maj-Clic pour faire un reset complet du cache"
