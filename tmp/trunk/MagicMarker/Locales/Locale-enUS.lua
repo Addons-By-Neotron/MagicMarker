@@ -170,6 +170,12 @@ L["Difficulty"] = true
 L["Unit Name"] = true
 L["Mark Type"] = true
 L["Score"] = true
+L["Report the raid icon assignments to raid/party chat"] = true
 
-L["TOOLTIP_HINT"] = "\n|cffeda55fClick|r to toggle config dialog.\n|cffeda55fShift-Click|r to toggle event handling.\n|cffeda55fAlt-Click|r to reset raid icon cache.\n|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache."
+L["TOOLTIP_HINT"] =
+   "\n|cffeda55fClick|r to toggle config dialog.\n"..
+   "|cffeda55fShift-Click|r to toggle event handling.\n"..
+   "|cffeda55fAlt-Click|r to reset raid icon cache.\n"..
+   "|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache.\n"..
+   "|cffeda55fMiddle-Click|r to print raid assignments to group chat."
 

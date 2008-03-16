@@ -160,7 +160,8 @@ L["Short FuBar Text"] = "Texte FuBar court"
 L["Hide Magic Marker from the FuBar status text."] = "Cache Magic Marker de la barre d'état de FuBar."
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = "Active ou désactive le traitement des événements, i.e. si Magic Marker doit insérer ou non les monstres dans la base, marquer les monstres, etc."
 L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre de configuration de Magic MArker"
- 
+-- L["Report the raid icon assignments to raid/party chat"] = true
+
 L["RAIDMARKCACHEHELP"] = "Cette fonctionnalité vous permet d'enregistrer un modèle d'icônes de raid et de le réutiliser. Utile, par exemple, pour avoir les icônes de raid en phase 2 d'Illidan mais pas lors des autres phases."
 L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidement certaines classes ou rôles dans le raid."
  
@@ -171,4 +172,10 @@ L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidem
 -- L["Mark Type"] = true
 -- L["Score"] = true
 
-L["TOOLTIP_HINT"] = "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n|cffeda55fMaj-Clic|r pour activer/désactiver les événements.\n|cffeda55fAlt-Clic|r pour réinitialiser le cache des icônes de raid.\n|cffeda55fAlt-Maj-Clic|r pour faire un reset complet du cache." 
+L["TOOLTIP_HINT"] =
+   "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n"..
+   "|cffeda55fMaj-Clic|r pour activer/désactiver les événements.\n"..
+   "|cffeda55fAlt-Clic|r pour réinitialiser le cache des icônes de raid.\n"..
+   "|cffeda55fAlt-Maj-Clic|r pour faire un reset complet du cache.\n"..
+   "|cffeda55fMiddle-Click|r to print raid assignments to group chat." -- NEW
+

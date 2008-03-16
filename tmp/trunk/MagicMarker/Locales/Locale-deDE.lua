@@ -170,7 +170,8 @@ L["Resetting raid targets."] = "Schlachtzugs-Ziele zur\195\188cksetzen."
 -- L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
 -- L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = true
 -- L["Toggle the Magic Marker configuration dialog."] = true
--- 
+-- L["Report the raid icon assignments to raid/party chat"] = true
+
 L["RAIDMARKCACHEHELP"] = "This functionality lets you save the raid mark layout of the raid and then recall it. Useful to, for example, have raid marks enabled during phase 2 of Illidan but disabled in the other phases." -- new
 L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or roles in the raid." -- new
 -- 
@@ -181,4 +182,10 @@ L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or
 -- L["Mark Type"] = true
 -- L["Score"] = true
 
-L["TOOLTIP_HINT"] = "\n|cffeda55fClick|r to toggle config dialog.\n|cffeda55fShift-Click|r to toggle event handling.\n|cffeda55fAlt-Click|r to reset raid icon cache.\n|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache."
+L["TOOLTIP_HINT"] =
+   "\n|cffeda55fClick|r to toggle config dialog.\n"..
+   "|cffeda55fShift-Click|r to toggle event handling.\n"..
+   "|cffeda55fAlt-Click|r to reset raid icon cache.\n"..
+   "|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache.\n"..
+   "|cffeda55fMiddle-Click|r to print raid assignments to group chat."
+

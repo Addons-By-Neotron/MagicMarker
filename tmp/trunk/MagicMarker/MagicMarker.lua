@@ -820,6 +820,37 @@ function MagicMarker:ResetMarkData(hardReset)
    self:ScanGroupMembers()
 end
 
+local function myconcat(hash, key, str)
+   if hash[key] then
+      hash[key] = str.join(", ", hash[key], str)
+   else
+      hash[key] = str
+   end
+end
+
+function MagicMarker:ReportRaidMarks()
+   local assign = {}
+   local test
+   if GetNumRaidMembers() > 0 then
+      dest = "RAID"
+   elseif GetNumPartyMembers() > 0 then
+      dest = "PARTY"
+   end
+   
+   for id, data in pairs(markedTargets) do
+      if data.ccid then
+	 myconcat(assign, data.ccid, self:GetTargetName(id))
+      elseif data.value == 50 then
+	 myconcat(assign, "External", self:GetTargetName(id))
+      end
+   end
+   SendChatMessage("*** Raid Target assignments:", dest)
+  for ccid,data in pairs(assign) do
+      SendChatMessage(string.format("  %s => %s",data, 
+				    (type(ccid) == "number" and self:GetCCName(ccid, 1)) or  L[ccid]),
+		      dest)
+   end
+end
 
 function MagicMarker:OnProfileChanged(db,name)
    if log.trace then log.trace("Profile changed to %s", name) end

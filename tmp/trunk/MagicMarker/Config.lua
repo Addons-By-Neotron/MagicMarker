@@ -180,6 +180,11 @@ do
 	    name = L["Reset raid icon cache"]..".",
 	    func = "ResetMarkData", 
 	 },
+	 assignments = {
+	    type = "execute",
+	    name = L["Report the raid icon assignments to raid/party chat"]..".",
+	    func = "ReportRaidMarks"
+	 },
 	 cache = {
 	    type = "group",
 	    name = L["Raid mark layout caching"],
