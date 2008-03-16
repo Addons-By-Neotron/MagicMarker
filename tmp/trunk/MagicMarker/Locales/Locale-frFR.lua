@@ -164,7 +164,11 @@ L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre 
 L["RAIDMARKCACHEHELP"] = "Cette fonctionnalité vous permet d'enregistrer un modèle d'icônes de raid et de le réutiliser. Utile, par exemple, pour avoir les icônes de raid en phase 2 d'Illidan mais pas lors des autres phases."
 L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidement certaines classes ou rôles dans le raid."
  
-L["Hint: Click to toggle config dialog."] = "Astuce : Clic pour afficher/cacher la fenêtre de config"
-L["Shift-Click to toggle events."] = "Maj-Clic pour activer/désactiver les événements"
-L["Alt-Click to reset raid icon cache."] = "Alt-Clic pour réinitialiser le cache des icônes de raid"
-L["Alt-Shift-Click to hard reset raid icon cache."] = "Alt-Maj-Clic pour faire un reset complet du cache"
+-- L["External"] = true
+-- L["Template"] = true
+-- L["Difficulty"] = true
+-- L["Unit Name"] = true
+-- L["Mark Type"] = true
+-- L["Score"] = true
+
+L["TOOLTIP_HINT"] = "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n|cffeda55fMaj-Clic|r pour activer/désactiver les événements.\n|cffeda55fAlt-Clic|r pour réinitialiser le cache des icônes de raid.\n|cffeda55fAlt-Maj-Clic|r pour faire un reset complet du cache." 

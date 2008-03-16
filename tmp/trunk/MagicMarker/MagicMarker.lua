@@ -602,7 +602,7 @@ local unitValueCache = {}
 
 function MagicMarker:UnitValue(uid, hash)
    --   if unitValueCache[unit] then return unitValueCache[unit] end
-   local unitData = hash or GetUnitHash(uid)
+   local unitData = hash or self:GetUnitHash(uid)
    local value = 0
    
    if unitData then
@@ -760,6 +760,10 @@ function MagicMarker:UnmarkSingle()
    end
 end
 
+
+function MagicMarker:GetMarkData()
+   return markedTargets
+end
 
 -- Disable memoried marksdata
 function MagicMarker:ResetMarkData(hardReset)

@@ -40,6 +40,11 @@ local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
 
+function MagicMarker:GetIconTexture(id)
+   return string.format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
+			sub(RT_LIST[id], 2))
+end
+
 -- KeybindHelper code from Xinhuan's addon IPopBar. Thanks for letting me use it! 
 local KeybindHelper = {}
 do
@@ -1033,11 +1038,13 @@ function MagicMarker:LoadMobListForZone(var)
    self:NotifyChange()
 end
 
-function MagicMarker:GetCCName(ccid)
-   if ccid == 1 then
-      return tolower(L["TANK"])
+function MagicMarker:GetCCName(ccid, val)
+   if not ccid then
+      return (val == 50 and L["External"]) or L["Template"]
+   elseif ccid == 1 then
+      return (val and L["TANK"]) or tolower(L["TANK"])
    else
-      return tolower(CC_LIST[ccid])
+      return (val and L[CC_LIST[ccid]]) or tolower(L[CC_LIST[ccid]])
    end
 end
 

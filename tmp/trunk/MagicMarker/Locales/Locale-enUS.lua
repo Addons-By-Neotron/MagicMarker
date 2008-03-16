@@ -164,7 +164,12 @@ L["Toggle the Magic Marker configuration dialog."] = true
 L["RAIDMARKCACHEHELP"] = "This functionality lets you save the raid mark layout of the raid and then recall it. Useful to, for example, have raid marks enabled during phase 2 of Illidan but disabled in the other phases."
 L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or roles in the raid."
 
-L["Hint: Click to toggle config dialog."] = true
-L["Shift-Click to toggle events."] = true
-L["Alt-Click to reset raid icon cache."] = true
-L["Alt-Shift-Click to hard reset raid icon cache."] = true
+L["External"] = true
+L["Template"] = true
+L["Difficulty"] = true
+L["Unit Name"] = true
+L["Mark Type"] = true
+L["Score"] = true
+
+L["TOOLTIP_HINT"] = "\n|cffeda55fClick|r to toggle config dialog.\n|cffeda55fShift-Click|r to toggle event handling.\n|cffeda55fAlt-Click|r to reset raid icon cache.\n|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache."
+
