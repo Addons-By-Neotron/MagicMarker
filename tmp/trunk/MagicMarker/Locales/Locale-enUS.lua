@@ -137,7 +137,7 @@ L["Open configuration dialog."] = true
 L["Unknown raid template: %s"] = true
 L["Raid group target templates."] = true
 L["About Magic Marker."] = true
- L["Raid Mark Cache"] = true
+L["Raid mark layout caching."] = true
  
 -- Raid mark templates
 L["Mark all mages and druids in the raid."] = true
