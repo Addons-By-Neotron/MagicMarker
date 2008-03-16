@@ -1,6 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
+local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
 local CONFIG_VERSION = 4
 local format = format
 local sub = string.sub
@@ -13,12 +14,15 @@ local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 local R = LibStub("AceConfigRegistry-3.0")
 local C = LibStub("AceConfigDialog-3.0")
 
+MagicMarker.version = "1.0 r" .. MINOR_VERSION
+MagicMarker.revision = MINOR_VERSION
+
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
 local ZoneLookup  = BabbleZone:GetLookupTable()
 
 local MobNotesDB
-local options, standardZoneOptions, standardMobOptions
+local options, cmdoptions, standardZoneOptions, standardMobOptions
 BabbleZone = nil
 
 local db
@@ -135,7 +139,53 @@ do
    for logname,id in pairs(MagicMarker.logLevels) do
       logLevelsDropdown[id] = L[logname]
    end
-   
+
+   -- command line / dropdown options
+   cmdoptions = {
+      type = "group",
+      name = L["Magic Marker"],
+      handler = MagicMarker,
+      args = {
+	 config = {
+	    type = "execute",
+	    name = L["Open configuration dialog."],
+	    func = function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end,
+	 },
+	 tmpl = {
+	    type = "group",
+	    name = L["Raid group target templates."],
+	    args = { }
+	 },
+	 about = {
+	    type = "execute",
+	    name = L["About Magic Marker."],
+	    func = "AboutMagicMarker"
+	 },
+	 reset = {
+	    type = "execute",
+	    name = L["Reset raid icon cache"]..".",
+	    func = "ResetMarkData", 
+	 },
+	 cache = {
+	    type = "group",
+	    name = L["Raid mark layout caching."],
+	    args = {
+	       save = {
+		  type = "execute",
+		  name = L["Save party/raid mark layout"]..".",
+		  func = "CacheRaidMarks",
+	       },
+	       load = {
+		  type = "execute",
+		  name = L["Load party/raid mark layout"]..".",
+		  func = "MarkRaidFromCache",
+	       },
+
+	    }
+	 }
+      }
+   }
+
    options = { 
       type = "group", 
       name = L["Magic Marker"],
@@ -145,13 +195,17 @@ do
 	    type = "group",
 	    name = L["Mob Database"],
 	    args = {}, 
-	    order = 300
+	    order = 300,
+	    cmdHidden = true, 
+	    dropdownHidden = true, 
 	 }, 
 	 categories = {
 	    childGroups = "tree",
 	    type = "group",
 	    name = L["Raid Target Settings"],
 	    order = 1,
+	    cmdHidden = true, 
+	    dropdownHidden = true, 
 	    args = {
 	       cc = {
 		  childGroups = "tree",
@@ -170,6 +224,8 @@ do
 	    handler = MagicMarker,
 	    set = "SetProfileParam",
 	    get = "GetProfileParam",
+	    cmdHidden = true, 
+	    dropdownHidden = true, 
 	    args = {
 	       keybindings = {
 		  type = "group",
@@ -810,13 +866,14 @@ function MagicMarker:GenerateOptions()
    local subopts, order
 
    db = self.db.profile
-   
+
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
    
    options.handler = MagicMarker
    options.args.categories.set = "SetRaidTargetConfig"
    options.args.categories.get = "GetRaidTargetConfig"
+
    for id, catName in ipairs(CC_LIST) do
       if id == 1 then
 	 catName = "TANK"
@@ -874,6 +931,18 @@ function MagicMarker:GenerateOptions()
    for id, zone in pairs(mobdata) do
       opts[id] = self:ZoneConfigData(id, zone)
    end
+
+   -- command line options
+   opts = cmdoptions.args.tmpl.args;
+   for cmd,data in pairs(self.MarkTemplates) do
+      opts[cmd] = {
+	 type = "execute",
+	 name = data.desc,
+	 func = function() MagicMarker:MarkRaidFromTemplate(cmd) end,
+	 order = data.order
+      }
+   end
+   
 end
 
 function MagicMarker:AddZoneConfig(zone, zonedata)
@@ -910,6 +979,7 @@ function MagicMarker:ZoneConfigData(id, zone)
 	    type = "toggle",
 	    name = "loader",
 	    get = "LoadMobListForZone",
+	    set = function() end,
 	    arg = id,
 	 }
       },
@@ -946,7 +1016,8 @@ function MagicMarker:LoadMobListForZone(var)
 	    loader = {
 	       name = "Loader",
 	       type = "toggle",
-	       get = "BuildMobConfig"
+	       get = "BuildMobConfig", 
+	       set = function() end
 	    }
 	 }
       }
@@ -1022,6 +1093,15 @@ local function AddKeyBinding(keyname, desc)
    keyBindingOrder = keyBindingOrder + 1
 end
 
+function MagicMarker:AboutMagicMarker()
+   self:Print("|cffafa4ffAuthor:|r David Hedbor <neotron@gmail.com>")
+   self:Print("|cffafa4ffDescription:|r Automated smart raid marking to speed up trash clearing in instance runs.")
+   self:Print("|cffafa4ffVersion:|r"..self.version)
+   self:Print("|cffafa4ffHosted by:|r WowAce.com - thanks guys!")
+   self:Print("|cffafa4ffPowered by:|r Ace3")
+end
+
+
 -- Keybind names
 
 BINDING_HEADER_MagicMarker = L["Magic Marker"]
@@ -1034,5 +1114,7 @@ AddKeyBinding("MAGICMARKRAID", L["Mark party/raid targets"])
 AddKeyBinding("MAGICMARKSAVE", L["Save party/raid mark layout"])
 AddKeyBinding("MAGICMARKLOAD", L["Load party/raid mark layout"])
 
-LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"], options)
+LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"],
+					      function(name) return (name == "dialog" and options) or cmdoptions end,
+					      "mm")
 

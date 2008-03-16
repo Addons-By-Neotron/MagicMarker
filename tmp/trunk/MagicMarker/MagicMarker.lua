@@ -119,13 +119,15 @@ function MagicMarker:OnInitialize()
    end
 end
 
+local function CmdRedirect()
+   MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r instead.") 
+end
 function MagicMarker:OnEnable()
    self:RegisterEvent("ZONE_CHANGED_NEW_AREA","ZoneChangedNewArea")
    self:ZoneChangedNewArea()
    self:GenerateOptions()
-   self:RegisterChatCommand("magic", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
-   self:RegisterChatCommand("mm", function() LibStub("AceConfigDialog-3.0"):Open("Magic Marker") end, false, true)
-   self:RegisterChatCommand("mmtmpl", "MarkRaidFromTemplate", false, true)
+   self:RegisterChatCommand("magic", CmdRedirect, false, true)
+   self:RegisterChatCommand("mmtmpl", CmdRedirect, false, true)
    self:ScanGroupMembers()
    self:RegisterComm(self.commPrefix, "BulkReceive")
    self:RegisterComm(self.commPrefixRT, "UrgentReceive")
@@ -453,10 +455,12 @@ end
 function MagicMarker:MarkRaidFromTemplate(template)
    if log.debug then log.debug("Marking from template: "..template) end
    if template == "arch" or template == "archimonde" then
-      self:IterateGroup(MagicMarker.MarkTemplates.decursers)
-      self:IterateGroup(MagicMarker.MarkTemplates.shamans)
-   elseif MagicMarker.MarkTemplates[template] then
-      self:IterateGroup(MagicMarker.MarkTemplates[template])
+      self:IterateGroup(MagicMarker.MarkTemplates.decursers.func)
+      self:IterateGroup(MagicMarker.MarkTemplates.shamans.func)
+   elseif MagicMarker.MarkTemplates[template] and MagicMarker.MarkTemplates[template].func then
+      self:IterateGroup(MagicMarker.MarkTemplates[template].func)
+   else
+      if log.warn then log.warn(L["Unknown raid template: %s"], template) end
    end
 end
 

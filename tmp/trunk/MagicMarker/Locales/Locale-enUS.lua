@@ -131,3 +131,17 @@ L["TRACE"] = "Debug trace messages"
 
 -- Other
 L["Heroic"] = true
+
+-- Command line options
+L["Open configuration dialog."] = true
+L["Unknown raid template: %s"] = true
+L["Raid group target templates."] = true
+L["About Magic Marker."] = true
+ L["Raid Mark Cache"] = true
+ 
+-- Raid mark templates
+L["Mark all mages and druids in the raid."] = true
+L["Mark all shamans in the raid."]= true
+L["Mark the decursers followed by the shamans."] = true
+L["Alias for archimonde."] = true
+

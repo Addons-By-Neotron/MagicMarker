@@ -1,6 +1,6 @@
 ## Interface: 20300
 ## Title: Magic Marker
-## Notes: Smart raid marking to speed up trash clearing in raids
+## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
 ## Version: 1.0
 ## DefaultState: enabled
