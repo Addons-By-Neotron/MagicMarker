@@ -132,7 +132,6 @@ function MagicMarker:OnEnable()
    self:GenerateOptions()
    self:RegisterChatCommand("magic", CmdRedirect, false, true)
    self:RegisterChatCommand("mmtmpl", CmdRedirect, false, true)
-   self:ScanGroupMembers()
    self:RegisterComm(self.commPrefix, "BulkReceive")
    self:RegisterComm(self.commPrefixRT, "UrgentReceive")
 end
