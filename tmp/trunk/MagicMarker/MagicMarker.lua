@@ -75,8 +75,9 @@ local defaultConfigDB = {
    }
 }
 
-local function LowSetTarget(id, uid, val, ccid)
-   markedTargets[id].uid  = uid
+local function LowSetTarget(id, uid, val, ccid, guid)
+   markedTargets[id].guid  = guid
+   markedTargets[id].uid  = uid 
    markedTargets[id].ccid  = ccid
    markedTargets[id].value = val
 end
@@ -149,6 +150,7 @@ function MagicMarker:UrgentReceive(prefix, encmsg, dist, sender)
       -- misc1 = mark
       -- misc2 = value
       -- misc3 = ccid
+      -- misc4 = guid
       local ccid = message.misc3
       if log.debug then
 	 local hash = self:GetUnitHash(message.data)
@@ -160,7 +162,7 @@ function MagicMarker:UrgentReceive(prefix, encmsg, dist, sender)
       if ccid and ccid > 1 then
 	 numCcTargets[ message.data ] = (numCcTargets[ message.data ] or 0) + 1
       end
-      self:ReserveMark(message.misc1, message.data, message.misc2, ccid, false, true)
+      self:ReserveMark(message.misc1, message.data, message.misc2, message.misc4, ccid, false, true)
    elseif message.cmd == "UNMARK" then
       -- data = UID
       -- misc1 = mark
@@ -238,12 +240,13 @@ function MagicMarker:MergeZoneData(zone,zoneData)
    self:AddZoneConfig(zone, zoneData)
 end
 
-local function SetNetworkData(cmd, data, misc1, misc2, misc3)
+local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
    networkData.cmd = cmd
    networkData.data = data
    networkData.misc1 = misc1
    networkData.misc2 = misc2
    networkData.misc3 = misc3
+   networkData.misc4 = misc4
 end
 
 function MagicMarker:BroadcastZoneData(zone)
@@ -301,12 +304,25 @@ function MagicMarker:PossiblyReleaseMark(unit, noTarget)
    end
 end
 
---------------------------------
--- THIS IS A HACK UNTIL 2.4  ---
---------------------------------
+
+-- 2.3 version
 function MagicMarker:UnitDeath()
    if log.trace then log.trace("Something died, checking for marks to free") end
    self:IterateGroup(self.PossiblyReleaseMark, true)
+end
+
+-- 2.4 version
+local handledCombatEvents = { UNIT_DIED = true, PARTY_KILL = true }
+function MagicMarker:UnitDeath24(_, _, event, _, _, _, guid, name)
+   if handledCombatEvents[event] then
+      for mark,data in pairs(markedTargets) do
+	 if data.guid == guid then
+	    if log.debug then log.debug("Releasing %s from dead mob %s.", self:GetTargetName(mark), name) end
+	    MagicMarker:ReleaseMark(mark, data.uid)
+	    break
+	 end
+      end
+   end
 end
 
 function MagicMarker:ZoneChangedNewArea()
@@ -341,7 +357,11 @@ function MagicMarker:EnableEvents(markOnTarget)
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
-      self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
+      if UnitGUID then
+	 self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "UnitDeath24")
+      else
+	 self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
+      end
       self:ScheduleGroupScan()
    end
 end
@@ -354,7 +374,11 @@ function MagicMarker:DisableEvents()
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
       self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-      self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
+      if UnitGUID then
+	 self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+      else
+	 self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
+      end
    end
 end
 
@@ -402,7 +426,7 @@ end
 
 function MagicMarker:MarkRaidFromCache()
    for unit,id in pairs(raidMarkCache) do
-      self:ReserveMark(id, unit, -1, nil, true)
+      self:ReserveMark(id, unit, -1, unit, nil, true)
    end
 end
 
@@ -500,7 +524,7 @@ function MagicMarker:GetNextUnitMark(unit,unitName)
       end
       self:IterateGroup(function(self, unit)
 			   local id = GetRaidTargetIndex(unit)
-			   if id then LowSetTarget(id, unit, 300) end
+			   if id then LowSetTarget(id, unit, 300, nil, unit) end
 			end)
    end
    
@@ -601,7 +625,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	    if log.trace then log.trace("  already marked.") end
 	    return
 	 elseif db.honorMarks then
-	    self:ReserveMark(unitTarget, uid, 50)
+	    self:ReserveMark(unitTarget, uid, 50, guid, nil, nil)
 	    if log.debug then
 	       log.debug(L["Added third party mark (%s) for mob %s."],
 			 self:GetTargetName(unitTarget), unitName)
@@ -614,7 +638,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 if log.trace then log.trace("Marking "..guid.." ("..(unitTarget or "N/A")..")") end
 
 	 if recentlyAdded[guid] then 
-	    if log.trace then log.trace("  recently marked.") end
+	    if log.trace then log.trace("  marked / reserved") end
 	    return
 	 end
 	 
@@ -628,11 +652,12 @@ function MagicMarker:SmartMarkUnit(unit)
 	 elseif newTarget == -1 then
 	    if log.trace then log.trace("  Target on ignore list") end
 	 else
-	    recentlyAdded[guid] = true
-	    self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, guid) -- To clear it up
-	    
+	    if not UnitGUID then
+	       self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, guid) -- To clear it up
+	    end
+	    recentlyAdded[guid] = newTarget
 	    if log.trace then log.trace("  => %s -- %s -- %s -- %s -- %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
-	    self:ReserveMark(newTarget, uid, value, ccID)
+	    self:ReserveMark(newTarget, uid, value, guid, ccID)
 	    SetRaidTarget(unit, newTarget)
 	 end
       end
@@ -646,6 +671,7 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
    if setTarget then SetRaidTarget(unit, 0) end
    local olduid = markedTargets[mark].uid 
    if olduid then
+      recentlyAdded[markedTargets[mark].guid] = nil
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
@@ -666,7 +692,7 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
    end
 end
 
-function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget, fromNetwork)
+function MagicMarker:ReserveMark(mark, unit, value, guid, ccID, setTarget, fromNetwork)
    if IsRaidLeader() or IsRaidOfficer() or IsPartyLeader() then
       if log.trace then log.trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccID), tostring(setTarget)) end
       local olduid = markedTargets[mark].uid
@@ -675,7 +701,7 @@ function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget, fromNetwork
 	    self:ReleaseMark(mark, olduid, setTarget, fromNetwork)
 	 end
 	 
-	 LowSetTarget(mark, unit, (value == -1 and 2000) or value, ccID)
+	 LowSetTarget(mark, unit, (value == -1 and 2000) or value, ccID, guid)
 	 
 	 if ccID then
 	    ccUsed[ ccID ] = (ccUsed[ ccid ] or 0) + 1
@@ -686,7 +712,7 @@ function MagicMarker:ReserveMark(mark, unit, value, ccID, setTarget, fromNetwork
 	 end
 	 
 	 if not fromNetwork then
-	    SetNetworkData("MARK", unit, mark, value, ccID)
+	    SetNetworkData("MARK", unit, mark, value, ccID, guid)
 	    self:SendUrgentMessage()
 	 end
 	 return true
@@ -746,7 +772,7 @@ function MagicMarker:ResetMarkData()
 
    for id = 1, 8 do
       if usedRaidIcons and usedRaidIcons[id] then
-	 LowSetTarget(id, usedRaidIcons[id], 300)
+	 LowSetTarget(id, usedRaidIcons[id], 300, nil, usedRaidIcons[id])
       else
 	 if markedTargets[id].uid then
 	    if not targets then targets = {} end

@@ -15,7 +15,7 @@ local function MarkIfClassHelper(self, unit, classes)
 
    if class and classes[class] then
       for id = 1, 8 do 
-	 if self:ReserveMark(id, unit, classes[class], nil, true) then
+	 if self:ReserveMark(id, unit, classes[class], unit, nil, true) then
 	    if log.debug then log.debug("Marking "..unit.." with target "..id) end
 	    return true
 	 end
