@@ -196,7 +196,7 @@ function MagicMarker:BulkReceive(prefix, encmsg, dist, sender)
       if message.cmd == "MOBDATA" then
 	 if db.acceptMobData then
 	    if log.debug then log.debug("[Net] Received mob data for %s from %s.", message.data.name, sender) end
-	    self:MergeZoneData(message.zone, message.data)
+	    self:MergeZoneData(message.misc1, message.data)
 	 end
       elseif message.cmd == "TARGETS" then
 	 if log.debug then log.debug("[Net] Received raid mark configuration from %s.", sender) end
