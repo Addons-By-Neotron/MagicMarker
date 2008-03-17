@@ -882,7 +882,7 @@ function MagicMarker:NotifyChange()
    db = self.db.profile
    mobdata = MagicMarkerDB.mobdata
    targetdata = MagicMarkerDB.targetdata
-   if configBuilt then self:UnloadOptions() end
+--   if configBuilt then self:UnloadOptions() end
    R:NotifyChange(L["Magic Marker"])
 end
  
