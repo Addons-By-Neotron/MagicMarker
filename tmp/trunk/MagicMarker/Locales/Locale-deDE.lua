@@ -117,6 +117,7 @@ L["MOBBROADHELPTEXT"] = "If enabled you will accept zone mob data sent to you by
 L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration that is broadcasted by your raid leader. The new configuration will entirely replace your own settings."
 L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
 L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
+L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = "Neuer Mob %s in Zone %s hinzugef\195\188gt."

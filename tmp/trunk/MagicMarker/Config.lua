@@ -338,13 +338,14 @@ do
 		     generalHeader = {
 			type = "header",
 			name = L["General Options"],
-			order = 0,
+			order = 1,
 		     },
 		     logLevel = {
 			type = "select",
 			name = L["Log level"],
+			desc = L["LOGLEVELHELP"],
 			values = logLevelsDropdown,
-			order = 1,
+			order = 2,
 		     },
 		     remarkDelay = {
 			name = L["Delay between remarking"],
@@ -1152,7 +1153,9 @@ function MagicMarker:AboutMagicMarker()
    self:Print("|cffafa4ffPowered by:|r Ace3")
 end
 
-
+function MagicMarker:GetOptions()
+   return options
+end
 -- Keybind names
 
 BINDING_HEADER_MagicMarker = L["Magic Marker"]
