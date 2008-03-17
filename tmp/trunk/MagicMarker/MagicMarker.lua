@@ -688,7 +688,7 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
 	 if ccid > 1 then
-	    if numCcTargets[ olduid ] > 1 then
+	    if (numCcTargets[ olduid ] or 0) > 1 then
 	       numCcTargets[ olduid ] = numCcTargets[ olduid ] - 1
 	    else
 	       numCcTargets[ olduid ] = nil
