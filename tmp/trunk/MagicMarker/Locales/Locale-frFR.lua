@@ -133,8 +133,8 @@ L["TRACE"] = "Messages de trace de debug"
 
 -- Other
 L["Heroic"] = "Héroïque"
---L["Normal"] = true
-L["Raid"] = true
+L["Normal"] = "Normal"
+L["Raid"] = "Raid"
 
 -- Command line options
 L["Toggle configuration dialog"] = "Affiche/Cache la fenêtre de configuration"
@@ -183,7 +183,7 @@ L["TOOLTIP_HINT"] =
    "|cffeda55fClic-Milieu|r pour signaler les affectations de raid sur le chat."
 
 -- creature description
--- L["Creature type"] = true
--- L["family"] = true
--- L["classification"] = true
--- L["unit is a caster"] = true
+L["Creature type"] = "Type de créature"
+L["family"] = "famille"
+L["classification"] = "catégorie"
+L["unit is a caster"] = "l'unité est un caster"
