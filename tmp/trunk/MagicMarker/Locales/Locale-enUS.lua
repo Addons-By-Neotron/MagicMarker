@@ -132,6 +132,8 @@ L["TRACE"] = "Debug trace messages"
 
 -- Other
 L["Heroic"] = true
+L["Normal"] = true
+L["Raid"] = true
 
 -- Command line options
 L["Toggle configuration dialog"] = true

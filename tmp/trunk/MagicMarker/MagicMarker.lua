@@ -25,6 +25,10 @@ local InCombatLockdown = InCombatLockdown
 local SetRaidTarget = SetRaidTarget
 local UnitGUID = UnitGUID
 local UnitIsDead = UnitIsDead
+local UnitPlayerControlled = UnitPlayerControlled
+local UnitClass = UnitClass
+local UnitCreatureType = UnitCreatureType
+local UnitCanAttack = UnitCanAttack
 local UnitLevel = UnitLevel
 local UnitName = UnitName
 local UnitSex = UnitSex
@@ -325,16 +329,17 @@ function MagicMarker:UnitDeath24(_, _, event, _, _, _, guid, name)
    end
 end
 
+local notPvPInstance = { raid = true, party = true }
 function MagicMarker:ZoneChangedNewArea()
    local zone,name = self:GetZoneName()
-   
    if zone == nil or zone == "" then
       self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
    else
       local zoneData = mobdata[zone]
       local enableLogging
       if not zoneData or zoneData.mm == nil then
-	 enableLogging = IsInInstance()
+	 local inInstance, type = IsInInstance()
+	 enableLogging = inInstance and notPvPInstance[type]
       else
 	 enableLogging = zoneData.mm 
       end
@@ -480,8 +485,8 @@ end
 
 -- Return whether a target is eligable for marking
 local function UnitIsEligable (unit)
-   return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit) and
-      UnitCreatureType(unit) ~= "Critter" and not UnitIsPlayer(unit)
+   return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit)
+      and  UnitCreatureType(unit) ~= "Critter" and not UnitPlayerControlled(unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available

@@ -815,7 +815,9 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
       if not options.args.mobs.args[simpleZone] then
 	 options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
       else 
-	 options.args.mobs.args[simpleZone].args.loader.hidden = false
+	 if options.args.mobs.args[simpleZone].args.loader.hidden then
+	    self:LoadMobListForZone(simpleZone)
+	 end
 	 options.args.mobs.args[simpleZone].args.zoneInfo.name = self:GetZoneInfo(zoneHash)
       end
       self:NotifyChange()
@@ -1042,7 +1044,7 @@ function MagicMarker:ZoneConfigData(id, zone)
 end
 
 function MagicMarker:LoadMobListForZone(var)
-   local zone = var[#var-1]
+   local zone = (type(var) == "table" and var[#var-1]) or var
    local zoneData = options.args.mobs.args[zone]
    local name = mobdata[zone].name
    local subopts = {}
@@ -1054,8 +1056,6 @@ function MagicMarker:LoadMobListForZone(var)
    if log.trace then log.trace("Loading mob list for zone %s", name) end
 
    zoneData.args.loader.hidden = true 
---   zoneData.args.loader.get = nil -- prevent further loading
-
    zoneData.plugins.mobList = subopts
 
    for mob, data in pairs(mobdata[zone].mobs) do

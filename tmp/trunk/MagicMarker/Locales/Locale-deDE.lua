@@ -141,7 +141,8 @@ L["Resetting raid targets."] = "Schlachtzugs-Ziele zur\195\188cksetzen."
 
 -- Other
 --L["Heroic"] = true
-
+--L["Normal"] = true
+L["Raid"] = true
 
 -- Command line options
 -- L["Toggle configuration dialog"] = true

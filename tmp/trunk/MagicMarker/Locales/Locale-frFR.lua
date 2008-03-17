@@ -133,6 +133,8 @@ L["TRACE"] = "Messages de trace de debug"
 
 -- Other
 L["Heroic"] = "Héroïque"
+--L["Normal"] = true
+L["Raid"] = true
 
 -- Command line options
 L["Toggle configuration dialog"] = "Affiche/Cache la fenêtre de configuration"
