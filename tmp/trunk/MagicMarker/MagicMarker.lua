@@ -487,6 +487,7 @@ end
 local function UnitIsEligable (unit)
    return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit)
       and  UnitCreatureType(unit) ~= "Critter" and not UnitPlayerControlled(unit)
+      and not UnitIsPlayer(unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
