@@ -17,11 +17,13 @@ L["Mark party/raid targets"] = true
 L["%s has a total of %d mobs.\n%s of these are newly discovered."] = true
 L["Accept mobdata broadcast messages"] = true
 L["Accept raid mark broadcast messages"] = true
+L["Accept CC priority broadcast messages"] = true
 L["Add new crowd control"] = true
 L["Add raid icon"] = true
 L["Broadcast all zone data to the raid group."] = true
 L["Broadcast raid target settings to the raid group."] = true
 L["Broadcast zone data to the raid group."] = true
+L["Broadcast crowd control priority settings to the raid group."] = true
 L["Category"] = true
 L["Config"] = true
 L["Data Broadcasting"] = true
@@ -53,6 +55,7 @@ L["Reset raid icons when resetting the cache"] = true
 L["Zone Options"] = true
 L['Delete entire zone from database (not recoverable)'] = true
 L['Delete mob from database (not recoverable)'] = true 
+L["Unused Crowd Control Methods"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -96,7 +99,7 @@ L["Skull"] = true
 L["None"] = "None"
 
 -- Help Texts
-L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The ordering is the priority in which they are attempted be used. I.e if the raid has two mages but two sheep targets are already assigned, it will iterate through the specified methods until one is found. If none is found, it will revert back to assigning a tank or arbitrary symbol to the target."
+L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked."
 L["MOBDATAHELPTEXT"] = "Welcome to the Mob Database. Here you configure the priority, category and desired crowd control methods for all the mobs in the database. For mobs of category tank the crowd control methods can be ignored. If you choose to ignore a mob it will still be present in the list (in case you decide to unignore it). Once ignored, it will never get any raid targets assigned to it.\n\nYou can also delete a zone or individual mob entries in the zone. Please be aware that this action can't be reversed."
 L["MARKDELAYHELPTEXT"] = "After setting a raid mark there's a delay before the client sees it. Since names are non-unique, this can cause a race condition. This value is the time in seconds between marking two mobs with the same name."
 L["HONORHELPTEXT"] = "When enabled Magic Marker will honor raid icons assigned by a third party. If detected, they will be reserved and blocked from automatic use reused until a cache reset is preformed."
@@ -109,6 +112,7 @@ L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration tha
 L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
 L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
+L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

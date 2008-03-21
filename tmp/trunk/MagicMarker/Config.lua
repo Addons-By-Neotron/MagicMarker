@@ -1,7 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
-local CONFIG_VERSION = 4
+local CONFIG_VERSION = 5
 local format = format
 local sub = string.sub
 local strmatch = strmatch
@@ -89,6 +89,7 @@ end
 local function GetMobName(arg)
    return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].name
 end
+
 local function GetMobDesc(arg)
    return mobdata[ arg[#arg-2] ] and mobdata[ arg[#arg-2] ].mobs[ arg[#arg-1] ].desc
 end
@@ -244,6 +245,30 @@ do
 	       }, 
 	    }
 	 }, 
+	 ccprio = {
+	    type = "group",
+	    name = L["CC"] .." ".. L["Priority"],
+	    order = 2,
+	    cmdHidden = true, 
+	    dropdownHidden = true,
+	    handler = MagicMarker,
+	    set = "SetCCPrio",
+	    get = "GetCCPrio", 
+	    args = {
+	       addcc = {
+		  type = "execute",
+		  name = L["Add new crowd control"],
+		  func = "AddNewCC",
+		  order = 300,
+		  hidden = "IsHiddenAddCC", 
+	       },
+	       ccinfo = {
+		  type = "description",
+		  name = "",
+		  order = 1000
+	       },
+	    }
+	 }, 
 	 options = {
 	    type = "group",
 	    name = L["Options"],
@@ -293,6 +318,13 @@ do
 			desc = L["MOBBROADHELPTEXT"],
 			order = 15,
 		     },
+		     acceptCCPrio = {
+			type = "toggle",
+			width = "full",
+			name = L["Accept CC priority broadcast messages"],
+			desc = L["CCBROADHELPTEXT"],
+			order = 10,
+		     },
 		     mobDataBehavior = {
 			type = "select",
 			name = L["Mobdata data import behavior"],
@@ -325,6 +357,15 @@ do
 			order = 1001,
 			width = "full", 
 			func = "BroadcastAllZones",
+			handler = MagicMarker,
+			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
+		     },
+		     broadcastCCPrio = {
+			type = "execute",
+			name = L["Broadcast crowd control priority settings to the raid group."],
+			order = 1002,
+			width = "full", 
+			func = "BroadcastCCPriorities",
 			handler = MagicMarker,
 			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
 		     },
@@ -459,27 +500,20 @@ do
 	 min = 1, max = 8,
 	 step = 1, 
 	 order = 4,
-	 hidden = "IsIgnored",
+	 hidden = "IsIgnoredCC",
       },
       ccheader = {
 	 name = L["CC"].." "..L["Config"], 
 	 type = "header",
-	 hidden = "IsIgnored",
+	 hidden = "IsIgnoredCC",
 	 order = 40
       },
       ccinfo = {
 	 type = "description",
 	 name = L["CCHELPTEXT"],
 	 order = 50,
-	 hidden = "IsIgnored",
+	 hidden = "IsIgnoredCC",
       }, 
-      addcc = {
-	 type = "execute",
-	 name = L["Add new crowd control"],
-	 func = "AddNewCC",
-	 order = 300,
-	 hidden = "IsHiddenAddCC", 
-      },
       mobnotes = {
 	 name = GetMobNote, 
 	 type = "description", 
@@ -496,11 +530,18 @@ do
 	 type = "header",
 	 name = "",
 	 order = 10000
+      },
+      ccopt = {
+	 type = "multiselect",
+	 name = "",
+	 order = 51,
+	 hidden = "IsIgnoredCC",
+	 values = ccDropdown,
       }
    }
    
    for num = 1,CONFIG_MAP.NUMCC do
-      standardMobOptions["ccopt"..num] = {
+      options.args.ccprio.args["ccopt"..num] = {
 	 name = string.format("%s #%d", L["CC"], num), 
 	 type = "select",
 	 values = ccDropdown,
@@ -595,23 +636,79 @@ function MagicMarker:GetRaidTargetConfig(info)
    return RT_LIST[ targetdata[type][id] ]
 end
 
-function MagicMarker:SetMobConfig(info, value)
+function MagicMarker:GetCCPrio(info)
+   local var = info[#info]
+   local value = CC_LIST[ db.ccprio[getID(var)] or 1 ]
+
+   if value == CC_LIST['00NONE'] then
+      value = nil
+   end
+   if log.trace then log.trace("Get %s as %s", var, tostring(value)) end
+   return value
+end
+
+function MagicMarker:SetCCPrio(info, value)
+   local var = info[#info]
+   db.ccprio = uniqList(db.ccprio or {}, getID(var), CONFIG_MAP[value], 1, CONFIG_MAP.NUMCC)
+   self:UpdateUsedCCMethods()
+   if log.trace then log.trace("Set %s to %s", var, tostring(value)) end
+end
+
+function MagicMarker:UpdateUsedCCMethods()
+   local unused = L["Unused Crowd Control Methods"]
+   local used = {}
+   local first = true
+   for _,id in pairs(db.ccprio) do
+      used[id] = true
+   end
+
+   for id = 2, #CC_LIST do 
+      if not used[id] then
+	 if first then
+	    unused = unused .. ": "..L[CC_LIST[id]]
+	    first = false
+	 else
+	    unused = unused .. ", "..L[CC_LIST[id]]
+	 end
+      end
+   end
+   if first then
+      options.args.ccprio.args.ccinfo.name = ""
+   else
+      options.args.ccprio.args.ccinfo.name = unused
+   end
+end
+
+function MagicMarker:SetMobConfig(info, value, state)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
-   local ccid = getID(var)
-
    if var ~= "ccnum" then
       value = CONFIG_MAP[value]
+   end      
+   if var == "ccopt" then
+      if value == CONFIG_MAP['00NONE'] then
+	 mobdata[region].mobs[mob].ccopt = nil
+      else
+	 local ccopt = mobdata[region].mobs[mob].ccopt or {}
+	 if state then
+	    ccopt[value] = state
+	 else
+	    ccopt[value] = nil
+	 end
+	 
+	 if not next(ccopt) then
+	    mobdata[region].mobs[mob].ccopt = nil
+	 else
+	    mobdata[region].mobs[mob].ccopt = ccopt
+	 end
+      end
+      if log.trace then log.trace("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
+   else
+      mobdata[region].mobs[mob][var] = value
+      if log.trace then log.trace("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    
-   if ccid  then
-      value = uniqList(mobdata[region].mobs[mob].cc or {}, ccid, value, 1, CONFIG_MAP.NUMCC)
-      var = "cc"
-   end
-
-   mobdata[region].mobs[mob][var] = value
-
    if mobdata[region].mobs[mob].new then
       mobdata[region].mobs[mob].new = nil
       -- Remove the "new" mark
@@ -619,23 +716,31 @@ function MagicMarker:SetMobConfig(info, value)
 	 mobdata[region].mobs[mob].name
    end
    
-   if log.trace then log.trace("The " .. region.."/"..mob.."/"..var .. " was set to: " .. tostring(value) ) end
 end
 
-function MagicMarker:GetMobConfig(info)
+function MagicMarker:GetMobConfig(info, key)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
-   local value = mobdata[region].mobs[mob][var] or 1
-   local ccid = getID(var)
-   if ccid then
-      value = CC_LIST[ mobdata[region].mobs[mob].cc[ccid] or 1 ]
-   elseif var == "priority" then
-      value = PRI_LIST[value]
-   elseif var == "category" then
-      value = ACT_LIST[value]
+   local value = mobdata[region].mobs[mob][var]
+
+   if var == "ccopt" then
+      if not value then
+	 if key == '00NONE' then
+	    value = true
+	 end
+      elseif value then
+	 value = mobdata[region].mobs[mob].ccopt[CONFIG_MAP[key]]
+      end
+      if log.trace then log.trace("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
+   else
+      if var == "priority" then
+	 value = PRI_LIST[value or 1]
+      elseif var == "category" then
+	 value = ACT_LIST[value or 1]
+      end
+      if log.trace then log.trace("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
-   if log.trace then log.trace("The " .. region.."/"..mob.."/"..var .. " was gotten as: " .. tostring(value) ) end
    return value
 end
 
@@ -665,17 +770,17 @@ end
 
 
 function MagicMarker:IsIgnored(var)
-   local prio = mobdata[var[#var-2]].mobs[var[#var-1]].priority
-   local ignored = MagicMarker:IsUnitIgnored(prio)
-   return ignored
+   return MagicMarker:IsUnitIgnored(mobdata[var[#var-2]].mobs[var[#var-1]].priority)
+end
+
+function MagicMarker:IsIgnoredCC(var)
+   local mob = mobdata[var[#var-2]].mobs[var[#var-1]]
+   return mob.category == CONFIG_MAP.TANK or MagicMarker:IsUnitIgnored(mob.priority)
 end
 
 function MagicMarker:IsHiddenCC(var)
-   if self:IsIgnored(var) then return true end
    local index = getID(var[#var])
-   local cc = mobdata[var[#var-2]].mobs[var[#var-1]].cc 
-   if not cc[index] then return true end
-   return false
+   return not db.ccprio[index] 
 end
 
 function MagicMarker:IsHiddenRT(var)
@@ -692,13 +797,12 @@ function MagicMarker:IsHiddenAddRT(var)
 end
 
 function MagicMarker:IsHiddenAddCC(var)
-   if self:IsIgnored(var) then return true end
-   local cc = mobdata[var[#var-2]].mobs[var[#var-1]].cc
+   local cc = db.ccprio
    return cc[#cc] == 1 or #cc == CONFIG_MAP.NUMCC 
 end
    
 function MagicMarker:AddNewCC(var)
-   local val = mobdata[var[#var-2]].mobs[var[#var-1]].cc
+   local val = db.ccprio
    val[#val+1] = 1
 end
    
@@ -995,6 +1099,7 @@ function MagicMarker:GenerateOptions()
       }
    end
    
+   self:UpdateUsedCCMethods()
 end
 
 function MagicMarker:AddZoneConfig(zone, zonedata)
@@ -1123,6 +1228,27 @@ function MagicMarker:UpgradeDatabase()
       for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
 	 for mob, mobData in pairs(zoneData.mobs) do
 	    mobData.ccnum = 8
+	 end
+      end
+   end
+   
+   if version < 5 then
+      local ccopt
+      -- Changed to non-prioritized cc-list for mobs 
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 for mob, mobData in pairs(zoneData.mobs) do
+	    ccopt = {}
+	    for _,ccid in pairs(mobData.cc) do
+	       if ccid ~= CONFIG_MAP['00NONE'] then
+		  ccopt[ccid] = true
+	       end
+	    end
+	    if next(ccopt) then
+	       mobData.ccopt = ccopt
+	    else
+	       mobData.ccopt = nil
+	    end
+	    mobData.cc = nil
 	 end
       end
    end

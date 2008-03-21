@@ -77,8 +77,21 @@ local defaultConfigDB = {
       battleMarking = true,
       resetRaidIcons = true,
       acceptMobData = false,
+      acceptRaidMarks = false,
+      acceptCCPrio = false,
       mobDataBehavior = 1,
-      acceptRaidMarks = false, 
+      acceptRaidMarks = false,
+      ccprio = {
+	 10, -- sap
+	 3, -- banish
+	 2, -- sheep
+	 4, -- shackle
+	 5, -- hibernate
+	 6, -- trap
+	 9, -- fear
+	 11, -- enslave
+	 12, -- root
+      }
    }
 }
 
@@ -193,15 +206,26 @@ function MagicMarker:BulkReceive(prefix, encmsg, dist, sender)
    end
    local _, message = self:Deserialize(encmsg)
    if message then
+      if message.dbversion ~= MagicMarkerDB.version then 
+	 if log.trace then log.trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(message.dbversion), MagicMarkerDB.version) end
+	 return
+      end
       if message.cmd == "MOBDATA" then
 	 if db.acceptMobData then
 	    if log.debug then log.debug("[Net] Received mob data for %s from %s.", message.data.name, sender) end
 	    self:MergeZoneData(message.misc1, message.data)
 	 end
       elseif message.cmd == "TARGETS" then
-	 if log.debug then log.debug("[Net] Received raid mark configuration from %s.", sender) end
-	 MagicMarkerDB.targetdata = message.data
-	 targetdata = message.data
+	 if db.acceptRaidMarks then
+	    if log.debug then log.debug("[Net] Received raid mark configuration from %s.", sender) end
+	    MagicMarkerDB.targetdata = message.data
+	    targetdata = message.data
+	 end
+      elseif message.cmd == "CCPRIO" then
+	 if db.acceptCCPrio then
+	    if log.debug then log.debug("[Net] Received crowd control prioritizations %s.", sender) end
+	    db.ccprio = message.data
+	 end
       end
       self:NotifyChange()
    end
@@ -251,6 +275,7 @@ local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
    networkData.misc2 = misc2
    networkData.misc3 = misc3
    networkData.misc4 = misc4
+   networkData.dbversion = MagicMarkerDB.version
 end
 
 function MagicMarker:BroadcastZoneData(zone)
@@ -271,6 +296,12 @@ end
 function MagicMarker:BroadcastRaidTargets()
    if log.trace then log.trace("Broadcast raid target data to the raid.") end
    SetNetworkData("TARGETS", targetData)
+   self:SendBulkMessage()
+end
+
+function MagicMarker:BroadcastCCPriorities()
+   if log.trace then log.trace("Broadcast cc priority data to the raid.") end
+   SetNetworkData("CCPRIO", db.ccprio)
    self:SendBulkMessage()
 end
 
@@ -551,7 +582,7 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
    if unitHash then
       if self:IsUnitIgnored(unitHash.priority) then return -1 end
       unitValue = self:UnitValue(unitName, unitHash)
-      cc = unitHash.cc
+      cc = unitHash.ccopt
       if numCcTargets[ uid ] and numCcTargets[ uid ] >= unitHash.ccnum then
 	 tankFirst = true
       elseif unitHash.category ~= cc_list_used then
@@ -561,35 +592,37 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
    if log.trace then log.trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue) end
 
    local raidMarkList, raidMarkID, raidMarkValue
-   
+
    if tankFirst or not cc then
       raidMarkList = self:GetMarkForCategory(1) 
       raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
       if raidMarkID and log.debug then log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID)) end
    end -- tank marks
 
-   if not raidMarkID then 
-      for _,category in ipairs(cc) do
-	 local class = CC_CLASS[category]
-	 local cc_used_count = ccUsed[category] or 0
-	 if not class or cc_used_count < (raidClassList[class] or 0) then
-	    raidMarkList = self:GetMarkForCategory(category)
-	    raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
-	    if raidMarkID then
-	       cc_list_used = category
-	       numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
-	       if log.debug then
-		  log.debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none",
-			    self:GetTargetName(raidMarkID) or "none?!")
+   if not raidMarkID and cc then 
+      for _,category in ipairs(db.ccprio) do
+	 if cc[category] then 
+	    local class = CC_CLASS[category]
+	    local cc_used_count = ccUsed[category] or 0
+	    if not class or cc_used_count < (raidClassList[class] or 0) then
+	       raidMarkList = self:GetMarkForCategory(category)
+	       raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
+	       if raidMarkID then
+		  cc_list_used = category
+		  numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
+		  if log.debug then
+		     log.debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none",
+			       self:GetTargetName(raidMarkID) or "none?!")
+		  end
+		  break
 	       end
-	       break
 	    end
 	 end
       end
    end
       
    -- no mark found, fall back to tank list for default
-   if not raidMarkID then
+   if not raidMarkID and cc then
       raidMarkList = self:GetMarkForCategory(1)
       raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
       if raidMarkID and log.debug then

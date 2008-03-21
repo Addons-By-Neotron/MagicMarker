@@ -17,11 +17,13 @@ L["Unmark selected target"] = "Démarque cible actuelle"
 L["%s has a total of %d mobs. %s of these are newly discovered."] = "%s a un total de %d monstres.\n%s sont nouvellement découverts."
 L["Accept mobdata broadcast messages"] = "Accepte les messages de diffusion des données des monstres"
 L["Accept raid mark broadcast messages"] = "Accepte les messages de diffusion des icônes de raid"
+--L["Accept CC priority broadcast messages"] = true
 L["Add new crowd control"] = "Ajout contrôle de monstre"
 L["Add raid icon"] = "Ajout icône raid"
 L["Broadcast all zone data to the raid group."] = "Diffuse au raid toutes les données de la zone"
 L["Broadcast raid target settings to the raid group."] = "Diffuse au raid les paramètres de marquage"
 L["Broadcast zone data to the raid group."] = "Diffuser au raid les données de la zone"
+--L["Broadcast crowd control priority settings to the raid group."] = true
 L["Category"] = "Catégorie"
 L["Config"] = "Configuration"
 L["Crowd Control #"] = "Contrôle de monstre #"
@@ -45,7 +47,7 @@ L["Mob Notes"] = "Notes du monstre"
 L["Mobdata data import behavior"] = "Comportement de l'import des données des monstres"
 L["None"] = "Aucun"
 L["Options"] = "Options"
-L["\nOut of these mobs %d are ignored."] = true --(Feu) I don't understand the syntax of this sentence
+L["\nOut of these mobs %d are ignored."] = true --(Feu) I don't understand the syntax of this sentence***  For Feu: It's for zone summary, i.e //There are X mobs in this zone. Out of these mobs Y are ignored.//
 L["Preserve raid group icons"] = "Préserve les icônes du raid"
 L["Priority"] = "Priorité"
 L["Raid Target Settings"] = "Paramètres cible de raid"
@@ -54,6 +56,7 @@ L["Reset raid icons when resetting the cache"] = "Réinitialise les icônes de r
 L["Zone Options"] = "Options de la zone"
 L['Delete entire zone from database (not recoverable)'] = "Supprime la zone entière de la base (non réversible)"
 L['Delete mob from database (not recoverable)'] = "Supprime les monstres de la base (non réversible)" 
+--L["Unused Crowd Control Methods"] = true 
  
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = "Êtes-vous |cffd9d919VRAIMENT|r certain de vouloir supprimer |cffd9d919%s|r et tous ses monstres de la base ?"
@@ -97,7 +100,7 @@ L["Skull"] = "Crâne"
 L["None"] = "None"
 
 -- Help Texts
-L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The ordering is the priority in which they are attempted be used. I.e if the raid has two mages but two sheep targets are already assigned, it will iterate through the specified methods until one is found. If none is found, it will revert back to assigning a tank or arbitrary symbol to the target."
+L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked."
 L["MOBDATAHELPTEXT"] = "Welcome to the Mob Database. Here you configure the priority, category and desired crowd control methods for all the mobs in the database. For mobs of category tank the crowd control methods can be ignored. If you choose to ignore a mob it will still be present in the list (in case you decide to unignore it). Once ignored, it will never get any raid targets assigned to it.\n\nYou can also delete a zone or individual mob entries in the zone. Please be aware that this action can't be reversed."
 L["MARKDELAYHELPTEXT"] = "After setting a raid mark there's a delay before the client sees it. Since names are non-unique, this can cause a race condition. This value is the time in seconds between marking two mobs with the same name."
 L["HONORHELPTEXT"] = "When enabled Magic Marker will honor raid icons assigned by a third party. If detected, they will be reserved and blocked from automatic use reused until a cache reset is preformed."
@@ -110,6 +113,7 @@ L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration tha
 L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
 L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
+L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = "Ajout du nouveau monstre %s dans la zone %s."

@@ -18,11 +18,13 @@ L["Unmark selected target"] = "Markierung auf aktuellem Ziel entfernen";
 L["%s has a total of %d mobs.\n%s of these are newly discovered."] = "%s hat insgesamt %d Mobs.\n%s davon sind neu entdeckt."
 --L["Accept mobdata broadcast messages"] = true
 --L["Accept raid mark broadcast messages"] = true
+--L["Accept CC priority broadcast messages"] = true
 L["Add new crowd control"] = "Neue Gruppenkontrolle hinzuf\195\188gen"
 L["Add raid icon"] = "Schlachtzug-Icon hinzuf\195\188gen"
 --L["Broadcast all zone data to the raid group."] = true
 --L["Broadcast raid target settings to the raid group."] = true
 --L["Broadcast zone data to the raid group."] = true
+-- L["Broadcast crowd control priority settings to the raid group."] = true
 L["Category"] = "Kategorie"
 L["Config"] = "Konfiguration"
 --L["Data Broadcasting"] = true
@@ -62,6 +64,7 @@ L["Raid Target Settings"] = "Schlachtzugs-Zieleinstellungen"
 --L["Zone Options"] = true
 --L['Delete entire zone from database (not recoverable)'] = true
 --L['Delete mob from database (not recoverable)'] = true 
+--L["Unused Crowd Control Methods"] = true 
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -105,7 +108,7 @@ L["Skull"] = "Totenkopf"
 L["None"] = "Keines"
 
 -- Help Texts
-L["CCHELPTEXT"] = "Hier werden alle Gruppenkontroll-Methoden die f\195\188r das aktuelle Ziel verf\195\188gbar sind konfiguriert. Es wird nach Priorit\195\164t sortiert die nacheinander angewendet wird. Wenn im Schlachtzug zum Beispiel zwei Magier sind aber bereits zwei Schaf-Ziele zugewiesen wurden, wird durch die vorhandenen Methoden gewechselt bis eine passende gefunden wird. Falls keine gefunden wird, wird ein Tank oder ein noch vorhandenes Symbol dem Ziel zugewiesen."
+L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked." 
 L["MOBDATAHELPTEXT"] = "Welcome to the Mob Database. Here you configure the priority, category and desired crowd control methods for all the mobs in the database. For mobs of category tank the crowd control methods can be ignored. If you choose to ignore a mob it will still be present in the list (in case you decide to unignore it). Once ignored, it will never get any raid targets assigned to it.\n\nYou can also delete a zone or individual mob entries in the zone. Please be aware that this action can't be reversed."
 L["MARKDELAYHELPTEXT"] = "After setting a raid mark there's a delay before the client sees it. Since names are non-unique, this can cause a race condition. This value is the time in seconds between marking two mobs with the same name."
 L["HONORHELPTEXT"] = "When enabled Magic Marker will honor raid icons assigned by a third party. If detected, they will be reserved and blocked from automatic use reused until a cache reset is preformed."
@@ -118,6 +121,7 @@ L["MARKBROADHELPTEXT"] = "If enabled you will accept raid mark configuration tha
 L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. This can be a lot of data and it is recommended to broadcast individual zones instead."
 L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
+L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = "Neuer Mob %s in Zone %s hinzugef\195\188gt."
