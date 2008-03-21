@@ -417,6 +417,7 @@ function MagicMarker:LogClassInformation(unitName, class)
 end
 
 function MagicMarker:ScanGroupMembers()
+   if raidClassList.FAKE then return end
    for id,_ in pairs(raidClassList) do raidClassList[id] = 0 end
    if UnitClass("player") then
       if log.trace then log.trace("Rescanning raid/party member classes.") end
@@ -485,9 +486,10 @@ end
 
 -- Return whether a target is eligable for marking
 local function UnitIsEligable (unit)
+   local type = UnitCreatureType(unit)
    return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit)
-      and  UnitCreatureType(unit) ~= "Critter" and not UnitPlayerControlled(unit)
-      and not UnitIsPlayer(unit)
+      and  type ~= "Critter" and type ~= "Totem" 
+      and not UnitPlayerControlled(unit)  and not UnitIsPlayer(unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
@@ -525,7 +527,7 @@ local function LowFindMark(list, value)
 end
 
 -- Return the next mark for the unit
-function MagicMarker:GetNextUnitMark(unit,unitName) 
+function MagicMarker:GetNextUnitMark(unit, unitName, uid) 
    local unitHash = self:GetUnitHash(unit, true)
    local unitValue = 0
    local cc, tankFirst, cc_list_used
@@ -550,7 +552,7 @@ function MagicMarker:GetNextUnitMark(unit,unitName)
       if self:IsUnitIgnored(unitHash.priority) then return -1 end
       unitValue = self:UnitValue(unitName, unitHash)
       cc = unitHash.cc
-      if numCcTargets[ unitName ] and numCcTargets[ unitName ] >= unitHash.ccnum then
+      if numCcTargets[ uid ] and numCcTargets[ uid ] >= unitHash.ccnum then
 	 tankFirst = true
       elseif unitHash.category ~= cc_list_used then
 	 tankFirst = false
@@ -574,9 +576,8 @@ function MagicMarker:GetNextUnitMark(unit,unitName)
 	    raidMarkList = self:GetMarkForCategory(category)
 	    raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
 	    if raidMarkID then
-	       ccUsed[category] = cc_used_count + 1
 	       cc_list_used = category
-	       numCcTargets[ unitName ] = (numCcTargets[ unitName ] or 0) + 1
+	       numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
 	       if log.debug then
 		  log.debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none",
 			    self:GetTargetName(raidMarkID) or "none?!")
@@ -624,7 +625,6 @@ end
 
 function MagicMarker:SmartMarkUnit(unit)
    if not UnitExists(unit) then return end
-   if log.trace then log.trace("Unit => "..unit) end
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
    if UnitIsDead(unit) then
@@ -640,7 +640,7 @@ function MagicMarker:SmartMarkUnit(unit)
       end
       if unitTarget then
 	 if markedTargets[unitTarget].uid == uid then
-	    if log.trace then log.trace("  already marked.") end
+--	    if log.trace then log.trace("  already marked.") end
 	    return
 	 elseif db.honorMarks then
 	    self:ReserveMark(unitTarget, uid, 50, guid, nil, nil)
@@ -656,11 +656,11 @@ function MagicMarker:SmartMarkUnit(unit)
 	 if log.trace then log.trace("Marking "..guid.." ("..(unitTarget or "N/A")..")") end
 
 	 if recentlyAdded[guid] then 
-	    if log.trace then log.trace("  marked / reserved") end
+	    if log.trace then log.trace("  recently marked / reserved") end
 	    return
 	 end
 	 
-	 local newTarget, ccID, value = self:GetNextUnitMark(unit, unitName)
+	 local newTarget, ccID, value = self:GetNextUnitMark(unit, unitName, uid)
 	 
 	 if newTarget == 0 then
 	    if log.trace then log.trace("  No more raid targets available -- disabling marking.") end
@@ -674,13 +674,13 @@ function MagicMarker:SmartMarkUnit(unit)
 	       self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, guid) -- To clear it up
 	    end
 	    recentlyAdded[guid] = newTarget
-	    if log.trace then log.trace("  => %s -- %s -- %s -- %s -- %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
+	    if log.trace then log.trace("  => guid: %s -- uid: %s -- mark: %s -- val: %s -- ccid: %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
 	    self:ReserveMark(newTarget, uid, value, guid, ccID)
 	    SetRaidTarget(unit, newTarget)
 	 end
       end
-   elseif unitName and log.trace then
-      log.trace("Ignoring "..unitName) 
+--   elseif unitName and log.trace then
+--      log.trace("Ignoring "..unitName) 
    end
 end
 
@@ -693,7 +693,15 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
+	 if log.trace then
+	    log.trace("  num --ccUsed for %s = %d",
+		      self:GetCCName(ccid), ccUsed[ccid])
+	 end
 	 if ccid > 1 then
+--	    if log.trace then
+--	       log.trace("  numCcTargets[%s] = %s",
+--			 tostring(olduid), tostring(numCcTargets[ olduid ]))
+--	    end
 	    if (numCcTargets[ olduid ] or 0) > 1 then
 	       numCcTargets[ olduid ] = numCcTargets[ olduid ] - 1
 	    else
@@ -710,19 +718,23 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
    end
 end
 
-function MagicMarker:ReserveMark(mark, unit, value, guid, ccID, setTarget, fromNetwork)
+function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromNetwork)
    if IsRaidLeader() or IsRaidOfficer() or IsPartyLeader() then
-      if log.trace then log.trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccID), tostring(setTarget)) end
+      if log.trace then log.trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccid), tostring(setTarget)) end
       local olduid = markedTargets[mark].uid
       if not olduid or value == -1 or ( markedTargets[mark].value or 0) < value then
 	 if olduid then
 	    self:ReleaseMark(mark, olduid, setTarget, fromNetwork)
 	 end
 	 
-	 LowSetTarget(mark, unit, (value == -1 and 2000) or value, ccID, guid)
+	 LowSetTarget(mark, unit, (value == -1 and 2000) or value, ccid, guid)
 	 
-	 if ccID then
-	    ccUsed[ ccID ] = (ccUsed[ ccid ] or 0) + 1
+	 if ccid then
+	    ccUsed[ ccid ] = (ccUsed[ ccid ] or 0) + 1
+	    if log.trace then
+	       log.trace("  num ++ccUsed for %s = %d",
+			 self:GetCCName(ccid), ccUsed[ccid])
+	    end
 	 end
 	 
 	 if setTarget then
@@ -730,7 +742,7 @@ function MagicMarker:ReserveMark(mark, unit, value, guid, ccID, setTarget, fromN
 	 end
 	 
 	 if not fromNetwork then
-	    SetNetworkData("MARK", unit, mark, value, ccID, guid)
+	    SetNetworkData("MARK", unit, mark, value, ccid, guid)
 	    self:SendUrgentMessage()
 	 end
 	 return true
@@ -852,6 +864,15 @@ function MagicMarker:ReportRaidMarks()
 		      dest)
    end
 end
+
+-- can use this to set an override for the raid setup - hash like this
+-- { DRUID = 2, MAGE = 1 }
+-- etc
+function MagicMarker:SetFakeRaidMakeUp(map)
+   raidClassList = map
+   map.FAKE = 1
+end
+     
 
 function MagicMarker:OnProfileChanged(db,name)
    if log.trace then log.trace("Profile changed to %s", name) end
