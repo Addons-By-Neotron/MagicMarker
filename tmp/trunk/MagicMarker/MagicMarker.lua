@@ -50,12 +50,6 @@ local networkData = {}
 -- class makeup of the party/raid
 local raidClassList = {}
 
--- Cached "raid marks" - i.e if you set up marks on illidan you can
--- reset after phase 2 and then recall them if you need later on.
--- When "loading" cached marks it will also avoid using those marks
--- for NPC's
-local raidMarkCache = {}
-
 -- log method upvalues
 local log
 
@@ -69,17 +63,17 @@ local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false 
 
 local defaultConfigDB = {
    profile = {
-      logLevel = 3,
-      remarkDelay = 0.75,
-      honorMarks = false,
-      honorRaidMarks = true,
-      battleMarking = true,
-      resetRaidIcons = true,
+      acceptCCPrio = false,
       acceptMobData = false,
       acceptRaidMarks = false,
-      acceptCCPrio = false,
-      mobDataBehavior = 1,
       acceptRaidMarks = false,
+      battleMarking = true,
+      honorMarks = false,
+      honorRaidMarks = true,
+      logLevel = 3,
+      mobDataBehavior = 1,
+      remarkDelay = 0.75,
+      resetRaidIcons = true,
    }
 }
 
@@ -112,7 +106,11 @@ function MagicMarker:OnInitialize()
    log = self:GetLoggers()
 
    db = self.db.profile
+   -- Buggy FuBar_MM caused these to be stored as strings
+   db.logLevel = tonumber(db.logLevel)
+   db.mobDataBehavior = tonumber(db.mobDataBehavior)
 
+   -- This is moved to the profile
    if MagicMarkerDB.targetdata then
       db.targetdata = MagicMarkerDB.targetdata
       MagicMarkerDB.targetdata = nil
@@ -451,19 +449,22 @@ end
 function MagicMarker:CacheRaidMarkForUnit(unit)
    local id = GetRaidTargetIndex(unit)
    if id then
-      raidMarkCache[unit] = id
+      MagicMarkerDB.raidMarkCache[unit] = id
       if log.debug then log.debug("Cached "..id.." for "..unit); end
    end
 end
 
 function MagicMarker:CacheRaidMarks()
-   raidMarkCache = {}   
+   MagicMarkerDB.raidMarkCache = {}   
    if log.debug then log.debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
 
 function MagicMarker:MarkRaidFromCache()
-   for unit,id in pairs(raidMarkCache) do
+   if not MagicMarkerDB.raidMarkCache then
+      return
+   end
+   for unit,id in pairs(MagicMarkerDB.raidMarkCache) do
       self:ReserveMark(id, unit, -1, unit, nil, true)
    end
 end

@@ -168,7 +168,7 @@ L["Hide Magic Marker from the FuBar status text."] = "Cache Magic Marker de la b
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = "Active ou désactive le traitement des événements, i.e. si Magic Marker doit insérer ou non les monstres dans la base, marquer les monstres, etc."
 L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre de configuration de Magic MArker"
 L["Report the raid icon assignments to raid/party chat"] = "Signaler les affectations des icônes sur le chat raid/groupe"
-
+L["Report raid assignments"] = "Signaler les affectations" -- FIXME - guess based on translation above
 L["RAIDMARKCACHEHELP"] = "Cette fonctionnalité vous permet d'enregistrer un modèle d'icônes de raid et de le réutiliser. Utile, par exemple, pour avoir les icônes de raid en phase 2 d'Illidan mais pas lors des autres phases."
 L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidement certaines classes ou rôles dans le raid."
  

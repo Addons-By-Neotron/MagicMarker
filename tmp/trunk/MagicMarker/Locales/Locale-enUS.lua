@@ -178,6 +178,7 @@ L["Unit Name"] = true
 L["Mark Type"] = true
 L["Score"] = true
 L["Report the raid icon assignments to raid/party chat"] = true
+L["Report raid assignments"] = true
 L["Profile name"] = true
 L["Active profile: %s"] = true
 
