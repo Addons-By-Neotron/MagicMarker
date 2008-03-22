@@ -83,7 +83,11 @@ L["SAP"] = "Kopfnuss"
 L["SHACKLE"] = "Untote Fesseln"
 L["SHEEP"] = "Schaf"
 L["TRAP"] = "Falle" 
-L["00NONE"] = "Keine "
+--L["CYCLONE"] = "Cyclone"
+--L["TURNEVIL"] = "Turn Evil"
+--L["TURNUNDEAD"] = "Turn Undead"
+--L["SCAREBEAST"] = "Scare Beast"
+L["00NONE"] = "Keines"
 
 -- Priority names
 --L["P1"] = "Very High"
@@ -106,7 +110,6 @@ L["Moon"] = "Mond"
 L["Square"] = "Quadrat"
 L["Cross"] = "Kreuz"
 L["Skull"] = "Totenkopf"
-L["None"] = "Keines"
 
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked." 
@@ -144,6 +147,7 @@ L["Resetting raid targets."] = "Schlachtzugs-Ziele zur\195\188cksetzen."
 --L["INFO"] = "Informational messages"
 --L["DEBUG"] = "Debug messaging"
 --L["TRACE"] = "Debug trace messages"
+--L["SPAM"] = "Highest level of debug log spam"
 
 -- Other
 --L["Heroic"] = true

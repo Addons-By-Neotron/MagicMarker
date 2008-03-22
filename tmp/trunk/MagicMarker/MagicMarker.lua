@@ -60,8 +60,14 @@ local spellIdToCCID
 local MagicMarker = MagicMarker
 local mobdata
 local db
+
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
-local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false , "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUIDS" }
+local CC_CLASS = {
+   false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
+   "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUID",
+   "DRUID", "PALADIN", "HUNTER", "PALADIN"
+}
+
 
 local defaultConfigDB = {
    profile = {
@@ -373,14 +379,23 @@ do
 	    if not hash.ccopt then
 	       hash.ccopt = {}
 	    end
-	    if not hash.ccopt[ccid] then
-	       hash.ccopt[ccid] = true
-	       if log.debug then
-		  log.debug("Learned that %s can be CC'd with %s",
-			    hash.name, spellname)
+	    local addcc = function(newccid)
+			     if not hash.ccopt[newccid] then
+				hash.ccopt[newccid] = true
+				if log.debug then
+				   log.debug("Learned that %s can be CC'd with %s",
+					     hash.name, spellname)
+				end
+			     end
+			  end
+	    if type(ccid) == "table" then
+	       for id = 1,#ccid do
+		  addcc(ccid[id])
 	       end
-	       self:NotifyChange()
+	    else
+	       addcc(ccid)
 	    end
+	    self:NotifyChange()
 	 end
       elseif deathEvents[event] then
 	 for mark,data in pairs(markedTargets) do
@@ -519,7 +534,7 @@ end
 function MagicMarker:IterateGroup(callback, useID, ...)
    local id, name, class
 
-   if log.trace then log.trace("Iterating group...") end
+   if log.spam then log.spam("Iterating group...") end
    
    if GetNumRaidMembers() > 0 then
       for id = 1,GetNumRaidMembers() do
@@ -704,7 +719,7 @@ function MagicMarker:SmartMarkUnit(unit)
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
    if UnitIsDead(unit) then
-      --      if log.trace then log.trace("Unit %s is dead...", unit) end
+      if log.spam then log.spam("Unit %s is dead...", unit) end
       self:PossiblyReleaseMark(unit, true)
    elseif UnitIsEligable(unit) then
       local unitTarget = GetRaidTargetIndex(unit)
@@ -716,7 +731,7 @@ function MagicMarker:SmartMarkUnit(unit)
       end
       if unitTarget then
 	 if markedTargets[unitTarget].uid == uid then
---	    if log.trace then log.trace("  already marked.") end
+	    if log.spam then log.spam("  already marked.") end
 	    return
 	 elseif db.honorMarks then
 	    self:ReserveMark(unitTarget, uid, 50, guid, nil, nil)
@@ -739,7 +754,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 local newTarget, ccID, value = self:GetNextUnitMark(unit, unitName, uid)
 	 
 	 if newTarget == 0 then
-	    if log.trace then log.trace("  No more raid targets available -- disabling marking.") end
+	    if log.trace then log.trace("  No more raid targets available.") end
 	    if markingEnabled then
 	       self:ToggleMarkingMode()
 	    end
@@ -755,8 +770,8 @@ function MagicMarker:SmartMarkUnit(unit)
 	    SetRaidTarget(unit, newTarget)
 	 end
       end
---   elseif unitName and log.trace then
---      log.trace("Ignoring "..unitName) 
+   elseif unitName and log.spam then
+      log.spam("Ignoring "..unitName) 
    end
 end
 
@@ -769,8 +784,8 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
       local ccid = markedTargets[mark].ccid
       if ccid and ccUsed[ccid] then
 	 ccUsed[ ccid ] = ccUsed[ ccid ] - 1
-	 if log.trace then
-	    log.trace("  num --ccUsed for %s = %d",
+	 if log.spam then
+	    log.spam("  num --ccUsed for %s = %d",
 		      self:GetCCName(ccid), ccUsed[ccid])
 	 end
 	 if ccid > 1 then
@@ -807,8 +822,8 @@ function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromN
 	 
 	 if ccid then
 	    ccUsed[ ccid ] = (ccUsed[ ccid ] or 0) + 1
-	    if log.trace then
-	       log.trace("  num ++ccUsed for %s = %d",
+	    if log.spam then
+	       log.spam("  num ++ccUsed for %s = %d",
 			 self:GetCCName(ccid), ccUsed[ccid])
 	    end
 	 end

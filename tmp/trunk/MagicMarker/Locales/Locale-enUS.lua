@@ -74,7 +74,11 @@ L["SAP"] = "Sap"
 L["SHACKLE"] = "Shackle"
 L["SHEEP"] = "Sheep"
 L["TRAP"] = "Trap" 
-L["00NONE"] = "None "
+L["CYCLONE"] = "Cyclone"
+L["TURNEVIL"] = "Turn Evil"
+L["TURNUNDEAD"] = "Turn Undead"
+L["SCAREBEAST"] = "Scare Beast"
+L["00NONE"] = "None"
 
 -- Priority names
 L["P1"] = "Very High"
@@ -97,7 +101,6 @@ L["Moon"] = true
 L["Square"] = true
 L["Cross"] = true
 L["Skull"] = true
-L["None"] = "None"
 
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked."
@@ -135,6 +138,7 @@ L["WARN"] = "Errors and warnings"
 L["INFO"] = "Informational messages"
 L["DEBUG"] = "Debug messaging"
 L["TRACE"] = "Debug trace messages"
+L["SPAM"] = "Highest level of spamming"
 
 -- Other
 L["Heroic"] = true

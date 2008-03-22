@@ -37,7 +37,7 @@ local CONFIG_MAP = {
 
 -- ID => Config UI name
 local ACT_LIST = { "TANK", "CC" }
-local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT" }
+local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT", "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "TURNEVIL" }
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
@@ -140,20 +140,26 @@ function MagicMarker:ToggleConfigDialog()
 end
 
 do
-   local temp 
+   local temp, maxcc
    ccDropdown = {}
    priDropdown = {}
    catDropdown = {}
    raidIconDropdown = {}
    logLevelsDropdown = {}
 
-   CONFIG_MAP.NUMCC = #CC_LIST-1
-
+   if not UnitGUID then
+      CONFIG_MAP.NUMCC = #CC_LIST-2
+   else
+      CONFIG_MAP.NUMCC = #CC_LIST-1 
+   end
+   maxcc = CONFIG_MAP.NUMCC + 1
    for num, txt in ipairs(CC_LIST) do
-      ccDropdown[txt] = L[txt]
+      if num <= maxcc then
+	 ccDropdown[txt] = L[txt]
+      end
       CONFIG_MAP[txt] = num
    end
-
+   
    for num, txt in ipairs(PRI_LIST) do
       priDropdown[txt] = L[txt]
       CONFIG_MAP[txt] = num
@@ -276,6 +282,11 @@ do
 		  func = "AddNewCC",
 		  order = 300,
 		  hidden = "IsHiddenAddCC", 
+	       },
+	       ccheader = {
+		  type = "header",
+		  name = "",
+		  order = 999
 	       },
 	       ccinfo = {
 		  type = "description",
@@ -577,8 +588,8 @@ end
 function MagicMarker:SetProfileParam(var, value)
    local varName = var[#var]
    db[varName] = value
-   if log.trace then 
-      log.trace("Setting parameter %s to %s.", varName, tostring(value))
+   if log.spam then 
+      log.spam("Setting parameter %s to %s.", varName, tostring(value))
    end
 
    if varName == "logLevel" then
@@ -588,8 +599,8 @@ end
 
 function MagicMarker:GetProfileParam(var) 
    local varName = var[#var]
-   if log.trace then
-      log.trace("Getting parameter %s as %s.", varName, tostring(db[varName]))
+   if log.spam then
+      log.spam("Getting parameter %s as %s.", varName, tostring(db[varName]))
    end
    return db[varName]
 end
@@ -645,7 +656,6 @@ function MagicMarker:SetRaidTargetConfig(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
---   log.trace("Setting "..id.." to "..value)
    db.targetdata[type] = uniqList(db.targetdata[type] or {}, id, value, 9, 8)
 end
 
@@ -655,7 +665,6 @@ function MagicMarker:GetRaidTargetConfig(info)
    if not db.targetdata[type] then
       return nil
    end
---   log.trace("Getting "..id.." to "..RT_LIST[ db.targetdata[type][id] ])
    return RT_LIST[ db.targetdata[type][id] ]
 end
 
@@ -665,7 +674,7 @@ function MagicMarker:GetCCPrio(info)
    if value == CC_LIST['00NONE'] then
       value = nil
    end
-   if log.trace then log.trace("Get %s as %s", var, tostring(value)) end
+   if log.spam then log.spam("Get %s as %s", var, tostring(value)) end
    return value
 end
 
@@ -673,12 +682,13 @@ function MagicMarker:SetCCPrio(info, value)
    local var = info[#info]
    db.ccprio = uniqList(db.ccprio or {}, getID(var), CONFIG_MAP[value], 1, CONFIG_MAP.NUMCC)
    self:UpdateUsedCCMethods()
-   if log.trace then log.trace("Set %s to %s", var, tostring(value)) end
+   if log.spam then log.spam("Set %s to %s", var, tostring(value)) end
 end
 
 function MagicMarker:UpdateUsedCCMethods()
    local unused = L["Unused Crowd Control Methods"]
    local used = {}
+   local sorted = {}
    local first = true
    if db.ccprio then
       for _,id in pairs(db.ccprio) do
@@ -686,20 +696,25 @@ function MagicMarker:UpdateUsedCCMethods()
       end
    end
 
-   for id = 2, #CC_LIST do 
+   for id = 2, CONFIG_MAP.NUMCC+1 do 
       if not used[id] then
-	 if first then
-	    unused = unused .. ": "..L[CC_LIST[id]]
-	    first = false
-	 else
-	    unused = unused .. ", "..L[CC_LIST[id]]
-	 end
+	 sorted[#sorted+1] = L[CC_LIST[id]]
       end
    end
-   if first then
-      options.args.ccprio.args.ccinfo.name = ""
-   else
+   table.sort(sorted)
+   
+   if next(sorted) then
+      for id = 1, #sorted do
+	 if first then
+	    unused = unused .. ": "..sorted[id]
+	    first = false
+	 else
+	    unused = unused .. ", "..sorted[id]
+	 end
+      end
       options.args.ccprio.args.ccinfo.name = unused
+   else
+      options.args.ccprio.args.ccinfo.name = ""
    end
 end
 
@@ -715,22 +730,24 @@ function MagicMarker:SetMobConfig(info, value, state)
 	 mobdata[region].mobs[mob].ccopt = nil
       else
 	 local ccopt = mobdata[region].mobs[mob].ccopt or {}
-	 if state then
-	    ccopt[value] = state
-	 else
-	    ccopt[value] = nil
+
+	 ccopt[value] = state or nil
+	 if value == CONFIG_MAP.TURNUNDEAD then
+	    -- If turn undead works / doesn't work, so does turn evil
+	    ccopt[CONFIG_MAP.TURNEVIL] = state or nil
 	 end
-	 
+
+	    	 
 	 if not next(ccopt) then
 	    mobdata[region].mobs[mob].ccopt = nil
 	 else
 	    mobdata[region].mobs[mob].ccopt = ccopt
 	 end
       end
-      if log.trace then log.trace("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
+      if log.spam then log.spam("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
    else
       mobdata[region].mobs[mob][var] = value
-      if log.trace then log.trace("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      if log.spam then log.spam("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    
    if mobdata[region].mobs[mob].new then
@@ -756,14 +773,14 @@ function MagicMarker:GetMobConfig(info, key)
       elseif value then
 	 value = mobdata[region].mobs[mob].ccopt[CONFIG_MAP[key]]
       end
-      if log.trace then log.trace("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
+      if log.spam then log.spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
    else
       if var == "priority" then
 	 value = PRI_LIST[value or 1]
       elseif var == "category" then
 	 value = ACT_LIST[value or 1]
       end
-      if log.trace then log.trace("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      if log.spam then log.spam("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    return value
 end
@@ -772,7 +789,7 @@ function MagicMarker:SetZoneConfig(info, value)
    local var = info[#info]
    local region = info[#info-1]
    mobdata[region][var] = value
-   if log.trace then log.trace("Setting %s:%s to %s", region, var, tostring(value)) end
+   if log.spam then log.spam("Setting %s:%s to %s", region, var, tostring(value)) end
    if region == self:GetZoneName() then
       if var == "mm" then
 	 self:ZoneChangedNewArea()
