@@ -7,6 +7,7 @@ local sub = string.sub
 local strmatch = strmatch
 local tonumber = tonumber
 local tolower = strlower
+local UnitGUID = UnitGUID
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
@@ -409,6 +410,14 @@ do
 			min = 0.1, max = 1.5,
 			step = 0.05,
 			order = 10,
+			hidden = UnitGUID ~= nil
+		     },
+		     autolearncc = {
+			name = L["Auto CC Mode"],
+			desc = L["CCAUTOHELPTEXT"], 
+			type = "toggle",
+			order = 20,
+			hidden = not UnitGUID,
 		     },
 		     markHeader = {
 			type = "header",
@@ -671,8 +680,10 @@ function MagicMarker:UpdateUsedCCMethods()
    local unused = L["Unused Crowd Control Methods"]
    local used = {}
    local first = true
-   for _,id in pairs(db.ccprio) do
-      used[id] = true
+   if db.ccprio then
+      for _,id in pairs(db.ccprio) do
+	 used[id] = true
+      end
    end
 
    for id = 2, #CC_LIST do 

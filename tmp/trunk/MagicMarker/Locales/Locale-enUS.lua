@@ -56,6 +56,7 @@ L["Zone Options"] = true
 L['Delete entire zone from database (not recoverable)'] = true
 L['Delete mob from database (not recoverable)'] = true 
 L["Unused Crowd Control Methods"] = true
+L["Auto CC Mode" ] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -113,6 +114,7 @@ L["BROADALLHELP"] = "Broadcasts all the data in your mob database to the raid. T
 L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any one time."
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
 L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
+L["CCAUTOHELPTEXT"] = "When enabled, Magic Marker will automatically learn what crowd control methods you can use on mobs when it is successfully applied."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

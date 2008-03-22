@@ -19,3 +19,5 @@ Logger.lua
 Config.lua
 MMRaidIcon.lua
 MarkTemplates.lua
+CCSpellIDs.lua
+

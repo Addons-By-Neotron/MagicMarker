@@ -53,6 +53,8 @@ local raidClassList = {}
 -- log method upvalues
 local log
 
+-- Spell ID to CC id mapping
+local spellIdToCCID
 
 -- More upvalues
 local MagicMarker = MagicMarker
@@ -63,6 +65,7 @@ local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false 
 
 local defaultConfigDB = {
    profile = {
+      autolearncc = true,
       acceptCCPrio = false,
       acceptMobData = false,
       acceptRaidMarks = false,
@@ -110,6 +113,9 @@ function MagicMarker:OnInitialize()
    db.logLevel = tonumber(db.logLevel)
    db.mobDataBehavior = tonumber(db.mobDataBehavior)
 
+   -- sets ccprio/raid target defaults
+   self:FixProfileDefaults()
+
    -- This is moved to the profile
    if MagicMarkerDB.targetdata then
       db.targetdata = MagicMarkerDB.targetdata
@@ -127,6 +133,8 @@ function MagicMarker:OnInitialize()
    for id = 1,8 do
       markedTargets[id] = {}
    end
+
+   spellIdToCCID = self.spellIdToCCID;
 end
 
 function MagicMarker:OnEnable()
@@ -297,19 +305,27 @@ end
 -- Returns [GUID, UID, Name]
 -- UID is mob name minus spaces in 2.3 and the
 -- mob ID in 2.4 
+
+local function GUIDToUID(guid)
+   local uid = tonumber(sub(guid, 7, 12), 16)
+   if uid == 0 then
+      return nil
+   end
+   return tostring(uid)
+end
+
 function MagicMarker:GetUnitID(unit)
    local guid, uid
    local unitName = UnitName(unit)
    if UnitGUID then
       guid = UnitGUID(unit)
-      uid = tonumber(sub(guid, 7, 12), 16)
-      if uid == 0 then uid = nil end
+      uid = GUIDToUID(guid)
    else
       unitName = UnitName(unit)
       guid = format("%s:%d:%d",
 		    unitName, UnitLevel(unit), UnitSex(unit))
    end
-   return guid, tostring(uid or MagicMarker:SimplifyName(unitName)), unitName
+   return guid, uid or MagicMarker:SimplifyName(unitName), unitName
 end
 
 function MagicMarker:PossiblyReleaseMark(unit, noTarget)
@@ -336,38 +352,69 @@ function MagicMarker:UnitDeath()
 end
 
 -- 2.4 version
-local handledCombatEvents = { UNIT_DIED = true, PARTY_KILL = true }
-function MagicMarker:UnitDeath24(_, _, event, _, _, _, guid, name)
-   if handledCombatEvents[event] then
-      for mark,data in pairs(markedTargets) do
-	 if data.guid == guid then
-	    if log.debug then log.debug("Releasing %s from dead mob %s.", self:GetTargetName(mark), name) end
-	    MagicMarker:ReleaseMark(mark, data.uid)
-	    break
+
+do 
+   local deathEvents = {
+      UNIT_DIED = true,
+      PARTY_KILL = true,
+      UNIT_DESTROYED = true
+   }
+   
+   function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
+					  guid, name, _, spellid, spellname)
+      if db.autolearncc and event == "SPELL_AURA_APPLIED" then
+	 local ccid = spellIdToCCID[spellid]
+	 if not ccid then return end
+	 uid = GUIDToUID(guid)
+	 if not uid then return end
+	 
+	 local hash = self:GetUnitHash(nil, true, uid)
+	 if hash then
+	    if not hash.ccopt then
+	       hash.ccopt = {}
+	    end
+	    if not hash.ccopt[ccid] then
+	       hash.ccopt[ccid] = true
+	       if log.debug then
+		  log.debug("Learned that %s can be CC'd with %s",
+			    hash.name, spellname)
+	       end
+	       self:NotifyChange()
+	    end
+	 end
+      elseif deathEvents[event] then
+	 for mark,data in pairs(markedTargets) do
+	    if data.guid == guid then
+	       if log.debug then log.debug("Releasing %s from dead mob %s.", self:GetTargetName(mark), name) end
+	       MagicMarker:ReleaseMark(mark, data.uid)
+	       break
+	    end
 	 end
       end
    end
 end
 
-local notPvPInstance = { raid = true, party = true }
-function MagicMarker:ZoneChangedNewArea()
-   local zone,name = self:GetZoneName()
-   if zone == nil or zone == "" then
-      self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
-   else
-      local zoneData = mobdata[zone]
-      local enableLogging
-      if not zoneData or zoneData.mm == nil then
-	 local inInstance, type = IsInInstance()
-	 enableLogging = inInstance and notPvPInstance[type]
+do
+   local notPvPInstance = { raid = true, party = true }
+   function MagicMarker:ZoneChangedNewArea()
+      local zone,name = self:GetZoneName()
+      if zone == nil or zone == "" then
+	 self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
       else
-	 enableLogging = zoneData.mm 
-      end
-
-      if enableLogging then
-	 self:EnableEvents(zoneData and zoneData.targetMark)
-      else
-	 self:DisableEvents()
+	 local zoneData = mobdata[zone]
+	 local enableLogging
+	 if not zoneData or zoneData.mm == nil then
+	    local inInstance, type = IsInInstance()
+	    enableLogging = inInstance and notPvPInstance[type]
+	 else
+	    enableLogging = zoneData.mm 
+	 end
+	 
+	 if enableLogging then
+	    self:EnableEvents(zoneData and zoneData.targetMark)
+	 else
+	    self:DisableEvents()
+	 end
       end
    end
 end
@@ -384,7 +431,7 @@ function MagicMarker:EnableEvents(markOnTarget)
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
       if UnitGUID then
-	 self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "UnitDeath24")
+	 self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
       else
 	 self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
       end
@@ -516,13 +563,17 @@ local function UnitIsEligable (unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
-function MagicMarker:GetUnitHash(unit, currentZone)
+function MagicMarker:GetUnitHash(unit, currentZone, uid)
    if currentZone then
       local zone = MagicMarker:GetZoneName()
       local tmpHash = mobdata[zone]
       if tmpHash then
-	 local _,uid,name = MagicMarker:GetUnitID(unit)
-	 return tmpHash.mobs[uid] or tmpHash.mpbs[MagicMarker:SimplifyName(name)]
+	 if uid then
+	    return tmpHash.mobs[uid]
+	 else
+	    local _,uid,name = MagicMarker:GetUnitID(unit)
+	    return tmpHash.mobs[uid] or tmpHash.mpbs[MagicMarker:SimplifyName(name)]
+	 end
       end
    else
       for _, data in pairs(mobdata) do
@@ -653,7 +704,7 @@ function MagicMarker:SmartMarkUnit(unit)
    local unitName = UnitName(unit)
    local altKey = IsAltKeyDown()
    if UnitIsDead(unit) then
-      if log.trace then log.trace("Unit %s is dead...", unit) end
+      --      if log.trace then log.trace("Unit %s is dead...", unit) end
       self:PossiblyReleaseMark(unit, true)
    elseif UnitIsEligable(unit) then
       local unitTarget = GetRaidTargetIndex(unit)
@@ -897,10 +948,8 @@ function MagicMarker:SetFakeRaidMakeUp(map)
    raidClassList = map
    map.FAKE = 1
 end
- 
-function MagicMarker:OnProfileChanged(db,name)
-   db = self.db.profile
 
+function MagicMarker:FixProfileDefaults()
    if not db.ccprio then
       db.ccprio = {
 	 10, -- sap
@@ -919,6 +968,10 @@ function MagicMarker:OnProfileChanged(db,name)
 	 TANK = { 8, 1, 2, 3, 4, 5, 6, 7 }
       }
    end
+end
+
+function MagicMarker:OnProfileChanged(db,name)
+   db = self.db.profile
 
    for key,val in pairs(db.ccprio) do
       if not val or val == 1 then
@@ -926,6 +979,7 @@ function MagicMarker:OnProfileChanged(db,name)
       end
    end
    
+   self:FixProfileDefaults()
    self:NotifyChange()
 
    if MMFu then MMFu:GenerateProfileConfig() end
