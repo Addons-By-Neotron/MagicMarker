@@ -413,7 +413,7 @@ do
 			hidden = UnitGUID ~= nil
 		     },
 		     autolearncc = {
-			name = L["Auto CC Mode"],
+			name = L["Auto learn CC"],
 			desc = L["CCAUTOHELPTEXT"], 
 			type = "toggle",
 			order = 20,

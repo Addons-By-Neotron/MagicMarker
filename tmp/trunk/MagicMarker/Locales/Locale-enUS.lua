@@ -56,7 +56,7 @@ L["Zone Options"] = true
 L['Delete entire zone from database (not recoverable)'] = true
 L['Delete mob from database (not recoverable)'] = true 
 L["Unused Crowd Control Methods"] = true
-L["Auto CC Mode" ] = true
+L["Auto learn CC" ] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true

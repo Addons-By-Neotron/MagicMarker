@@ -57,7 +57,7 @@ L["Zone Options"] = "Options de la zone"
 L['Delete entire zone from database (not recoverable)'] = "Supprime la zone entière de la base (non réversible)"
 L['Delete mob from database (not recoverable)'] = "Supprime les monstres de la base (non réversible)" 
 -- L["Unused Crowd Control Methods"] = true 
--- L["Auto CC Mode" ] = true
+-- L["Auto learn CC" ] = true
  
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = "Êtes-vous |cffd9d919VRAIMENT|r certain de vouloir supprimer |cffd9d919%s|r et tous ses monstres de la base ?"
