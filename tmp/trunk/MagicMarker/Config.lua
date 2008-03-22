@@ -1,7 +1,7 @@
 --[[
   MagicMarker configuration
 ]]
-local CONFIG_VERSION = 5
+local CONFIG_VERSION = 6
 local format = format
 local sub = string.sub
 local strmatch = strmatch
@@ -12,6 +12,7 @@ local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 local R = LibStub("AceConfigRegistry-3.0")
 local C = LibStub("AceConfigDialog-3.0")
+local DBOpt = LibStub("AceDBOptions-3.0")
 
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
@@ -23,7 +24,7 @@ BabbleZone = nil
 
 local db
 
-local mobdata, targetdata
+local mobdata
 
 local configBuilt
 
@@ -72,17 +73,29 @@ do
 	 end
       else
 	 local oldAction = GetBindingAction(key)
-	 local frame = C.OpenFrames["Magic Marker"]
-	 if frame then
-	    if ( oldAction ~= "" and oldAction ~= info.arg ) then
-	       frame:SetStatusText(KEY_UNBOUND_ERROR:format(GetBindingText(oldAction, "BINDING_NAME_")))
-	    else
-	       frame:SetStatusText(KEY_BOUND)
-	    end
+	 if ( oldAction ~= "" and oldAction ~= info.arg ) then
+	    MagicMarker:SetStatusText(KEY_UNBOUND_ERROR:format(GetBindingText(oldAction, "BINDING_NAME_")), true)
+	 else
+	    MagicMarker:SetStatusText(KEY_BOUND, true)
 	 end
+
 	 SetBinding(key, info.arg)
       end
       SaveBindings(GetCurrentBindingSet())
+   end
+end
+
+local updateStatusTimer
+function MagicMarker:SetStatusText(text, update)
+   local frame = C.OpenFrames["Magic Marker"]
+   if frame then
+      frame:SetStatusText(text)
+      if updateStatusTimer then self:CancelTimer(updateStatusTimer, true) end
+      if update then
+	 updateStatustimer = self:ScheduleTimer("SetStatusText", 10, string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
+      else
+	 updateStatustimer = false 
+      end
    end
 end
 
@@ -121,6 +134,7 @@ function MagicMarker:ToggleConfigDialog()
       C:Close("Magic Marker")
    else
       C:Open("Magic Marker")
+      self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
    end
 end
 
@@ -573,9 +587,9 @@ end
 
 function MagicMarker:GetMarkForCategory(category)
    if category == 1 then
-      return targetdata.TANK or {}
+      return db.targetdata.TANK or {}
    end
-   return targetdata[ CC_LIST[category] ] or {}
+   return db.targetdata[ CC_LIST[category] ] or {}
 end
 
 function MagicMarker:IsUnitIgnored(pri)
@@ -623,23 +637,22 @@ function MagicMarker:SetRaidTargetConfig(info, value)
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
 --   log.trace("Setting "..id.." to "..value)
-   targetdata[type] = uniqList(targetdata[type] or {}, id, value, 9, 8)
+   db.targetdata[type] = uniqList(db.targetdata[type] or {}, id, value, 9, 8)
 end
 
 function MagicMarker:GetRaidTargetConfig(info)
    local type = info[#info-1]
    local id = getID(info[#info]) or 9
-   if not targetdata[type] then
+   if not db.targetdata[type] then
       return nil
    end
---   log.trace("Getting "..id.." to "..RT_LIST[ targetdata[type][id] ])
-   return RT_LIST[ targetdata[type][id] ]
+--   log.trace("Getting "..id.." to "..RT_LIST[ db.targetdata[type][id] ])
+   return RT_LIST[ db.targetdata[type][id] ]
 end
 
 function MagicMarker:GetCCPrio(info)
    local var = info[#info]
    local value = CC_LIST[ db.ccprio[getID(var)] or 1 ]
-
    if value == CC_LIST['00NONE'] then
       value = nil
    end
@@ -785,13 +798,13 @@ end
 
 function MagicMarker:IsHiddenRT(var)
    local index = getID(var[#var])
-   local list = targetdata[var[#var-1]]
+   local list = db.targetdata[var[#var-1]]
    return not list or not list[index] 
 end
 
 function MagicMarker:IsHiddenAddRT(var)
    local index = getID(var[#var])
-   local list = targetdata[var[#var-1]] 
+   local list = db.targetdata[var[#var-1]] 
    if not list then return false end
    return list[#list] == 9 or #list == 8
 end
@@ -807,9 +820,9 @@ function MagicMarker:AddNewCC(var)
 end
    
 function MagicMarker:AddNewRT(var)
-   local val = targetdata[var[#var-1]] or {}
+   local val = db.targetdata[var[#var-1]] or {}
    val[#val+1] = 9
-   targetdata[var[#var-1]] = val
+   db.targetdata[var[#var-1]] = val
 end
 
 function MagicMarker:GetZoneName(zone)
@@ -987,8 +1000,7 @@ end
 function MagicMarker:NotifyChange()
    db = self.db.profile
    mobdata = MagicMarkerDB.mobdata
-   targetdata = MagicMarkerDB.targetdata
---   if configBuilt then self:UnloadOptions() end
+   self:UpdateUsedCCMethods()
    R:NotifyChange(L["Magic Marker"])
 end
  
@@ -1024,7 +1036,6 @@ function MagicMarker:GenerateOptions()
    db = self.db.profile
 
    mobdata = MagicMarkerDB.mobdata
-   targetdata = MagicMarkerDB.targetdata
    
    options.handler = MagicMarker
    options.args.categories.set = "SetRaidTargetConfig"
@@ -1100,6 +1111,11 @@ function MagicMarker:GenerateOptions()
    end
    
    self:UpdateUsedCCMethods()
+
+   options.args.options.args.profile = DBOpt:GetOptionsTable(self.db)
+   if MMFu then
+      MMFu:GenerateProfileConfig()
+   end
 end
 
 function MagicMarker:AddZoneConfig(zone, zonedata)

@@ -40,7 +40,7 @@ function MagicMarker:GetLoggers()
 end
 
 function MagicMarker:SetLogLevel(level)
-   logLevel = level or path
+   logLevel = tonumber(level)
    if logLevel >= logLevels.ERROR then loggers.error = error else loggers.error = nil end
    if logLevel >= logLevels.WARN  then loggers.warn = warn else loggers.warn = nil end
    if logLevel >= logLevels.INFO  then loggers.info = info else loggers.info = nil end

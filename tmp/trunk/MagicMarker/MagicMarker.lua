@@ -63,7 +63,6 @@ local log
 -- More upvalues
 local MagicMarker = MagicMarker
 local mobdata
-local targetdata
 local db
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
 local CC_CLASS = { false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false , "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUIDS" }
@@ -81,17 +80,6 @@ local defaultConfigDB = {
       acceptCCPrio = false,
       mobDataBehavior = 1,
       acceptRaidMarks = false,
-      ccprio = {
-	 10, -- sap
-	 3, -- banish
-	 2, -- sheep
-	 4, -- shackle
-	 5, -- hibernate
-	 6, -- trap
-	 9, -- fear
-	 11, -- enslave
-	 12, -- root
-      }
    }
 }
 
@@ -107,24 +95,28 @@ function MagicMarker:OnInitialize()
    self.db = LibStub("AceDB-3.0"):New("MagicMarkerConfigDB", defaultConfigDB, "Default")
    self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
    self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
+   self.db.RegisterCallback(self, "OnProfileDeleted","OnProfileChanged")
    self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
    
    -- this is the mob database
    MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
    MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {} 
-   MagicMarkerDB.targetdata = MagicMarkerDB.targetdata or { ["TANK"]={ 8, 1, 2, 3, 4, 5, 6, 7 } }
 
    MagicMarkerDB.unitCategoryMap = nil -- Delete old data, no way to convert since it's missing zone info
 
    self:UpgradeDatabase()
    
    mobdata = MagicMarkerDB.mobdata
-   targetdata = MagicMarkerDB.targetdata
 
    log = self:GetLoggers()
 
    db = self.db.profile
+
+   if MagicMarkerDB.targetdata then
+      db.targetdata = MagicMarkerDB.targetdata
+      MagicMarkerDB.targetdata = nil
+   end
 
    self:SetLogLevel(db.logLevel)
    self.commPrefix = "MagicMarker"
@@ -218,8 +210,7 @@ function MagicMarker:BulkReceive(prefix, encmsg, dist, sender)
       elseif message.cmd == "TARGETS" then
 	 if db.acceptRaidMarks then
 	    if log.debug then log.debug("[Net] Received raid mark configuration from %s.", sender) end
-	    MagicMarkerDB.targetdata = message.data
-	    targetdata = message.data
+	    db.targetdata = message.data
 	 end
       elseif message.cmd == "CCPRIO" then
 	 if db.acceptCCPrio then
@@ -295,7 +286,7 @@ end
 
 function MagicMarker:BroadcastRaidTargets()
    if log.trace then log.trace("Broadcast raid target data to the raid.") end
-   SetNetworkData("TARGETS", targetData)
+   SetNetworkData("TARGETS", db.targetdata)
    self:SendBulkMessage()
 end
 
@@ -905,11 +896,41 @@ function MagicMarker:SetFakeRaidMakeUp(map)
    raidClassList = map
    map.FAKE = 1
 end
-     
-
+ 
 function MagicMarker:OnProfileChanged(db,name)
-   if log.trace then log.trace("Profile changed to %s", name) end
    db = self.db.profile
+
+   if not db.ccprio then
+      db.ccprio = {
+	 10, -- sap
+	 3, -- banish
+	 2, -- sheep
+	 4, -- shackle
+	 5, -- hibernate
+	 6, -- trap
+	 9, -- fear
+	 11, -- enslave
+	 12, -- root
+      }
+   end
+   if not db.targetdata then
+      db.targetdata = {
+	 TANK = { 8, 1, 2, 3, 4, 5, 6, 7 }
+      }
+   end
+
+   for key,val in pairs(db.ccprio) do
+      if not val or val == 1 then
+	 db.ccprio[key] = nil
+      end
+   end
+   
    self:NotifyChange()
+
+   if MMFu then MMFu:GenerateProfileConfig() end
+
+   self:SetLogLevel(db.logLevel)
+   self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
 end
+
 

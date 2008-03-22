@@ -178,6 +178,8 @@ L["Unit Name"] = true
 L["Mark Type"] = true
 L["Score"] = true
 L["Report the raid icon assignments to raid/party chat"] = true
+L["Profile name"] = true
+L["Active profile: %s"] = true
 
 L["TOOLTIP_HINT"] =
    "\n|cffeda55fClick|r to toggle config dialog.\n"..
@@ -191,3 +193,7 @@ L["Creature type"] = true
 L["family"] = true
 L["classification"] = true
 L["unit is a caster"] = true
+
+-- Yes! No!
+L["Yes"] = true
+L["No"] = true

@@ -178,6 +178,8 @@ L["Difficulty"] = "Difficulté"
 L["Unit Name"] = "Nom de l'unité"
 L["Mark Type"] = "Type de marque"
 L["Score"] = "Score"
+-- L["Profile name"] = true
+-- L["Active profile: %s"] = true
 
 L["TOOLTIP_HINT"] =
    "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n"..
@@ -191,3 +193,7 @@ L["Creature type"] = "Type de créature"
 L["family"] = "famille"
 L["classification"] = "catégorie"
 L["unit is a caster"] = "l'unité est un caster"
+
+-- Yes! No!
+L["Yes"] = "Oui"
+L["No"] = "Non"

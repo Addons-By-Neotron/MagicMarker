@@ -187,6 +187,8 @@ L["RAIDTMPLHELP"] = "Raid templates allow you to quickly mark certain classer or
 -- L["Unit Name"] = true
 -- L["Mark Type"] = true
 -- L["Score"] = true
+-- L["Profile name"] = true
+-- L["Active profile: %s"] = true
 
 L["TOOLTIP_HINT"] =
    "\n|cffeda55fClick|r to toggle config dialog.\n"..
@@ -200,3 +202,7 @@ L["TOOLTIP_HINT"] =
 -- L["family"] = true
 -- L["classification"] = true
 -- L["unit is a caster"] = true
+
+-- Yes! No!
+L["Yes"] = "Ja"
+L["No"] = "Nein"
