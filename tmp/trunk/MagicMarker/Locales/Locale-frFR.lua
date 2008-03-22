@@ -79,6 +79,7 @@ L["ROOT"] = "Sarments"
 --L["TURNEVIL"] = "Turn Evil"
 --L["TURNUNDEAD"] = "Turn Undead"
 --L["SCAREBEAST"] = "Scare Beast"
+--L["SEDUCE"] = "Seduce"
 L["00NONE"] =  "Aucun"
 
 -- Priority names

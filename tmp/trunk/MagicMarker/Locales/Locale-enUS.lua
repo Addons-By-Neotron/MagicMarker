@@ -78,6 +78,7 @@ L["CYCLONE"] = "Cyclone"
 L["TURNEVIL"] = "Turn Evil"
 L["TURNUNDEAD"] = "Turn Undead"
 L["SCAREBEAST"] = "Scare Beast"
+L["SEDUCE"] = "Seduction"
 L["00NONE"] = "None"
 
 -- Priority names
@@ -138,7 +139,7 @@ L["WARN"] = "Errors and warnings"
 L["INFO"] = "Informational messages"
 L["DEBUG"] = "Debug messaging"
 L["TRACE"] = "Debug trace messages"
-L["SPAM"] = "Highest level of spamming"
+L["SPAM"] = "Highest level of debug log spam"
 
 -- Other
 L["Heroic"] = true

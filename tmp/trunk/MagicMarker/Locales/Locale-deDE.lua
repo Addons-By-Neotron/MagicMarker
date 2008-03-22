@@ -87,6 +87,7 @@ L["TRAP"] = "Falle"
 --L["TURNEVIL"] = "Turn Evil"
 --L["TURNUNDEAD"] = "Turn Undead"
 --L["SCAREBEAST"] = "Scare Beast"
+--L["SEDUCE"] = "Seduce"
 L["00NONE"] = "Keines"
 
 -- Priority names

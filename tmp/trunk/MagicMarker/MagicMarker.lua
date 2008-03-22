@@ -65,7 +65,7 @@ local db
 local CC_CLASS = {
    false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
    "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUID",
-   "DRUID", "PALADIN", "HUNTER", "PALADIN"
+   "DRUID", "PALADIN", "HUNTER", "WARLOCK", "PALADIN"
 }
 
 
