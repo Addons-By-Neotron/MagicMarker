@@ -1,23 +1,26 @@
 <Bindings>
 	<Binding name="MAGICMARKTOGGLE" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ToggleConfigDialog()
+		MagicMarker:ToggleConfigDialog()
 	</Binding>
 	<Binding name="MAGICMARKRESET" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):ResetMarkData()
+		MagicMarker:ResetMarkData()
 	</Binding>
 	<Binding name="MAGICMARKMARK" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkSingle()
+		MagicMarker:MarkSingle()
 	</Binding>
 	<Binding name="MAGICMARKUNMARK" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):UnmarkSingle()
+		MagicMarker:UnmarkSingle()
 	</Binding>
 	<Binding name="MAGICMARKRAID" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkRaidTargets()
+		MagicMarker:MarkRaidTargets()
 	</Binding>
 	<Binding name="MAGICMARKLOAD" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):MarkRaidFromCache()
+                MagicMarker:MarkRaidFromCache()
 	</Binding>
 	<Binding name="MAGICMARKSAVE" header="MagicMarker">
-		LibStub("AceAddon-3.0"):GetAddon("MagicMarker"):CacheRaidMarks()
+		MagicMarker:CacheRaidMarks()
 	</Binding>
+        <Binding name="MAGICMARKSMARTMARK" header="MagicMarker" runOnUp="true">
+                MagicMarker.markKeyDown = keystate == "down"
+        </Binding>
 </Bindings>

@@ -13,6 +13,10 @@ L["Mark selected target"] = "Ausgew\195\164hltes Ziel markieren";
 L["Unmark selected target"] = "Markierung auf aktuellem Ziel entfernen";
 --L["Toggle config dialog"] = true
 --L["Mark party/raid targets"] = true
+-- L["Save party/raid mark layout"] = true
+-- L["Load party/raid mark layout"] = true
+-- L["Smart marking modifier key"] = true
+L["SMARTMARKKEYHELP"] = "Hold down this key to mark targets on mouseover. Releasing the key will disable marking. If this key binding is unset, the modifier key specified in the Options => General Options will be used instead."
 
 -- Options Config
 L["%s has a total of %d mobs.\n%s of these are newly discovered."] = "%s hat insgesamt %d Mobs.\n%s davon sind neu entdeckt."
@@ -66,7 +70,11 @@ L["Raid Target Settings"] = "Schlachtzugs-Zieleinstellungen"
 --L['Delete mob from database (not recoverable)'] = true 
 --L["Unused Crowd Control Methods"] = true 
 -- L["Auto learn CC" ] = true
-
+-- L["Smart Mark Modifier"] = true
+-- L["Alt"] = true
+-- L["Shift"] = true
+-- L["Control"] = true
+ 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
 L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = true
@@ -128,14 +136,13 @@ L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any on
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
 L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 L["CCAUTOHELPTEXT"] = "When enabled, Magic Marker will automatically learn what crowd control methods you can use on mobs when it is successfully applied."
+L["SMARTMARKMODHELP"] = "Modifier key to press to enable smart marking. If you set the smart making modifier key binding, that key will be used instead."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = "Neuer Mob %s in Zone %s hinzugef\195\188gt."
 L["Resetting raid targets."] = "Schlachtzugs-Ziele zur\195\188cksetzen."
 --L["Magic Marker enabled."] = true
 --L["Magic Marker disabled."] = true
---L["Save party/raid mark layout"] = true
---L["Load party/raid mark layout"] = true
 --L["Unable to determine the class for %s."] = true
 --L["Deleting zone %s from the database!"] = true
 --L["Deleting mob %s from zone %s from the database!"] = true

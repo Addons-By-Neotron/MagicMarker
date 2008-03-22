@@ -12,6 +12,10 @@ L["Mark selected target"] = "Marque cible actuelle"
 L["Reset raid icon cache"] = "Réinit. cache icônes de raid"
 L["Toggle config dialog"] = "Affiche configuration"
 L["Unmark selected target"] = "Démarque cible actuelle"
+L["Save party/raid mark layout"] = "Sauvegarde du modèle de marquage du groupe/raid."
+L["Load party/raid mark layout"] = "Chargement du modèle de marquage du groupe/raid."
+--L["Smart marking modifier key"] = true
+L["SMARTMARKKEYHELP"] = "Hold down this key to mark targets on mouseover. Releasing the key will disable marking. If this key binding is unset, the modifier key specified in the Options => General Options will be used instead."
 
 -- Options Config
 L["%s has a total of %d mobs. %s of these are newly discovered."] = "%s a un total de %d monstres.\n%s sont nouvellement découverts."
@@ -58,7 +62,11 @@ L['Delete entire zone from database (not recoverable)'] = "Supprime la zone enti
 L['Delete mob from database (not recoverable)'] = "Supprime les monstres de la base (non réversible)" 
 -- L["Unused Crowd Control Methods"] = true 
 -- L["Auto learn CC" ] = true
- 
+-- L["Smart Mark Modifier"] = true
+-- L["Alt"] = true
+-- L["Shift"] = true
+-- L["Control"] = true
+  
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = "Êtes-vous |cffd9d919VRAIMENT|r certain de vouloir supprimer |cffd9d919%s|r et tous ses monstres de la base ?"
 L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = "Êtes-vous certain de vouloir supprimer |cffd9d919%s|r de la base"
@@ -120,14 +128,13 @@ L["MAXCCHELP"] = "Maximum number of mobs of this type to crowd control at any on
 L["LOGLEVELHELP"] = "The logging level determines the amount of output printed by the addon. Debug can be useful as you're getting use to the addon or want to figure out why it marked in a specific way. Trace is only useful for debugging and for development purposes."
 L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 L["CCAUTOHELPTEXT"] = "When enabled, Magic Marker will automatically learn what crowd control methods you can use on mobs when it is successfully applied."
+L["SMARTMARKMODHELP"] = "Modifier key to press to enable smart marking. If you set the smart making modifier key binding, that key will be used instead."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = "Ajout du nouveau monstre %s dans la zone %s."
 L["Resetting raid targets."] = "Réinitialisation des icônes de raid."
 L["Magic Marker enabled."] = "Magic Marker activé."
 L["Magic Marker disabled."] = "Magic Marker désactivé."
-L["Save party/raid mark layout"] = "Sauvegarde du modèle de marquage du groupe/raid."
-L["Load party/raid mark layout"] = "Chargement du modèle de marquage du groupe/raid."
 L["Unable to determine the class for %s."] = "Impossible de déterminer la classe pour %s."
 L["Deleting zone %s from the database!"] = "Suppression de la zone %s de la base!"
 L["Deleting mob %s from zone %s from the database!"] = "Suppression du monstre %s dans la zone %s de la base!"

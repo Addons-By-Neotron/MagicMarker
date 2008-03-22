@@ -83,6 +83,7 @@ local defaultConfigDB = {
       mobDataBehavior = 1,
       remarkDelay = 0.75,
       resetRaidIcons = true,
+      modifier = "ALT",
    }
 }
 
@@ -713,11 +714,26 @@ local function unitValueSortser(unit1, unit2)
    return MagicMarker:UnitValue(unit1) >  MagicMarker:UnitValue(unit2)
 end
 
+local function IsModifierPressed()
+   if GetBindingKey("MAGICMARKSMARTMARK") then
+      return MagicMarker.markKeyDown
+   elseif db.modifier == "ALT" then
+      return IsAltKeyDown()
+   elseif db.modifier == "SHIFT" then
+      return IsShiftKeyDown()
+   elseif db.modifier == "CTRL" then
+      return IsControlKeyDown()
+   end
+end
+
+function MagicMarker:IsValidMarker()
+   return IsRaidLeader() or IsRaidOfficer() or IsPartyLeader()
+end
 
 function MagicMarker:SmartMarkUnit(unit)
    if not UnitExists(unit) then return end
    local unitName = UnitName(unit)
-   local altKey = IsAltKeyDown()
+
    if UnitIsDead(unit) then
       if log.spam then log.spam("Unit %s is dead...", unit) end
       self:PossiblyReleaseMark(unit, true)
@@ -726,7 +742,7 @@ function MagicMarker:SmartMarkUnit(unit)
       local guid, uid = MagicMarker:GetUnitID(unit)
       -- This will insert the unit into the database if it's missing
       self:InsertNewUnit(uid, unitName, unit)
-      if not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader() then
+      if not self:IsValidMarker() then
 	 return
       end
       if unitTarget then
@@ -743,7 +759,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 end
       end
             
-      if (IsAltKeyDown() or unit ~= "mouseover") then	 	 
+      if (IsModifierPressed() or unit ~= "mouseover") then	 	 
 	 if log.trace then log.trace("Marking "..guid.." ("..(unitTarget or "N/A")..")") end
 
 	 if recentlyAdded[guid] then 
@@ -810,7 +826,7 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
 end
 
 function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromNetwork)
-   if IsRaidLeader() or IsRaidOfficer() or IsPartyLeader() then
+   if MagicMarker:IsValidMarker() then
       if log.trace then log.trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccid), tostring(setTarget)) end
       local olduid = markedTargets[mark].uid
       if not olduid or value == -1 or ( markedTargets[mark].value or 0) < value then
@@ -848,7 +864,7 @@ function MagicMarker:SendUrgentMessage(msg)
 end
 
 function MagicMarker:SendBulkMessage(msg)
-   if IsRaidLeader() or IsRaidOfficer() or IsPartyLeader() then
+   if MagicMarker:IsValidMarker() then
       self:SendCommMessage(self.commPrefix, self:Serialize(networkData), "RAID", nil, "BULK")
    end
 end

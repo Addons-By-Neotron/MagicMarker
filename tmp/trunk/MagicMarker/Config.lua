@@ -374,7 +374,7 @@ do
 			width = "full", 
 			func = "BroadcastRaidTargets",
 			handler = MagicMarker,
-			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
+			disabled = not MagicMarker:IsValidMarker()
 		     },
 		     broadcastMobs = {
 			type = "execute",
@@ -384,7 +384,7 @@ do
 			width = "full", 
 			func = "BroadcastAllZones",
 			handler = MagicMarker,
-			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
+			disabled = not MagicMarker:IsValidMarker()
 		     },
 		     broadcastCCPrio = {
 			type = "execute",
@@ -393,7 +393,7 @@ do
 			width = "full", 
 			func = "BroadcastCCPriorities",
 			handler = MagicMarker,
-			disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
+			disabled = not MagicMarker:IsValidMarker()
 		     },
 		  },		  
 	       },
@@ -429,6 +429,18 @@ do
 			type = "toggle",
 			order = 20,
 			hidden = not UnitGUID,
+		     },
+		     modifier = {
+			name = L["Smart Mark Modifier"],
+			desc = L["SMARTMARKMODHELP"], 
+			type = "select",
+			order = 20,
+			disabled = function() return GetBindingKey("MAGICMARKSMARTMARK") ~= nil end, 
+			values = {
+			   ALT = L["Alt"],
+			   SHIFT = L["Shift"],
+			   CTRL = L["Control"],
+			}
 		     },
 		     markHeader = {
 			type = "header",
@@ -500,7 +512,7 @@ do
 	 order = 1001,
 	 width = "full", 
 	 func = function(var) MagicMarker:BroadcastZoneData(var[#var-1]) end,
-	 disabled = not IsRaidLeader() and not IsRaidOfficer() and not IsPartyLeader(),
+	 disabled = not MagicMarker:IsValidMarker()
       },
       deletehdr = {
 	 type = "header",
@@ -1303,11 +1315,11 @@ end
 
 local keyBindingOrder = 1000
 
-local function AddKeyBinding(keyname, desc)
-   _G["BINDING_NAME_"..keyname] = desc
+local function AddKeyBinding(keyname, name, desc)
+   _G["BINDING_NAME_"..keyname] = name
    options.args.options.args.keybindings.args[keyname] = {
-      name = desc, 
-      desc = desc, 
+      name = name, 
+      desc = desc or desc, 
       type = "keybinding",
       arg = keyname,
       order = keyBindingOrder,
@@ -1337,6 +1349,7 @@ AddKeyBinding("MAGICMARKTOGGLE", L["Toggle config dialog"])
 AddKeyBinding("MAGICMARKRAID", L["Mark party/raid targets"])
 AddKeyBinding("MAGICMARKSAVE", L["Save party/raid mark layout"])
 AddKeyBinding("MAGICMARKLOAD", L["Load party/raid mark layout"])
+AddKeyBinding("MAGICMARKSMARTMARK", L["Smart marking modifier key"], L["SMARTMARKKEYHELP"])
 
 LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"],
 					      function(name) return (name == "dialog" and options) or cmdoptions end,
