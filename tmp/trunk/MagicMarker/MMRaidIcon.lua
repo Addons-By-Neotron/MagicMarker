@@ -1,7 +1,7 @@
 local AceGUI = LibStub("AceGUI-3.0")
 
 ----------------------------------------------------
--- Raid Icon displayer, based on AG-3.0 Dropdowb  --
+-- Raid Icon displayer, based on AG-3.0 Dropdown --
 ----------------------------------------------------
 -- Events : onValueChanged                        --
 ----------------------------------------------------
