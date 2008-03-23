@@ -1017,22 +1017,24 @@ function MagicMarker:FixProfileDefaults()
    end
 end
 
-function MagicMarker:OnProfileChanged(db,name)
-   db = self.db.profile
+function MagicMarker:OnProfileChanged(event, newdb)
 
-   for key,val in pairs(db.ccprio) do
-      if not val or val == 1 then
-	 db.ccprio[key] = nil
+   if event ~= "OnProfileDeleted" then
+      db = self.db.profile
+      self:FixProfileDefaults()
+      
+      for key,val in pairs(db.ccprio) do
+	 if not val or val == 1 then
+	    db.ccprio[key] = nil
+	 end
       end
+      self:SetLogLevel(db.logLevel)
+      self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
    end
-   
-   self:FixProfileDefaults()
+      
    self:NotifyChange()
 
    if MMFu then MMFu:GenerateProfileConfig() end
-
-   self:SetLogLevel(db.logLevel)
-   self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
 end
 
 
