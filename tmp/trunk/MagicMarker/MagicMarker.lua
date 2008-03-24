@@ -57,6 +57,7 @@ local sub = string.sub
 local markedTargets = {}
 local recentlyAdded = {}
 local numCcTargets = {}
+local fakeTank = nil
 
 -- Number of CC used for each crowd control method
 local ccUsed = {}
@@ -69,7 +70,7 @@ local raidClassList = {}
 -- log method upvalues
 local log
 
--- Spell ID to CC id mapping
+-- Spell ID to CC id mapping (upvalued)
 local spellIdToCCID
 
 -- More upvalues
@@ -616,12 +617,16 @@ function MagicMarker:GetUnitHash(unit, currentZone, uid)
    end
 end
 
-local function LowFindMark(list, value)
+local function LowFindMark(list, value, isTank, fallbackTank)
    local id, markedValue
    for _,id in ipairs(list) do
-      if id > 0 and id < 9 then
-	 markedValue = markedTargets[id].value
-	 if not markedValue or (value > markedValue and (db.battleMarking or not InCombatLockdown())) then
+      if id > 0 and id < 9 then -- sanity check
+	 markedValue = markedTargets[id].value or 0
+	 if (value > markedValue or
+	     (isTank and id == fakeTank and
+	      (not fallbackTank or value < markedValue)))
+	    and (db.battleMarking or not InCombatLockdown())
+	 then
 	    -- This will return the first free target or an already used target
 	    -- if the value of the new target is higher.
 	    if log.trace then log.trace("LowFindMark => "..tostring(id).." value "..tostring(value)) end
@@ -637,7 +642,7 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
    local unitHash = self:GetUnitHash(unit, true)
    local unitValue = 0
    local cc, tankFirst, cc_list_used
-
+   local doFakeTank 
    tankFirst = true
    cc_list_used = 1 -- Tank
    
@@ -658,20 +663,35 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
       if self:IsUnitIgnored(unitHash.priority) then return -1 end
       unitValue = self:UnitValue(unitName, unitHash)
       cc = unitHash.ccopt
-      if numCcTargets[ uid ] and numCcTargets[ uid ] >= unitHash.ccnum then
-	 tankFirst = true
-      elseif unitHash.category ~= cc_list_used then
-	 tankFirst = false
+      if (not numCcTargets[ uid ]  or numCcTargets[ uid ] < unitHash.ccnum) -- Still can CC more.
+	 and  unitHash.category ~= 1 then -- this mob should be CC'd
+	 if (ccUsed[1] or 0) > 0 then -- we already have a tank defined
+	    tankFirst = false
+	 else
+	    doFakeTank = true
+	 end
       end
    end
+
    if log.trace then log.trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue) end
 
    local raidMarkList, raidMarkID, raidMarkValue
 
    if tankFirst or not cc then
       raidMarkList = self:GetMarkForCategory(1) 
-      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
-      if raidMarkID and log.debug then log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID)) end
+      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue, true)
+      if raidMarkID then
+	 if doFakeTank then
+	    fakeTank = raidMarkID
+	    if log.debug then
+	       log.debug("Marked %s as tank (fake) with %s", unitName, self:GetTargetName(raidMarkID))
+	    end
+	 else
+	    if log.debug then
+	       log.debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID))
+	    end
+	 end
+      end
    end -- tank marks
 
    if not raidMarkID and cc then 
@@ -699,9 +719,11 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
    -- no mark found, fall back to tank list for default
    if not raidMarkID and cc then
       raidMarkList = self:GetMarkForCategory(1)
-      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
-      if raidMarkID and log.debug then
-	 log.debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID))
+      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue, true, true)
+      if raidMarkID then
+	 if log.debug then
+	    log.debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID))
+	 end
       end 
    end
    
@@ -810,7 +832,10 @@ end
 function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
    if log.trace then log.trace("Releasing mark %d from %s.", mark, unit) end
    if setTarget then SetRaidTarget(unit, 0) end
-   local olduid = markedTargets[mark].uid 
+   local olduid = markedTargets[mark].uid
+   if fakeTank == mark then
+      fakeTank = nil
+   end
    if olduid then
       recentlyAdded[markedTargets[mark].guid] = nil
       local ccid = markedTargets[mark].ccid
@@ -912,6 +937,8 @@ function MagicMarker:ResetMarkData(hardReset)
    for id,_ in pairs(ccUsed) do ccUsed[id] = nil end
    for id,_ in pairs(recentlyAdded) do recentlyAdded[id] = nil end
    for id,_ in pairs(numCcTargets) do numCcTargets[id] = nil end
+
+   fakeTank = nil
 
    if db.honorRaidMarks and not hardReset then
       usedRaidIcons = {}
