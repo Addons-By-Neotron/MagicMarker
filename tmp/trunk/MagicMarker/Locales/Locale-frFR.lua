@@ -36,20 +36,20 @@ L["Toggle config dialog"] = "Affiche configuration"
 L["Unmark selected target"] = "Démarque cible actuelle"
 L["Save party/raid mark layout"] = "Sauvegarde du modèle de marquage du groupe/raid."
 L["Load party/raid mark layout"] = "Chargement du modèle de marquage du groupe/raid."
---L["Smart marking modifier key"] = true
-L["SMARTMARKKEYHELP"] = "Hold down this key to mark targets on mouseover. Releasing the key will disable marking. If this key binding is unset, the modifier key specified in the Options => General Options will be used instead."
+L["Smart marking modifier key"] = "Touche de modification pour le marquage"
+L["SMARTMARKKEYHELP"] = "Tenez appuyée cette touche pour marquer les cibles à la souris. Relâchez la pour désactiver le marquage. Si ce raccourci n'est pas défini, la touche de modification spécifiée dans Options => Options générales sera utilisée à la place."
 
 -- Options Config
 L["%s has a total of %d mobs. %s of these are newly discovered."] = "%s a un total de %d monstres.\n%s sont nouvellement découverts."
 L["Accept mobdata broadcast messages"] = "Accepte les messages de diffusion des données des monstres"
 L["Accept raid mark broadcast messages"] = "Accepte les messages de diffusion des icônes de raid"
---L["Accept CC priority broadcast messages"] = true
+L["Accept CC priority broadcast messages"] = "Accepte les messages de diffusion de priorités de contrôle"
 L["Add new crowd control"] = "Ajout contrôle de monstre"
 L["Add raid icon"] = "Ajout icône raid"
 L["Broadcast all zone data to the raid group."] = "Diffuse au raid toutes les données de la zone"
 L["Broadcast raid target settings to the raid group."] = "Diffuse au raid les paramètres de marquage"
 L["Broadcast zone data to the raid group."] = "Diffuser au raid les données de la zone"
---L["Broadcast crowd control priority settings to the raid group."] = true
+L["Broadcast crowd control priority settings to the raid group."] = "Diffuser au raid les paramètres de priorité de contrôle"
 L["Category"] = "Catégorie"
 L["Config"] = "Configuration"
 L["Crowd Control #"] = "Contrôle de monstre #"
@@ -73,7 +73,7 @@ L["Mob Notes"] = "Notes du monstre"
 L["Mobdata data import behavior"] = "Comportement de l'import des données des monstres"
 L["None"] = "Aucun"
 L["Options"] = "Options"
-L["\nOut of these mobs %d are ignored."] = true --(Feu) I don't understand the syntax of this sentence***  For Feu: It's for zone summary, i.e //There are X mobs in this zone. Out of these mobs Y are ignored.//
+L["\nOut of these mobs %d are ignored."] = "\nDe ces monstres, %d sont ignorés"
 L["Preserve raid group icons"] = "Préserve les icônes du raid"
 L["Priority"] = "Priorité"
 L["Raid Target Settings"] = "Paramètres cible de raid"
@@ -82,12 +82,12 @@ L["Reset raid icons when resetting the cache"] = "Réinitialise les icônes de r
 L["Zone Options"] = "Options de la zone"
 L['Delete entire zone from database (not recoverable)'] = "Supprime la zone entière de la base (non réversible)"
 L['Delete mob from database (not recoverable)'] = "Supprime les monstres de la base (non réversible)" 
--- L["Unused Crowd Control Methods"] = true 
--- L["Auto learn CC" ] = true
--- L["Smart Mark Modifier"] = true
--- L["Alt"] = true
--- L["Shift"] = true
--- L["Control"] = true
+L["Unused Crowd Control Methods"] = "Méthodes de contrôle inutilisées"
+L["Auto learn CC" ] = "Apprentissage auto des contrôles"
+L["Smart Mark Modifier"] = "Touche de modification"
+L["Alt"] = "Alt"
+L["Shift"] = "Maj"
+L["Control"] = "Ctrl"
   
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = "Êtes-vous |cffd9d919VRAIMENT|r certain de vouloir supprimer |cffd9d919%s|r et tous ses monstres de la base ?"
@@ -105,11 +105,11 @@ L["FEAR"] = "Peur"
 L["SAP"] = "Assommer"
 L["ENSLAVE"] = "Asservir"
 L["ROOT"] = "Sarments"
---L["CYCLONE"] = "Cyclone"
---L["TURNEVIL"] = "Turn Evil"
---L["TURNUNDEAD"] = "Turn Undead"
---L["SCAREBEAST"] = "Scare Beast"
---L["SEDUCE"] = "Seduce"
+L["CYCLONE"] = "Cyclone"
+--L["TURNEVIL"] = "Turn Evil" --Didn't found the translation
+L["TURNUNDEAD"] = "Renvoi des morts-vivants"
+L["SCAREBEAST"] = "Effrayer une bête"
+L["SEDUCE"] = "Séduction"
 L["00NONE"] =  "Aucun"
 
 -- Priority names
@@ -169,7 +169,7 @@ L["WARN"] = "Erreurs et avertissements"
 L["INFO"] = "Messages d'information"
 L["DEBUG"] = "Messages de debug"
 L["TRACE"] = "Messages de trace de debug"
---L["SPAM"] = "Highest level of debug log spam"
+L["SPAM"] = "Plus haut niveau de log de debug"
 
 -- Other
 L["Heroic"] = "Héroïque"
@@ -204,7 +204,7 @@ L["Hide Magic Marker from the FuBar status text."] = "Cache Magic Marker de la b
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = "Active ou désactive le traitement des événements, i.e. si Magic Marker doit insérer ou non les monstres dans la base, marquer les monstres, etc."
 L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre de configuration de Magic MArker"
 L["Report the raid icon assignments to raid/party chat"] = "Signaler les affectations des icônes sur le chat raid/groupe"
-L["Report raid assignments"] = "Signaler les affectations" -- FIXME - guess based on translation above
+L["Report raid assignments"] = "Signaler les affectations de raid"
 L["RAIDMARKCACHEHELP"] = "Cette fonctionnalité vous permet d'enregistrer un modèle d'icônes de raid et de le réutiliser. Utile, par exemple, pour avoir les icônes de raid en phase 2 d'Illidan mais pas lors des autres phases."
 L["RAIDTMPLHELP"] = "Un modèle d'icônes de raid vous permet de marquer rapidement certaines classes ou rôles dans le raid."
  
@@ -214,8 +214,8 @@ L["Difficulty"] = "Difficulté"
 L["Unit Name"] = "Nom de l'unité"
 L["Mark Type"] = "Type de marque"
 L["Score"] = "Score"
--- L["Profile name"] = true
--- L["Active profile: %s"] = true
+L["Profile name"] = "Nom du profil"
+L["Active profile: %s"] = "Profil actif : %s"
 
 L["TOOLTIP_HINT"] =
    "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n"..
