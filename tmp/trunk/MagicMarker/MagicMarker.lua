@@ -26,6 +26,7 @@ MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 					       "AceEvent-3.0", "AceTimer-3.0",
 					       "AceComm-3.0", "AceSerializer-3.0")
 local MagicMarker = MagicMarker
+local MagicComm   = MagicComm
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 
@@ -167,58 +168,59 @@ function MagicMarker:OnEnable()
    self:GenerateOptions()
    self:RegisterChatCommand("mmtmpl", function() MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r or |cffdfa9cf/magic tmpl|r instead.")  end, false, true)
    self:RegisterComm(self.commPrefix, "BulkReceive")
-   self:RegisterComm(self.commPrefixRT, "UrgentReceive")
+
+   MagicComm:RegisterListener(self)
 end
 
 function MagicMarker:OnDisable()
+   MagicComm:UnregisterListener(self)
+   
    self:UnregisterComm(self.commPrefix)
    self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
    self:UnregisterChatCommand("magic")
    self:DisableEvents()
 end
 
-function MagicMarker:UrgentReceive(prefix, encmsg, dist, sender)
-   if sender == UnitName("player") then
-      return -- don't want my own messages!
+function MagicMarker:OnCommMark(mark, uid, value, ccid, guid)
+   if markedTargets[mark].guid == guid
+      and markedTargets[mark].value == value
+      and markedTargets[mark].ccid == ccid
+   then
+      return -- Duplicate message
    end
-   local _, message = self:Deserialize(encmsg)
    
-   if not message then return end
-   if message.cmd == "MARK" then
-      -- data = UID
-      -- misc1 = mark
-      -- misc2 = value
-      -- misc3 = ccid
-      -- misc4 = guid
-      local ccid = message.misc3
-      if log.debug then
-	 local hash = self:GetUnitHash(message.data)
-	 log.debug("[Net] Marked %s as %s with %s",
-		   (hash and hash.name) or message.data,
-		   (ccid and self:GetCCName(ccid)) or "unknown", self:GetTargetName(message.misc1))
-      end
-      
-      if ccid and ccid > 1 then
-	 numCcTargets[ message.data ] = (numCcTargets[ message.data ] or 0) + 1
-      end
-      self:ReserveMark(message.misc1, message.data, message.misc2, message.misc4, ccid, false, true)
-   elseif message.cmd == "UNMARK" then
-      -- data = UID
-      -- misc1 = mark
-      if log.debug then
-	 local hash = self:GetUnitHash(message.data)
-	 log.debug("[Net] Unmarking %s from %s.", self:GetTargetName(message.misc1), (hash and hash.name) or message.data)
-      end
-      self:ReleaseMark(message.misc1, message.data, nil, true) 
-   elseif message.cmd == "CLEAR" then
-      -- data = { mark = uid }
-      if log.debug then
-	 log.debug("[Net] Raid cache clear received.")
-      end
-      numCcTargets = {}
-      for mark,uid in pairs(message.data) do
-	 self:ReleaseMark(mark, uid, nil, true)
-      end
+   if log.debug then 
+      local hash = self:GetUnitHash(uid)
+      log.debug("[Net] Marked %s as %s with %s",
+		(hash and hash.name) or uid,
+		(ccid and self:GetCCName(ccid)) or "unknown",
+		self:GetTargetName(mark))
+   end
+   
+   if ccid and ccid > 1 then
+      numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
+   end
+   self:ReserveMark(mark, uid, value, guid, ccid, false, true)
+end
+   
+function MagicMarker:OnCommUnmark(mark, uid)
+   if not markedTargets[mark] then
+      return -- Already unmarked
+   end
+   if log.debug then
+      local hash = self:GetUnitHash(uid)
+      log.debug("[Net] Unmarking %s from %s.", self:GetTargetName(mark), (hash and hash.name) or uid)
+   end
+   self:ReleaseMark(mark, uid, nil, true) 
+end
+
+function MagicMarker:OnCommReset(marks)
+   if log.debug then
+      log.debug("[Net] Raid cache clear received.")
+   end
+   numCcTargets = {}
+   for mark,uid in pairs(marks) do
+      self:ReleaseMark(mark, uid, nil, true)
    end
 end
 
@@ -900,11 +902,11 @@ function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromN
    return false
 end
 
-function MagicMarker:SendUrgentMessage(msg)
-   self:SendCommMessage(self.commPrefixRT, self:Serialize(networkData), "RAID", nil, "ALERT")
+function MagicMarker:SendUrgentMessage()
+   MagicComm:SendMessage(networkData)
 end
 
-function MagicMarker:SendBulkMessage(msg)
+function MagicMarker:SendBulkMessage()
    if MagicMarker:IsValidMarker() then
       self:SendCommMessage(self.commPrefix, self:Serialize(networkData), "RAID", nil, "BULK")
    end
@@ -968,7 +970,7 @@ function MagicMarker:ResetMarkData(hardReset)
    end
    if targets then
       SetNetworkData("CLEAR", targets)
-      self:SendUrgentMessage(message)
+      self:SendUrgentMessage()
    end
    -- Hack, sometimes the last mark isn't removed.
    
@@ -1063,5 +1065,3 @@ function MagicMarker:OnProfileChanged(event, newdb)
 
    if MMFu then MMFu:GenerateProfileConfig() end
 end
-
-
