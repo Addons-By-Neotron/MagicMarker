@@ -164,9 +164,16 @@ do
    raidIconDropdown = {}
    logLevelsDropdown = {}
 
-   CONFIG_MAP.NUMCC = #CC_LIST-1 
+   if not UnitGUID then
+      CONFIG_MAP.NUMCC = #CC_LIST-2
+   else
+      CONFIG_MAP.NUMCC = #CC_LIST-1 
+   end
+   maxcc = CONFIG_MAP.NUMCC + 1
    for num, txt in ipairs(CC_LIST) do
-      ccDropdown[txt] = L[txt]
+      if num <= maxcc then
+	 ccDropdown[txt] = L[txt]
+      end
       CONFIG_MAP[txt] = num
    end
    
@@ -424,11 +431,21 @@ do
 			values = logLevelsDropdown,
 			order = 2,
 		     },
+		     remarkDelay = {
+			name = L["Delay between remarking"],
+			desc = L["MARKDELAYHELPTEXT"], 
+			type = "range",
+			min = 0.1, max = 1.5,
+			step = 0.05,
+			order = 10,
+			hidden = UnitGUID ~= nil
+		     },
 		     autolearncc = {
 			name = L["Auto learn CC"],
 			desc = L["CCAUTOHELPTEXT"], 
 			type = "toggle",
 			order = 20,
+			hidden = not UnitGUID,
 		     },
 		     modifier = {
 			name = L["Smart Mark Modifier"],
