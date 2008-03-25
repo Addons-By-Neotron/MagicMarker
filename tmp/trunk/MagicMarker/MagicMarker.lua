@@ -98,7 +98,6 @@ local defaultConfigDB = {
       honorRaidMarks = true,
       logLevel = 3,
       mobDataBehavior = 1,
-      remarkDelay = 0.75,
       resetRaidIcons = true,
       modifier = "ALT",
    }
@@ -135,6 +134,7 @@ function MagicMarker:OnInitialize()
    db.logLevel = tonumber(db.logLevel)
    db.mobDataBehavior = tonumber(db.mobDataBehavior)
 
+   db.remarkDelay = nil -- no longer needed in 2.4
    -- sets ccprio/raid target defaults
    self:FixProfileDefaults()
 
@@ -340,15 +340,9 @@ end
 function MagicMarker:GetUnitID(unit)
    local guid, uid
    local unitName = UnitName(unit)
-   if UnitGUID then
-      guid = UnitGUID(unit)
-      uid = GUIDToUID(guid)
-   else
-      unitName = UnitName(unit)
-      guid = format("%s:%d:%d",
-		    unitName, UnitLevel(unit), UnitSex(unit))
-   end
-   return guid, uid or MagicMarker:SimplifyName(unitName), unitName
+   guid = UnitGUID(unit)
+   uid = GUIDToUID(guid)
+   return guid, uid or  MagicMarker:SimplifyName(unitName), unitName
 end
 
 function MagicMarker:PossiblyReleaseMark(unit, noTarget)
@@ -367,14 +361,6 @@ function MagicMarker:PossiblyReleaseMark(unit, noTarget)
    end
 end
 
-
--- 2.3 version
-function MagicMarker:UnitDeath()
-   if self.trace then self:trace("Something died, checking for marks to free") end
-   self:IterateGroup(self.PossiblyReleaseMark, true)
-end
-
--- 2.4 version
 
 do 
    local deathEvents = {
@@ -462,11 +448,7 @@ function MagicMarker:EnableEvents(markOnTarget)
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
-      if UnitGUID then
-	 self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
-      else
-	 self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
-      end
+      self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
       self:ScheduleGroupScan()
    end
 end
@@ -480,11 +462,7 @@ function MagicMarker:DisableEvents()
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
       self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-      if UnitGUID then
-	 self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-      else
-	 self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
-      end
+      self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
    end
 end
 
@@ -814,9 +792,6 @@ function MagicMarker:SmartMarkUnit(unit)
 	 elseif newTarget == -1 then
 	    if self.trace then self:trace("  Target on ignore list") end
 	 else
-	    if not UnitGUID then
-	       self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, guid) -- To clear it up
-	    end
 	    recentlyAdded[guid] = newTarget
 	    if self.trace then self:trace("  => guid: %s -- uid: %s -- mark: %s -- val: %s -- ccid: %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
 	    self:ReserveMark(newTarget, uid, value, guid, ccID)
