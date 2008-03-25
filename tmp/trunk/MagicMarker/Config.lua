@@ -48,8 +48,6 @@ local mobdata
 
 local configBuilt
 
-local log = MagicMarker:GetLoggers()
-
 -- Config UI name => ID
 local CONFIG_MAP = {
 }
@@ -619,8 +617,8 @@ end
 function MagicMarker:SetProfileParam(var, value)
    local varName = var[#var]
    db[varName] = value
-   if log.spam then 
-      log.spam("Setting parameter %s to %s.", varName, tostring(value))
+   if self.spam then 
+      self:spam("Setting parameter %s to %s.", varName, tostring(value))
    end
 
    if varName == "logLevel" then
@@ -630,8 +628,8 @@ end
 
 function MagicMarker:GetProfileParam(var) 
    local varName = var[#var]
-   if log.spam then
-      log.spam("Getting parameter %s as %s.", varName, tostring(db[varName]))
+   if self.spam then
+      self:spam("Getting parameter %s as %s.", varName, tostring(db[varName]))
    end
    return db[varName]
 end
@@ -705,7 +703,7 @@ function MagicMarker:GetCCPrio(info)
    if value == CC_LIST['00NONE'] then
       value = nil
    end
-   if log.spam then log.spam("Get %s as %s", var, tostring(value)) end
+   if self.spam then self:spam("Get %s as %s", var, tostring(value)) end
    return value
 end
 
@@ -713,7 +711,7 @@ function MagicMarker:SetCCPrio(info, value)
    local var = info[#info]
    db.ccprio = uniqList(db.ccprio or {}, getID(var), CONFIG_MAP[value], 1, CONFIG_MAP.NUMCC)
    self:UpdateUsedCCMethods()
-   if log.spam then log.spam("Set %s to %s", var, tostring(value)) end
+   if self.spam then self:spam("Set %s to %s", var, tostring(value)) end
 end
 
 function MagicMarker:UpdateUsedCCMethods()
@@ -775,10 +773,10 @@ function MagicMarker:SetMobConfig(info, value, state)
 	    mobdata[region].mobs[mob].ccopt = ccopt
 	 end
       end
-      if log.spam then log.spam("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
+      if self.spam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
    else
       mobdata[region].mobs[mob][var] = value
-      if log.spam then log.spam("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      if self.spam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    
    if mobdata[region].mobs[mob].new then
@@ -804,14 +802,14 @@ function MagicMarker:GetMobConfig(info, key)
       elseif value then
 	 value = mobdata[region].mobs[mob].ccopt[CONFIG_MAP[key]]
       end
-      if log.spam then log.spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
+      if self.spam then self:spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
    else
       if var == "priority" then
 	 value = PRI_LIST[value or 1]
       elseif var == "category" then
 	 value = ACT_LIST[value or 1]
       end
-      if log.spam then log.spam("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      if self.spam then self:spam("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    return value
 end
@@ -820,7 +818,7 @@ function MagicMarker:SetZoneConfig(info, value)
    local var = info[#info]
    local region = info[#info-1]
    mobdata[region][var] = value
-   if log.spam then log.spam("Setting %s:%s to %s", region, var, tostring(value)) end
+   if self.spam then self:spam("Setting %s:%s to %s", region, var, tostring(value)) end
    if region == self:GetZoneName() then
       if var == "mm" then
 	 self:ZoneChangedNewArea()
@@ -958,7 +956,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
 	 }
       end
 
-      if log.info then log.info(format(L["Added new mob %s in zone %s."],name, zone)) end
+      if self.info then self:info(format(L["Added new mob %s in zone %s."],name, zone)) end
 
       changed = true
    end
@@ -1002,8 +1000,8 @@ end
 
 function MagicMarker:RemoveZone(var)
    local zone = var[#var-1]
-   if log.warn then
-      log.warn(L["Deleting zone %s from the database!"],
+   if self.warn then
+      self:warn(L["Deleting zone %s from the database!"],
 	       ZoneLookup[mobdata[zone].name] or mobdata[zone].name)
    end
    mobdata[zone] = nil
@@ -1016,8 +1014,8 @@ function MagicMarker:RemoveMob(var)
    local zone = var[#var-2]
    local hash = mobdata[zone]
       
-   if log.info then
-      log.info(L["Deleting mob %s from zone %s from the database!"],
+   if self.info then
+      self:info(L["Deleting mob %s from zone %s from the database!"],
 	       hash.mobs[mob].name, ZoneLookup[hash.name] or hash.name)
    end
    hash.mobs[mob] = nil
@@ -1035,7 +1033,7 @@ function MagicMarker:BuildMobConfig(var)
    
    configBuilt = true
 
-   if log.trace then log.trace("Generating configuration for %s in zone %s", mob, zone) end
+   if self.trace then self:trace("Generating configuration for %s in zone %s", mob, zone) end
 
    subopts[mob].args.loader.hidden = true
    
@@ -1081,7 +1079,7 @@ function MagicMarker:UnloadOptions()
       if id ~= "headerdata" then
 	 hash.args.loader.hidden = false
 	 hash.plugins.mobList = nil
-	 if log.trace then log.trace("Unloaded mob options for %s.", hash.name) end
+	 if self.trace then self:trace("Unloaded mob options for %s.", hash.name) end
       end
    end
    configBuilt = false
@@ -1233,7 +1231,7 @@ function MagicMarker:LoadMobListForZone(var)
 
    name = ZoneReverse[name] or name
 
-   if log.trace then log.trace("Loading mob list for zone %s", name) end
+   if self.trace then self:trace("Loading mob list for zone %s", name) end
 
    zoneData.args.loader.hidden = true 
    zoneData.plugins.mobList = subopts
