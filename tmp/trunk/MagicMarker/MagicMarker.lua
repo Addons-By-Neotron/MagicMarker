@@ -984,7 +984,7 @@ end
 
 local function myconcat(hash, key, str)
    if hash[key] then
-      hash[key] = str.join(", ", hash[key], str)
+      hash[key] = str.join(" ", hash[key], str)
    else
       hash[key] = str
    end
@@ -999,18 +999,23 @@ function MagicMarker:ReportRaidMarks()
       dest = "PARTY"
    end
    
-   for id, data in pairs(markedTargets) do
-      if data.ccid then
-	 myconcat(assign, data.ccid, self:GetTargetName(id))
-      elseif data.value == 50 then
-	 myconcat(assign, "External", self:GetTargetName(id))
-      end
-   end
    SendChatMessage("*** Raid Target assignments:", dest)
-  for ccid,data in pairs(assign) do
-      SendChatMessage(string.format("  %s => %s",data, 
-				    (type(ccid) == "number" and self:GetCCName(ccid, 1)) or  L[ccid]),
-		      dest)
+   for id, data in pairs(markedTargets) do
+      local unitData = self:GetUnitHash(data.uid)
+      if unitData then
+	 if data.ccid then
+	    SendChatMessage(string.format("%s %s => %s",
+					  self:GetTargetName(id, true),
+					  unitData.name, 
+					  self:GetCCName(data.ccid, 1)),
+			    dest)
+	 elseif data.value == 50 then
+	    SendChatMessage(string.format("%s %s => External",
+					  self:GetTargetName(id, true),
+					  unitData.name),
+			    dest)
+	 end
+      end
    end
 end
 

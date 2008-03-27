@@ -1263,8 +1263,12 @@ function MagicMarker:GetCCName(ccid, val)
    end
 end
 
-function MagicMarker:GetTargetName(ccid)
-   return sub(RT_LIST[ccid], 2)
+function MagicMarker:GetTargetName(ccid, link)
+   if link then
+      return format("{%s}", sub(RT_LIST[ccid], 2))
+   else
+      return sub(RT_LIST[ccid], 2)
+   end
 end
 
 function MagicMarker:UpgradeDatabase()
