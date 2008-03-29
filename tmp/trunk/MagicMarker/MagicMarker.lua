@@ -24,7 +24,8 @@ local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
 
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 					       "AceEvent-3.0", "AceTimer-3.0",
-					       "AceComm-3.0", "AceSerializer-3.0")
+					       "AceComm-3.0", "AceSerializer-3.0",
+					       "LibLogger-1.0")
 local MagicMarker = MagicMarker
 local MagicComm   = MagicComm
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
@@ -33,7 +34,8 @@ local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 MagicMarker.version = "1.0 r" .. MINOR_VERSION
 MagicMarker.revision = MINOR_VERSION
 
-MagicComm:EmbedLogger(MagicMarker) -- get the log functions
+MagicMarker:SetPerformanceMode(true) -- ensure unused loggers are unset
+
 
 -- Upvalue of global functions
 local GetRaidTargetIndex = GetRaidTargetIndex
@@ -74,7 +76,6 @@ local raidClassList = {}
 local spellIdToCCID
 
 -- More upvalues
-local MagicMarker = MagicMarker
 local mobdata
 local db
 
@@ -621,9 +622,8 @@ local function LowFindMark(list, value, isTank, fallbackTank)
    for _,id in ipairs(list) do
       if id > 0 and id < 9 then -- sanity check
 	 markedValue = markedTargets[id].value or 0
-	 if (value > markedValue or
-	     (isTank and id == fakeTank and
-	      (not fallbackTank or value < markedValue)))
+	 if (value > markedValue or (isTank and id == fakeTank
+				     and  (not fallbackTank or value < markedValue)))
 	    and (db.battleMarking or not InCombatLockdown())
 	 then
 	    -- This will return the first free target or an already used target
@@ -999,22 +999,44 @@ function MagicMarker:ReportRaidMarks()
       dest = "PARTY"
    end
    
-   SendChatMessage("*** Raid Target assignments:", dest)
+   local sortData = {}
+   local hasData
+
    for id, data in pairs(markedTargets) do
-      local unitData = self:GetUnitHash(data.uid)
-      if unitData then
-	 if data.ccid then
-	    SendChatMessage(string.format("%s %s => %s",
-					  self:GetTargetName(id, true),
-					  unitData.name, 
-					  self:GetCCName(data.ccid, 1)),
-			    dest)
-	 elseif data.value == 50 then
-	    SendChatMessage(string.format("%s %s => External",
-					  self:GetTargetName(id, true),
-					  unitData.name),
-			    dest)
+      if data.value then
+	 tinsert(sortData, data.value * 10 + id)
+	 hasData = true
+      end
+   end
+   if hasData then
+      SendChatMessage("*** Raid Target assignments:", dest)
+      sort(sortData, function(a,b) return a > b end)   
+      
+      for _, id in pairs(sortData) do
+	 id = mod(id, 10)
+	 data = markedTargets[id]
+	 local unitData = self:GetUnitHash(data.uid)
+	 if unitData then
+	    if data.ccid then
+	       test = string.format("%s %s: %s",
+				    self:GetTargetName(id, true),
+				    self:GetCCName(data.ccid, 1),
+				    unitData.name)
+	       
+	       if data.ccid == 1 then
+		  SendChatMessage(test,dest)
+	       else
+		  assign[#assign+1] = test
+	       end
+	    elseif data.value == 50 then
+	       assign[#assign+1] =string.format("%s Other: %s",
+						self:GetTargetName(id, true),
+						unitData.name)
+	    end
 	 end
+      end
+      for i = 1,#assign do
+	 SendChatMessage(assign[i], dest)
       end
    end
 end

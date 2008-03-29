@@ -431,6 +431,7 @@ do
 			values = logLevelsDropdown,
 			order = 2,
 		     },
+
 		     remarkDelay = {
 			name = L["Delay between remarking"],
 			desc = L["MARKDELAYHELPTEXT"], 
