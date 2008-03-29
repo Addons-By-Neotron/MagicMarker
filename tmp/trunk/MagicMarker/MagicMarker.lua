@@ -99,7 +99,6 @@ local defaultConfigDB = {
       honorRaidMarks = true,
       logLevel = 3,
       mobDataBehavior = 1,
-      remarkDelay = 0.75,
       resetRaidIcons = true,
       modifier = "ALT",
    }
@@ -110,6 +109,11 @@ local function LowSetTarget(id, uid, val, ccid, guid)
    markedTargets[id].uid  = uid 
    markedTargets[id].ccid  = ccid
    markedTargets[id].value = val
+   if uid then
+      markedTargets[id].time = GetTime()
+   else
+      markedTargets[id].time = 0
+   end
 end
 
 function MagicMarker:OnInitialize()
@@ -119,7 +123,7 @@ function MagicMarker:OnInitialize()
    self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
    self.db.RegisterCallback(self, "OnProfileDeleted","OnProfileChanged")
    self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
-   
+
    -- this is the mob database
    MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
@@ -135,6 +139,8 @@ function MagicMarker:OnInitialize()
    -- Buggy FuBar_MM caused these to be stored as strings
    db.logLevel = tonumber(db.logLevel)
    db.mobDataBehavior = tonumber(db.mobDataBehavior)
+
+   db.remarkDelay = nil -- no longer needed
 
    -- sets ccprio/raid target defaults
    self:FixProfileDefaults()
@@ -341,14 +347,8 @@ end
 function MagicMarker:GetUnitID(unit)
    local guid, uid
    local unitName = UnitName(unit)
-   if UnitGUID then
-      guid = UnitGUID(unit)
-      uid = GUIDToUID(guid)
-   else
-      unitName = UnitName(unit)
-      guid = format("%s:%d:%d",
-		    unitName, UnitLevel(unit), UnitSex(unit))
-   end
+   guid = UnitGUID(unit)
+   uid = GUIDToUID(guid)
    return guid, uid or MagicMarker:SimplifyName(unitName), unitName
 end
 
@@ -463,11 +463,7 @@ function MagicMarker:EnableEvents(markOnTarget)
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
-      if UnitGUID then
-	 self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
-      else
-	 self:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH", "UnitDeath")
-      end
+      self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
       self:ScheduleGroupScan()
    end
 end
@@ -481,11 +477,7 @@ function MagicMarker:DisableEvents()
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
       self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-      if UnitGUID then
-	 self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-      else
-	 self:UnregisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
-      end
+      self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
    end
 end
 
@@ -695,10 +687,22 @@ function MagicMarker:GetNextUnitMark(unit, unitName, uid)
 
    if not raidMarkID and cc then 
       for _,category in ipairs(db.ccprio) do
-	 if cc[category] then 
-	    local class = CC_CLASS[category]
+	 local class = CC_CLASS[category]
+	 if cc[category] and raidClassList[class] and raidClassList[class] > 0 then 
 	    local cc_used_count = ccUsed[category] or 0
-	    if not class or cc_used_count < (raidClassList[class] or 0) then
+	    if cc_used_count >= raidClassList[class] then
+	       local minval, replaceid = unitValue, nil
+	       for id,data in pairs(markedTargets) do
+		  if data.ccid == category and data.value < minval then
+		     replaceid, minval = id, data.value
+		  end
+	       end
+	       if replaceid then
+		  self:ReleaseMark(replaceid, markedTargets[replaceid].uid)
+		  cc_used_count = ccUsed[category] or 0
+	       end
+	    end
+	    if not class or cc_used_count < raidClassList[class] then
 	       raidMarkList = self:GetMarkForCategory(category)
 	       raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
 	       if raidMarkID then
@@ -786,7 +790,7 @@ function MagicMarker:SmartMarkUnit(unit)
 	 if markedTargets[unitTarget].uid == uid then
 	    if self.spam then log.spam("  already marked.") end
 	    return
-	 elseif db.honorMarks then
+	 elseif db.honorMarks and (GetTime() - (markedTargets[unitTarget].time or 0)) > 1.0 then
 	    self:ReserveMark(unitTarget, uid, 50, guid, nil, nil)
 	    if self.debug then
 	       self:debug(L["Added third party mark (%s) for mob %s."],
@@ -794,13 +798,16 @@ function MagicMarker:SmartMarkUnit(unit)
 	    end
 	    return
 	 end
+      elseif recentlyAdded[guid] then
+	 if self.trace then self:trace("Found known target that wasn't marked.") end
+	 self:ReleaseMark(recentlyAdded[guid], unit)
       end
             
       if (IsModifierPressed() or unit ~= "mouseover") then	 	 
 	 if self.trace then self:trace("Marking "..guid.." ("..(unitTarget or "N/A")..")") end
 
 	 if recentlyAdded[guid] then 
-	    if self.trace then self:trace("  recently marked / reserved") end
+	    if self.trace then self:trace("  already marked") end
 	    return
 	 end
 	 
@@ -814,9 +821,6 @@ function MagicMarker:SmartMarkUnit(unit)
 	 elseif newTarget == -1 then
 	    if self.trace then self:trace("  Target on ignore list") end
 	 else
-	    if not UnitGUID then
-	       self:ScheduleTimer(function(arg) recentlyAdded[arg] = nil end, db.remarkDelay, guid) -- To clear it up
-	    end
 	    recentlyAdded[guid] = newTarget
 	    if self.trace then self:trace("  => guid: %s -- uid: %s -- mark: %s -- val: %s -- ccid: %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
 	    self:ReserveMark(newTarget, uid, value, guid, ccID)
@@ -869,7 +873,8 @@ function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromN
    if MagicMarker:IsValidMarker() then
       if self.trace then self:trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccid), tostring(setTarget)) end
       local olduid = markedTargets[mark].uid
-      if not olduid or value == -1 or ( markedTargets[mark].value or 0) < value then
+      local oldval =  markedTargets[mark].value or 0
+      if not olduid or value == -1 or oldval < value or (fromNetwork and oldval == 50) then 
 	 if olduid then
 	    self:ReleaseMark(mark, olduid, setTarget, fromNetwork)
 	 end
