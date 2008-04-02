@@ -1,26 +1,26 @@
-<Bindings>
+﻿<Bindings>
 	<Binding name="MAGICMARKTOGGLE" header="MagicMarker">
 		MagicMarker:ToggleConfigDialog()
 	</Binding>
-	<Binding name="MAGICMARKRESET" header="MagicMarker">
+	<Binding name="MAGICMARKRESET">
 		MagicMarker:ResetMarkData()
 	</Binding>
-	<Binding name="MAGICMARKMARK" header="MagicMarker">
+	<Binding name="MAGICMARKMARK">
 		MagicMarker:MarkSingle()
 	</Binding>
-	<Binding name="MAGICMARKUNMARK" header="MagicMarker">
+	<Binding name="MAGICMARKUNMARK">
 		MagicMarker:UnmarkSingle()
 	</Binding>
-	<Binding name="MAGICMARKRAID" header="MagicMarker">
+	<Binding name="MAGICMARKRAID">
 		MagicMarker:MarkRaidTargets()
 	</Binding>
-	<Binding name="MAGICMARKLOAD" header="MagicMarker">
+	<Binding name="MAGICMARKLOAD">
                 MagicMarker:MarkRaidFromCache()
 	</Binding>
-	<Binding name="MAGICMARKSAVE" header="MagicMarker">
+	<Binding name="MAGICMARKSAVE">
 		MagicMarker:CacheRaidMarks()
 	</Binding>
-        <Binding name="MAGICMARKSMARTMARK" header="MagicMarker" runOnUp="true">
+        <Binding name="MAGICMARKSMARTMARK" runOnUp="true">
                 MagicMarker.markKeyDown = keystate == "down"
         </Binding>
 </Bindings>
