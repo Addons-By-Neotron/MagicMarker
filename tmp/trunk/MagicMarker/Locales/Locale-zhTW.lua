@@ -22,8 +22,9 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 
 -- zhTW Localization file
 
-local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "zhTW", false)
+local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "zhTW")
 
+if not L then return end
 
 L["Magic Marker"] = true
 

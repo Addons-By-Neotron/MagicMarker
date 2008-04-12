@@ -23,8 +23,9 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 
 -- frFR Localization file
 
-local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "frFR", true)
+local L = LibStub("AceLocale-3.0"):NewLocale("MagicMarker", "frFR")
 
+if not L then return end
 
 L["Magic Marker"] = true
 
