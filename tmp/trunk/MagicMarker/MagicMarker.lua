@@ -30,8 +30,8 @@ local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 
-MagicMarker.version = "1.0 r" .. MINOR_VERSION
-MagicMarker.revision = MINOR_VERSION
+MagicMarker.MAJOR_VERSION = "MagicMarker-1.0"
+MagicMarker.MINOR_VERSION = MINOR_VERSION
 
 MagicMarker:SetPerformanceMode(true) -- ensure unused loggers are unset
 
@@ -102,6 +102,17 @@ local defaultConfigDB = {
       modifier = "ALT",
    }
 }
+
+local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
+   networkData.cmd = cmd
+   networkData.data = data
+   networkData.misc1 = misc1
+   networkData.misc2 = misc2
+   networkData.misc3 = misc3
+   networkData.misc4 = misc4
+   networkData.dbversion = MagicMarkerDB.version
+end
+
 
 local function LowSetTarget(id, uid, val, ccid, guid)
    markedTargets[id].guid  = guid
@@ -261,6 +272,17 @@ function MagicMarker:OnCommReset(marks)
    end
 end
 
+local verRespMsg = "%s: %s revision %s"
+
+function MagicMarker:OnVersionResponse(ver, major, minor, sender)
+   self:Print(verRespMsg:format(sender, major or "Unknown", minor or "Unknown"))
+end
+
+function MagicMarker:QueryAddonVersions()
+   SetNetworkData("VCHECK")
+   self:SendUrgentMessage()
+end
+
 function MagicMarker:MergeZoneData(zone,zoneData)
    local localData = mobdata[zone]
    local localMob, simpleName
@@ -295,16 +317,6 @@ function MagicMarker:MergeZoneData(zone,zoneData)
    end
    
    self:AddZoneConfig(zone, zoneData)
-end
-
-local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
-   networkData.cmd = cmd
-   networkData.data = data
-   networkData.misc1 = misc1
-   networkData.misc2 = misc2
-   networkData.misc3 = misc3
-   networkData.misc4 = misc4
-   networkData.dbversion = MagicMarkerDB.version
 end
 
 function MagicMarker:BroadcastZoneData(zone)
@@ -1088,3 +1100,4 @@ function MagicMarker:OnProfileChanged(event, newdb)
 
    if MMFu then MMFu:GenerateProfileConfig() end
 end
+

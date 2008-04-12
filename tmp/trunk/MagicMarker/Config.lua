@@ -199,6 +199,11 @@ do
       name = L["Magic Marker"],
       handler = MagicMarker,
       args = {
+	 versions = {
+	    type = "execute",
+	    name = L["Query raid for their MagicMarker versions."],
+	    func = "QueryAddonVersions",
+	 },
 	 config = {
 	    type = "execute",
 	    name = L["Toggle configuration dialog"],
