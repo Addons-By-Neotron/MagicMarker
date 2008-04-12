@@ -11,7 +11,7 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 MagicMarker is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
+WITHOUT ANY WARRANTY without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
@@ -540,7 +540,7 @@ do
 	 type = "select",
 	 values = catDropdown, 
 	 order = 3,
-	 hidden = "IsIgnored",
+	 disabled = "IsIgnored",
       },
       ccnum = {
 	 name = L["Max # to Crowd Control"],
@@ -554,14 +554,14 @@ do
       ccheader = {
 	 name = L["CC"].." "..L["Config"], 
 	 type = "header",
-	 hidden = "IsIgnoredCC",
+	 disabled = "IsIgnoredCC",
 	 order = 40
       },
       ccinfo = {
 	 type = "description",
 	 name = L["CCHELPTEXT"],
 	 order = 50,
-	 hidden = "IsIgnoredCC",
+	 disabled = "IsIgnoredCC",
       }, 
       mobnotes = {
 	 name = GetMobNote, 
@@ -584,7 +584,7 @@ do
 	 type = "multiselect",
 	 name = "",
 	 order = 51,
-	 hidden = "IsIgnoredCC",
+	 disabled = "IsIgnoredCC",
 	 values = ccDropdown,
       }
    }
@@ -1143,7 +1143,7 @@ function MagicMarker:GenerateOptions()
    end
 
    -- command line options
-   opts = cmdoptions.args.tmpl.args;
+   opts = cmdoptions.args.tmpl.args
    for cmd,data in pairs(self.MarkTemplates) do
       opts[cmd] = {
 	 type = "execute",
@@ -1166,7 +1166,7 @@ function MagicMarker:AddZoneConfig(zone, zonedata)
 end
 
 function MagicMarker:ZoneConfigData(id, zone)
-   local name = ZoneLookup[zone.name] or zone.name;
+   local name = ZoneLookup[zone.name] or zone.name
    if zone.heroic then
       name = L["Heroic"] .. " " .. name 
    end

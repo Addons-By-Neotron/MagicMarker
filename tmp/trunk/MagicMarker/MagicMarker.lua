@@ -24,10 +24,9 @@ local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
 
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 					       "AceEvent-3.0", "AceTimer-3.0",
-					       "AceComm-3.0", "AceSerializer-3.0",
 					       "LibLogger-1.0")
 local MagicMarker = MagicMarker
-local MagicComm   = MagicComm
+local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 
@@ -171,19 +170,53 @@ function MagicMarker:OnEnable()
    self:ZoneChangedNewArea()
    self:GenerateOptions()
    self:RegisterChatCommand("mmtmpl", function() MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r or |cffdfa9cf/magic tmpl|r instead.")  end, false, true)
-   self:RegisterComm(self.commPrefix, "BulkReceive")
 
-   MagicComm:RegisterListener(self)
+   MagicComm:RegisterListener(self, "MM")
 end
 
 function MagicMarker:OnDisable()
-   MagicComm:UnregisterListener(self)
-   
-   self:UnregisterComm(self.commPrefix)
+   MagicComm:UnregisterListener(self, "MM")
    self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
    self:UnregisterChatCommand("magic")
    self:DisableEvents()
 end
+
+function MagicMarker:OnMobdataReceive(zone, data, version, sender) 
+   if version ~= MagicMarkerDB.version then 
+      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      return
+   end
+   if db.acceptMobData then
+      if self.debug then self:debug("[Net] Received mob data for %s from %s.", data.name, sender) end
+      self:MergeZoneData(zone, data)
+   end
+   self:NotifyChange()
+end
+
+function MagicMarker:OnTargetReceive(data, version, sender) 
+   if version ~= MagicMarkerDB.version then 
+      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      return
+   end
+   if db.acceptRaidMarks then
+      if self.debug then self:debug("[Net] Received raid mark configuration from %s.", sender) end
+      db.targetdata = data
+   end
+   self:NotifyChange()
+end
+
+function MagicMarker:OnCCPrioReceive(data, version, sender) 
+   if version ~= MagicMarkerDB.version then 
+      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      return
+   end
+   if db.acceptCCPrio then
+      if self.debug then self:debug("[Net] Received crowd control prioritizations %s.", sender) end
+      db.ccprio = data
+   end
+   self:NotifyChange()
+end
+
 
 function MagicMarker:OnCommMark(mark, uid, value, ccid, guid)
    if markedTargets[mark].guid == guid
@@ -227,37 +260,6 @@ function MagicMarker:OnCommReset(marks)
       self:ReleaseMark(mark, uid, nil, true)
    end
 end
-
-function MagicMarker:BulkReceive(prefix, encmsg, dist, sender)
-   if sender == UnitName("player") then
-      return -- don't want my own messages!
-   end
-   local _, message = self:Deserialize(encmsg)
-   if message then
-      if message.dbversion ~= MagicMarkerDB.version then 
-	 if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(message.dbversion), MagicMarkerDB.version) end
-	 return
-      end
-      if message.cmd == "MOBDATA" then
-	 if db.acceptMobData then
-	    if self.debug then self:debug("[Net] Received mob data for %s from %s.", message.data.name, sender) end
-	    self:MergeZoneData(message.misc1, message.data)
-	 end
-      elseif message.cmd == "TARGETS" then
-	 if db.acceptRaidMarks then
-	    if self.debug then self:debug("[Net] Received raid mark configuration from %s.", sender) end
-	    db.targetdata = message.data
-	 end
-      elseif message.cmd == "CCPRIO" then
-	 if db.acceptCCPrio then
-	    if self.debug then self:debug("[Net] Received crowd control prioritizations %s.", sender) end
-	    db.ccprio = message.data
-	 end
-      end
-      self:NotifyChange()
-   end
-end
-
 
 function MagicMarker:MergeZoneData(zone,zoneData)
    local localData = mobdata[zone]
@@ -368,14 +370,6 @@ function MagicMarker:PossiblyReleaseMark(unit, noTarget)
    end
 end
 
-
--- 2.3 version
-function MagicMarker:UnitDeath()
-   if self.trace then self:trace("Something died, checking for marks to free") end
-   self:IterateGroup(self.PossiblyReleaseMark, true)
-end
-
--- 2.4 version
 
 do 
    local deathEvents = {
@@ -905,12 +899,12 @@ function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromN
 end
 
 function MagicMarker:SendUrgentMessage()
-   MagicComm:SendMessage(networkData)
+   MagicComm:SendUrgentMessage(networkData, "MM")
 end
 
 function MagicMarker:SendBulkMessage()
    if MagicMarker:IsValidMarker() then
-      self:SendCommMessage(self.commPrefix, self:Serialize(networkData), "RAID", nil, "BULK")
+      MagicComm:SendBulkMessage(networkData, "MM")
    end
 end
 
