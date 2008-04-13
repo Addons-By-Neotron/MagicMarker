@@ -273,7 +273,6 @@ function MagicMarker:OnCommReset(marks)
 end
 
 local verRespMsg = "%s: %s revision %s"
-
 function MagicMarker:OnVersionResponse(ver, major, minor, sender)
    self:Print(verRespMsg:format(sender, major or "Unknown", minor or "Unknown"))
 end
