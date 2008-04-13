@@ -235,3 +235,4 @@ L["unit is a caster"] = true
 L["Yes"] = "是"
 L["No"] = "否"
 
+--  L["Query raid for their MagicMarker versions."] = true

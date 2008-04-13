@@ -242,3 +242,5 @@ L["TOOLTIP_HINT"] =
 -- Yes! No!
 L["Yes"] = "Ja"
 L["No"] = "Nein"
+
+ --  L["Query raid for their MagicMarker versions."] = true

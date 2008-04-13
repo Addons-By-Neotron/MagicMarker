@@ -181,7 +181,8 @@ L["Raid group target templates"] = true
 L["About Magic Marker"] = true
 L["Raid mark layout caching"] = true
 L["Toggle Magic Marker event handling"] = true
-   
+ L["Query raid for their MagicMarker versions."] = true
+ 
 -- Raid mark templates
 L["Mark all mages and druids in the raid"] = true
 L["Mark all shamans in the raid"]= true
