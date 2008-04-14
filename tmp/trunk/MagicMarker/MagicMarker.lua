@@ -851,7 +851,7 @@ do
 	 for id,data in pairs(externalTargets) do
 	    marksUsed[id] = true
 	    assignedTargets[data.guid] = data
-	    self:debug("++ %s => %s [external]", self:GetTargetName(id), data.name)
+	    if self.debug then self:debug("++ %s => %s [external]", self:GetTargetName(id), data.name) end
 	 end   
       end
 
@@ -859,7 +859,7 @@ do
       for id,data in pairs(templateTargets) do
 	 marksUsed[id] = true
 	 assignedTargets[data] = id
-	 self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), data)
+	 if self.debug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), data) end
       end
       
       -- Update list of marks used on the raid
@@ -984,16 +984,18 @@ function MagicMarker:SmartMark_AddGUID(guid, uid, name)
 	 return -- already known
       end
    end
+   local value, ccval, hash = self:UnitValue(uid, nil, valueModifier)
+   if hash and self:IsUnitIgnored(hash.priority) then return -1 end
+
    local newhash = {
       uid = uid,
-      name = name,
+      name = hash and hash.name or name,
       guid = guid,
+      value = value,
+      ccval = ccval,
+      hash = hash
    }
-   newhash.value, newhash.ccval, newhash.hash = self:UnitValue(uid, nil, valueModifier)
    valueModifier = valueModifier - 0.001
-   if newhash.hash and newhash.hash.name then
-      newhash.name = newhash.hash.name
-   end
    
    tankPriorityList[#tankPriorityList+1] = newhash
    sort(tankPriorityList, SmartMark_TankSorter)
@@ -1074,9 +1076,7 @@ function MagicMarker:SmartMark_MarkUnit(unit)
       end
       
       if type(data) == "table" then
-	 self:debug("Found assigned target.")
 	 if data.mark ~= unitTarget then
-	    self:debug("Found assigned target with mismatched icon!")
 	    SetRaidTarget(unit, data.mark)
 	 end
       elseif (IsModifierPressed() or unit ~= "mouseover") then
@@ -1171,7 +1171,7 @@ function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
 	 self:SmartMark_RecalculateMarks()
       else
 	 for id,data in pairs(tankPriorityList) do
-	    self:trace("Comparing %d to %d", data.mark, mark)
+	    if self.trace then self:trace("Comparing %d to %d", data.mark, mark) end
 	    if data.mark == mark then
 	       olduid = data.uid
 	       MagicMarker:SmartMark_RemoveGUID(data.guid)
@@ -1386,9 +1386,11 @@ function MagicMarker:ReportRaidMarks()
    local sortData = {}
    local hasData
 
+   local valueToId = {}
    for id, data in pairs(markedTargets) do
       if data.value then
-	 tinsert(sortData, data.value * 10 + id)
+	 local key = data.value * 10000 + id
+	 tinsert(sortData, key)
 	 hasData = true
       end
    end
@@ -1397,7 +1399,7 @@ function MagicMarker:ReportRaidMarks()
       sort(sortData, function(a,b) return a > b end)   
       
       for _, id in pairs(sortData) do
-	 id = mod(id, 10)
+	 id = valueToId[id]
 	 data = markedTargets[id]
 	 local unitData = self:GetUnitHash(data.uid)
 	 if unitData then
