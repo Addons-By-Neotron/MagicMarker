@@ -27,11 +27,20 @@ local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 local decursers = { MAGE = 1000, DRUID = 1000 }
 local shamans = { SHAMAN = 500 }
 local mages = { MAGE = 1000 }
-local function MarkIfClassHelper(self, unit, classes)
-   local _,class = UnitClass(unit)
+local function MarkIfClassHelper(self, unit, classes, class, usedMarks)
+   if not class then
+      _,class = UnitClass(unit)
+   end
+
+   if GetRaidTargetIndex(unit) then
+      return
+   end
+   
    if class and classes[class] then
       for id = 1, 8 do 
-	 if self:ReserveMark(id, unit, classes[class], unit, nil, true) then
+	 if not usedMarks[id] then
+	    SetRaidTarget(unit, id)
+	    usedMarks[id] = unit
 	    if self.debug then self:debug("Marking "..unit.." with target "..id) end
 	    return true
 	 end
@@ -41,11 +50,11 @@ end
 
 MagicMarker.MarkTemplates = {
    decursers  = {
-      func = function (self, unit) MarkIfClassHelper(self, unit, decursers) end,
+      func = function (self, unit, class, usedMarks) MarkIfClassHelper(self, unit, decursers, class, usedMarks) end,
       desc = L["Mark all mages and druids in the raid"],
    },
    shamans = {
-      func = function (self, unit) MarkIfClassHelper(self, unit, shamans) end,
+      func = function (self, unit, class, usedMarks) MarkIfClassHelper(self, unit, shamans, class, usedMarks) end,
       desc = L["Mark all shamans in the raid"],
       
    },

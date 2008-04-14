@@ -86,6 +86,8 @@ L["Smart Mark Modifier"] = true
 L["Alt"] = true
 L["Shift"] = true
 L["Control"] = true
+L["New marking system"] = true
+L["Minimum # of tank targets"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -111,6 +113,7 @@ L["SEDUCE"] = "Seduction"
 L["00NONE"] = "None"
 
 -- Priority names
+L["P0"] = "Same as Tank"
 L["P1"] = "Very High"
 L["P2"] = "High"
 L["P3"] = "Medium"
@@ -149,6 +152,8 @@ L["LOGLEVELHELP"] = "The logging level determines the amount of output printed b
 L["CCBROADHELPTEXT"] = "If enabled you will accept crowd control prioritization configuration data sent to you by the group leader or assistant."
 L["CCAUTOHELPTEXT"] = "When enabled, Magic Marker will automatically learn what crowd control methods you can use on mobs when it is successfully applied."
 L["SMARTMARKMODHELP"] = "Modifier key to press to enable smart marking. If you set the smart making modifier key binding, that key will be used instead."
+L["NEWMARKHELP"] = "Enable the new prioritization system. It is designed to minimize the amount of remarking needed but is still in development. To use it hold in the modifier to sweep over all mobs you want to mark once. Then release the modifier and sweep over them a second time to do the final marking. Note if you manually mark or unmark a mob you need to sweep over all mobs again to ensure proper marks."
+L["MINTANKHELP"] = "Minimum number of mobs to mark as tanks. This requires the new marking system. If insufficient tank targets are available after crowd control is set, the least prioritized crowd control targets will be released for tank targets."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

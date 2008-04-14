@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 6
+local CONFIG_VERSION = 7
 local format = format
 local sub = string.sub
 local strmatch = strmatch
@@ -56,8 +56,9 @@ local CONFIG_MAP = {
 local ACT_LIST = { "TANK", "CC" }
 local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT", "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL" }
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
+local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
-local ccDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
+local ccDropdown, ccpriDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
 
 function MagicMarker:GetIconTexture(id)
    return string.format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
@@ -160,6 +161,7 @@ do
    local temp, maxcc
    ccDropdown = {}
    priDropdown = {}
+   ccpriDropdown = {}
    catDropdown = {}
    raidIconDropdown = {}
    logLevelsDropdown = {}
@@ -175,6 +177,11 @@ do
    
    for num, txt in ipairs(PRI_LIST) do
       priDropdown[txt] = L[txt]
+      CONFIG_MAP[txt] = num
+   end
+
+   for num, txt in ipairs(CCPRI_LIST) do
+      ccpriDropdown[txt] = L[txt]
       CONFIG_MAP[txt] = num
    end
 
@@ -436,7 +443,22 @@ do
 			name = L["Auto learn CC"],
 			desc = L["CCAUTOHELPTEXT"], 
 			type = "toggle",
-			order = 20,
+			order = 70,
+		     },
+		     minTankTargets = {
+			name = L["Minimum # of tank targets"],
+			desc = L["MINTANKHELP"], 
+			type = "range",
+			min = 1, max = 8,
+			step = 1,
+			order = 50,
+			disabled = function() return not db.alphasystem end
+		     },
+		     alphasystem = {
+			name = L["New marking system"],
+			desc = L["NEWMARKHELP"], 
+			type = "toggle",
+			order = 49
 		     },
 		     modifier = {
 			name = L["Smart Mark Modifier"],
@@ -535,16 +557,23 @@ do
 	 order = 0
       },
       priority = {
-	 name = L["Priority"],
+	 name = L["TANK"].." ".. L["Priority"],
 	 type = "select",
 	 values = priDropdown, 
 	 order = 2,
+      },
+      ccpriority = {
+	 name = L["CC"].." "..L["Priority"],
+	 type = "select",
+	 values = ccpriDropdown, 
+	 order = 3,
+	 disabled = "IsIgnored",
       },
       category = {
 	 name = L["Category"],
 	 type = "select",
 	 values = catDropdown, 
-	 order = 3,
+	 order = 4,
 	 disabled = "IsIgnored",
       },
       ccnum = {
@@ -795,8 +824,10 @@ function MagicMarker:GetMobConfig(info, key)
       end
       if self.spam then self:spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
    else
-      if var == "priority" then
+      if var == "priority"  then
 	 value = PRI_LIST[value or 1]
+      elseif var == "ccpriority" then
+	 value = CCPRI_LIST[value or 1]
       elseif var == "category" then
 	 value = ACT_LIST[value or 1]
       end
@@ -926,7 +957,7 @@ end
 function MagicMarker:InsertNewUnit(uid, name, unit)
    local simpleName = self:SimplifyName(name)
    local simpleZone,zone, isHeroic = self:GetZoneName()
-   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, handler = self, mm = 1, heroic = isHeroic }
+   local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, mm = 1, heroic = isHeroic }
    local changed
 
    
@@ -942,6 +973,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
 	    new = true,
 	    category = 1,
 	    priority = 3,
+	    ccpriority = 6,
 	    cc = {},
 	    ccnum = 8
 	 }
@@ -1321,6 +1353,15 @@ function MagicMarker:UpgradeDatabase()
       end
    end
    
+   if version < 7 then
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 zoneData.handler = nil -- oops, didn't mean to store that in there!
+	 for mob, mobData in pairs(zoneData.mobs) do
+	    mobData.ccpriority = 6 -- default ccpriority to "same as tank"
+	 end
+      end      
+   end
+
    MagicMarkerDB.version = CONFIG_VERSION
 end
 
