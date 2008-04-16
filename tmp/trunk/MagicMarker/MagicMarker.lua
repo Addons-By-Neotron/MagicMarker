@@ -1390,6 +1390,7 @@ function MagicMarker:ReportRaidMarks()
    for id, data in pairs(markedTargets) do
       if data.value then
 	 local key = data.value * 10000 + id
+	 valueToId[key] = id
 	 tinsert(sortData, key)
 	 hasData = true
       end
