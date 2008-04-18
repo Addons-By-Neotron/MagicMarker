@@ -936,7 +936,7 @@ function MagicMarker:GetZoneInfo(hash)
    local mobs = hash.mobs
    for mob,data in pairs(mobs) do
       if data.new then new = new + 1 end
-      if data.priority == 4 then ignored = ignored + 1 end
+      if data.priority == 6 then ignored = ignored + 1 end
       total = total + 1
    end
    if new > 0 then new = tostring(new) else new = L["None"] end
