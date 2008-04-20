@@ -54,7 +54,7 @@ local CONFIG_MAP = {
 
 -- ID => Config UI name
 local ACT_LIST = { "TANK", "CC" }
-local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT", "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL" }
+local CC_LIST = { "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE", "MC", "FEAR", "SAP", "ENSLAVE", "ROOT", "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL", "BLIND", "BURN" }
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }

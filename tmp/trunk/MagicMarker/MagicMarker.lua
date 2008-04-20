@@ -83,7 +83,7 @@ local db
 local CC_CLASS = {
    false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
    "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUID",
-   "DRUID", "PALADIN", "HUNTER", "WARLOCK", "PALADIN"
+   "DRUID", "PALADIN", "HUNTER", "WARLOCK", "PALADIN", "ROGUE",false
 }
 
 
@@ -175,7 +175,7 @@ function MagicMarker:OnInitialize()
       markedTargets[id] = {}
    end
 
-   spellIdToCCID = self.spellIdToCCID;
+   spellIdToCCID = MagicComm.spellIdToCCID;
 end
 
 function MagicMarker:OnEnable()
@@ -407,7 +407,7 @@ do
 	       for id = 1,#ccid do
 		  addcc(ccid[id])
 	       end
-	    else
+	    elseif type(ccid) == "number" then
 	       addcc(ccid)
 	    end
 	    self:NotifyChange()

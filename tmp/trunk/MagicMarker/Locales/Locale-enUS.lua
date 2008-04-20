@@ -95,7 +95,7 @@ L["Are you sure you want to delete |cffd9d919%s|r from the database?"] = true
 
 -- CC Names
 L["BANISH"] = "Banish"
-L["ENSLAVE"] = "Enslave"
+L["ENSLAVE"] = "Enslave Demon"
 L["FEAR"] = "Fear"
 L["HIBERNATE"] = "Hibernate"
 L["KITE"] = "Kite"
@@ -110,6 +110,8 @@ L["TURNEVIL"] = "Turn Evil"
 L["TURNUNDEAD"] = "Turn Undead"
 L["SCAREBEAST"] = "Scare Beast"
 L["SEDUCE"] = "Seduction"
+L["BLIND"] = "Blind"
+L["BURN"] = "Burn Down"
 L["00NONE"] = "None"
 
 -- Priority names
