@@ -88,6 +88,7 @@ L["Shift"] = true
 L["Control"] = true
 L["New marking system"] = true
 L["Minimum # of tank targets"] = true
+L["Ignore dead people"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -156,6 +157,7 @@ L["CCAUTOHELPTEXT"] = "When enabled, Magic Marker will automatically learn what 
 L["SMARTMARKMODHELP"] = "Modifier key to press to enable smart marking. If you set the smart making modifier key binding, that key will be used instead."
 L["NEWMARKHELP"] = "Enable the new prioritization system. It is designed to minimize the amount of remarking needed but is still in development. To use it hold in the modifier to sweep over all mobs you want to mark once. Then release the modifier and sweep over them a second time to do the final marking. Note if you manually mark or unmark a mob you need to sweep over all mobs again to ensure proper marks."
 L["MINTANKHELP"] = "Minimum number of mobs to mark as tanks. This requires the new marking system. If insufficient tank targets are available after crowd control is set, the least prioritized crowd control targets will be released for tank targets."
+L["FILTERDEADHELP"] = "Ignore dead people when iterating the raid group."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true

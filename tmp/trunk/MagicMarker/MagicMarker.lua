@@ -29,7 +29,6 @@ local MagicMarker = MagicMarker
 local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
-
 MagicMarker.MAJOR_VERSION = "MagicMarker-1.0"
 MagicMarker.MINOR_VERSION = MINOR_VERSION
 
@@ -58,15 +57,8 @@ local strlen = strlen
 local sub = string.sub
 local sort = table.sort
 
--- Parameters
-local markedTargets = {}
-local recentlyAdded = {}
-local numCcTargets = {}
-local fakeTank = nil
 
 -- Number of CC used for each crowd control method
-local ccUsed = {}
-
 local networkData = {}
 
 -- class makeup of the party/raid
@@ -79,6 +71,14 @@ local spellIdToCCID
 local mobdata
 local db
 
+-- New method data 
+local markedTargets = {}    -- [mark] => data
+local tankPriorityList = {} -- ordered array of known targets
+local ccPriorityList = {}   -- ordered array of known ccable targets
+local assignedTargets = {}  -- guid => data
+local externalTargets = {}  -- [mark] => data
+local templateTargets = {}  -- [mark] => data
+
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
 local CC_CLASS = {
    false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
@@ -89,11 +89,12 @@ local CC_CLASS = {
 
 local defaultConfigDB = {
    profile = {
+      filterdead = false, 
       autolearncc = true,
       acceptCCPrio = false,
       acceptMobData = false,
       acceptRaidMarks = false,
-      battleMarking = true,
+      battleMarking = false,
       honorMarks = false,
       honorRaidMarks = true,
       logLevel = 3,
@@ -101,7 +102,6 @@ local defaultConfigDB = {
       resetRaidIcons = true,
       modifier = "ALT",
       minTankTargets = 1,
-      alphasystem = false,
    }
 }
 
@@ -115,17 +115,56 @@ local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
    networkData.dbversion = MagicMarkerDB.version
 end
 
+local function SetExternalTarget(id, guid, uid, name, hash)
+   externalTargets[id].guid = guid
+   externalTargets[id].uid  = uid
+   externalTargets[id].name = name
+   externalTargets[id].mark = guid and id or nil
+   externalTargets[id].hash = hash
+end
+
+local function SetTemplateTarget(id, name, network)
+   templateTargets[id].guid = name and UnitGUID(name) or nil
+   templateTargets[id].name = name
+   templateTargets[id].uid  = name
+   templateTargets[id].mark = name and id or nil
+   if name then
+      SetExternalTarget(id) 
+      for oid = 1, 8 do
+	 -- We can only have the same template target once so clean it up
+	 if oid ~= id and templateTargets[oid].name == name then
+	    SetTemplateTarget(oid)
+	 end
+      end
+      if not network then
+	 SetNetworkData("MARKV2", name, id, "TMPL")
+	 MagicMarker:SendUrgentMessage()
+      end
+   end
+end
 
 local function LowSetTarget(id, uid, val, ccid, guid)
    markedTargets[id].guid  = guid
    markedTargets[id].uid  = uid 
    markedTargets[id].ccid  = ccid
    markedTargets[id].value = val
-   if uid then
-      markedTargets[id].time = GetTime()
-   else
-      markedTargets[id].time = 0
+end
+
+local function GUIDToUID(guid)
+   local uid = tonumber(sub(guid, 7, 12), 16)
+   if uid == 0 then
+      return nil
    end
+   return tostring(uid)
+end
+
+-- Returns [GUID, UID, Name]
+function MagicMarker:GetUnitID(unit)
+   local guid, uid
+   local unitName = UnitName(unit)
+   guid = UnitGUID(unit)
+   uid = GUIDToUID(guid)
+   return guid, uid or MagicMarker:SimplifyName(unitName), unitName
 end
 
 function MagicMarker:OnInitialize()
@@ -173,9 +212,11 @@ function MagicMarker:OnInitialize()
 
    for id = 1,8 do
       markedTargets[id] = {}
+      externalTargets[id] = {}
+      templateTargets[id] = {}
    end
 
-   spellIdToCCID = MagicComm.spellIdToCCID;
+   spellIdToCCID = MagicComm.spellIdToCCID
 end
 
 function MagicMarker:OnEnable()
@@ -231,52 +272,45 @@ function MagicMarker:OnCCPrioReceive(data, version, sender)
 end
 
 
-function MagicMarker:OnCommMark(mark, uid, value, ccid, guid)
-   if markedTargets[mark].guid == guid
-      and markedTargets[mark].value == value
-      and markedTargets[mark].ccid == ccid
-   then
-      return -- Duplicate message
+function MagicMarker:OnCommMarkV2(mark, guid, type, name)
+   if type == "TMPL" then
+      if templateTargets[mark].name ~= guid then
+	 if markedTargets[mark].name and markedTargets[mark].name ~= guid then
+	    MagicMarker:SmartMark_RemoveGUID(markedTargets[mark].guid, nil, nil, true)
+	 end
+	 SetTemplateTarget(mark, guid, true)
+	 SetRaidTarget(guid, mark)
+	 self:SmartMark_RecalculateMarks()
+	 if self.debug then self:debug("[Net] Added template unit %s with mark %s.", guid, self:GetTargetName(mark) ) end
+      elseif self.trace then
+	 self:trace("[Net] Duplicate template unit %s received.", guid)
+      end
+   else 
+      local data,new = self:SmartMark_AddGUID(guid, GUIDToUID(guid))
+      if new then
+	 if self.debug then self:debug("[Net] Added unit %s to list.", new.name or guid) end
+      elseif self.trace then
+	 self:trace("[Net] Duplicate unit guid %s received.", guid)
+      end
    end
-   local hash = self:GetUnitHash(uid)
-   local name = hash and hash.name or uid
-   if self.debug then 
-      self:debug("[Net] Marked %s as %s with %s",
-		(hash and hash.name) or uid,
-		(ccid and self:GetCCName(ccid)) or "unknown",
-		self:GetTargetName(mark))
-   end
-
-      
-   if ccid and ccid > 1 then
-      numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
-   end
-   
-   self:ReserveMark(mark, uid, value, guid, ccid, false, true, name)
 end
    
-function MagicMarker:OnCommUnmark(mark, uid)
-   if not markedTargets[mark] then
-      return -- Already unmarked
-   end
+function MagicMarker:OnCommUnmarkV2(guid, mark)
+   local data = assignedTargets[guid]
+   local changed = MagicMarker:SmartMark_RemoveGUID(guid, mark, true)
+   local name = guid
    if self.debug then
-      local hash = self:GetUnitHash(uid)
-      self:debug("[Net] Unmarking %s from %s.", self:GetTargetName(mark), (hash and hash.name) or uid)
+      name = (data and data.name) or name
    end
-   self:ReleaseMark(mark, uid, nil, true) 
-end
-
-function MagicMarker:OnCommReset(marks)
-   if self.debug then
-      self:debug("[Net] Raid cache clear received.")
-   end
-   numCcTargets = {}
-   for mark,uid in pairs(marks) do
-      self:ReleaseMark(mark, uid, nil, true)
+   if changed then
+      if self.debug then self:debug("[Net] Removing %s from %s.", self:GetTargetName(mark), name) end
+   elseif self.trace then
+      self:trace("[Net] Already removed %s from %s.", self:GetTargetName(mark), name)
    end
 end
 
 local verRespMsg = "%s: %s revision %s"
+
 function MagicMarker:OnVersionResponse(ver, major, minor, sender)
    self:Print(verRespMsg:format(sender, major or "Unknown", minor or "Unknown"))
 end
@@ -348,84 +382,42 @@ function MagicMarker:BroadcastCCPriorities()
    self:SendBulkMessage()
 end
 
--- Returns [GUID, UID, Name]
--- UID is mob name minus spaces in 2.3 and the
--- mob ID in 2.4 
-
-local function GUIDToUID(guid)
-   local uid = tonumber(sub(guid, 7, 12), 16)
-   if uid == 0 then
-      return nil
-   end
-   return tostring(uid)
-end
-
-function MagicMarker:GetUnitID(unit)
-   local guid, uid
-   local unitName = UnitName(unit)
-   guid = UnitGUID(unit)
-   uid = GUIDToUID(guid)
-   return guid, uid or MagicMarker:SimplifyName(unitName), unitName
-end
-
- tankPriorityList = {}
- ccPriorityList = {}
- assignedTargets = {}
- externalTargets = {}
- templateTargets = {}
-
-do 
-   local deathEvents = {
-      UNIT_DIED = true,
-      PARTY_KILL = true,
-      UNIT_DESTROYED = true
-   }
-   
-   function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
-					  guid, name, _, spellid, spellname)
-      if db.autolearncc and event == "SPELL_AURA_APPLIED" then
-	 local ccid = spellIdToCCID[spellid]
-	 if not ccid then return end
-	 uid = GUIDToUID(guid)
-	 if not uid then return end
-	 
-	 local hash = self:GetUnitHash(nil, true, uid)
-	 if hash then
-	    if not hash.ccopt then
-	       hash.ccopt = {}
-	    end
-	    local addcc = function(newccid)
-			     if not hash.ccopt[newccid] then
-				hash.ccopt[newccid] = true
-				if self.debug then
-				   self:debug("Learned that %s can be CC'd with %s",
-					     hash.name, spellname)
-				end
+function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
+				       guid, name, _, spellid, spellname)
+   if db.autolearncc and event == "SPELL_AURA_APPLIED" then
+      local ccid = spellIdToCCID[spellid]
+      if not ccid then return end
+      uid = GUIDToUID(guid)
+      if not uid then return end
+      
+      local hash = self:GetUnitHash(uid, true)
+      if hash then
+	 if not hash.ccopt then
+	    hash.ccopt = {}
+	 end
+	 local addcc = function(newccid)
+			  if not hash.ccopt[newccid] then
+			     hash.ccopt[newccid] = true
+			     if self.debug then
+				self:debug("Learned that %s can be CC'd with %s",
+					   hash.name, spellname)
 			     end
 			  end
-	    if type(ccid) == "table" then
-	       for id = 1,#ccid do
-		  addcc(ccid[id])
-	       end
-	    elseif type(ccid) == "number" then
-	       addcc(ccid)
+		       end
+	 if type(ccid) == "table" then
+	    for id = 1,#ccid do
+	       addcc(ccid[id])
 	    end
-	    self:NotifyChange()
+	 elseif type(ccid) == "number" then
+	    addcc(ccid)
 	 end
-      elseif deathEvents[event] then
-	 local data = assignedTargets[guid]
-	 if data then
-	    if self.debug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
-	    MagicMarker:SmartMark_RemoveGUID(guid, data.mark)
-	 else
-	    for mark,data in pairs(markedTargets) do
-	       if data.guid == guid then
-		  if self.debug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(mark), name) end
-		  MagicMarker:ReleaseMark(mark, data.uid)
-		  break
-	       end
-	    end
-	 end
+	 self:NotifyChange()
+      end
+   elseif event == "UNIT_DIED" or event == "PARTY_KILL" then
+      local data = assignedTargets[guid]
+      if data then
+	 if self.debug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
+	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark)
       end
    end
 end
@@ -461,9 +453,10 @@ function MagicMarker:EnableEvents(markOnTarget)
       if MMFu then MMFu:Update() end
       if self.info then self:info(L["Magic Marker enabled."]) end
       if markOnTarget then
-	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
       end
-      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMarkUnit", "mouseover")   
+      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMark_MarkUnit", "mouseover")   
+      self:RegisterEvent("PLAYER_REGEN_ENABLED", "ScheduleGroupScan")
       self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
       self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
@@ -476,6 +469,7 @@ function MagicMarker:DisableEvents()
       self.addonEnabled = false
       if MMFu then MMFu:Update() end
       if self.info then self:info(L["Magic Marker disabled."]) end
+      self:UnregisterEvent("PLAYER_REGEN_ENABLED") -- rescan group every time we exit combat.
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
@@ -496,13 +490,13 @@ local party_idx = { "party1", "party2", "party3", "party4" }
 
 function MagicMarker:MarkRaidTargets()
    if self.debug then self:debug("Making all targets of the raid.") end
-   self:IterateGroup(function (self, unit) self:SmartMarkUnit(unit.."target") end, true)
+   self:IterateGroup(function (self, unit) self:SmartMark_MarkUnit(unit.."target") end, true)
 end
 
 local groupScanTimer
 
 function MagicMarker:LogClassInformation(unitName, class)
-   if not class then _,class = UnitClass(unitName) end
+   if not class then _,class = UnitClass(unitName)  end
    if class then 
       raidClassList[class] = (raidClassList[class] or 0) + 1
       if self.trace then self:trace("  found %s => %s.", unitName, class) end
@@ -540,19 +534,31 @@ function MagicMarker:MarkRaidFromCache()
       return
    end
    for unit,id in pairs(MagicMarkerDB.raidMarkCache) do
-      self:ReserveMark(id, unit, -1, unit, nil, true)
+      if markedTargets[id].uid and markedTargets[id].uid ~= unit then
+	 MagicMarker:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
+      end
+      SetTemplateTarget(id, unit)
+      self:SetRaidTarget(unit, id)
    end
+   self:SmartMark_RecalculateMarks()
 end
 
 function MagicMarker:IterateGroup(callback, useID, ...)
-   local id, name, class
-
+   local id, name
    if self.spam then self:spam("Iterating group...") end
    
    if GetNumRaidMembers() > 0 then
+      local maxgrp, class, groupid, online, dead
+      local playerName = UnitName("player")
+      local zoneID, zone = self:GetZoneName()
+
+      maxgrp = self.zoneGroupNum[zoneID]
+
       for id = 1,GetNumRaidMembers() do
-	 name, _, _, _, _, class = GetRaidRosterInfo(id)
-	 callback(self, (useID and "raid"..id) or name, class, ...)
+	 name, _, groupid, _, _, class, _, online, dead = GetRaidRosterInfo(id)
+	 if name == playerName or (online and (not db.filterdead or not dead) and (not maxgroup or groupid <= maxgroup)) then
+	    callback(self, (useID and "raid"..id) or name, class, ...)
+	 end
       end
    else
       if GetNumPartyMembers() > 0 then
@@ -577,13 +583,11 @@ function MagicMarker:MarkRaidFromTemplate(template)
    end
 
    if next(usedMarks) then
-      for id = 1,8 do
-	 if usedMarks[id] then
-	    externalTargets[id] = nil
-	    templateTargets[id] = usedMarks[id]
-	 else
-	    templateTargets[id] = nil
+      for id in pairs(usedMarks) do
+	 if markedTargets[id].uid and markedTargets[id].uid ~= usedMarks[id] then
+	    MagicMarker:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
 	 end
+	 SetTemplateTarget(id, usedMarks[id])
       end
       self:SmartMark_RecalculateMarks()
    end
@@ -604,156 +608,29 @@ local function UnitIsEligable (unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
-function MagicMarker:GetUnitHash(unit, currentZone, uid)
+function MagicMarker:GetUnitHash(uid, currentZone)
+   if not uid then return end
    if currentZone then
       local zone = MagicMarker:GetZoneName()
       local tmpHash = mobdata[zone]
       if tmpHash then
-	 if uid then
-	    return tmpHash.mobs[uid]
-	 else
-	    local _,uid,name = MagicMarker:GetUnitID(unit)
-	    return tmpHash.mobs[uid] or tmpHash.mpbs[MagicMarker:SimplifyName(name)]
-	 end
+	 return tmpHash.mobs[uid]
       end
    else
       for _, data in pairs(mobdata) do
-	 if data.mobs[unit] then
-	    return data.mobs[unit]
+	 if data.mobs[uid] then
+	    return data.mobs[uid]
 	 end
       end
    end
 end
 
-local function LowFindMark(list, value, isTank, fallbackTank)
-   local id, markedValue
-   for _,id in ipairs(list) do
-      if id > 0 and id < 9 then -- sanity check
-	 markedValue = markedTargets[id].value or 0
-	 if (value > markedValue or (isTank and id == fakeTank
-				     and  (not fallbackTank or value < markedValue)))
-	    and (db.battleMarking or not InCombatLockdown())
-	 then
-	    -- This will return the first free target or an already used target
-	    -- if the value of the new target is higher.
-	    if MagicMarker.trace then MagicMarker:trace("LowFindMark => "..tostring(id).." value "..tostring(value)) end
-	    markedTargets[id].value = nil
-	    return id, value
-	 end
-      end
-   end
-end
-
--- Return the next mark for the unit
-function MagicMarker:GetNextUnitMark(unit, unitName, uid) 
-   local unitHash = self:GetUnitHash(unit, true)
-   local unitValue = 0
-   local cc, tankFirst, cc_list_used
-   local doFakeTank 
-   tankFirst = true
-   cc_list_used = 1 -- Tank
-   
-   if db.honorRaidMarks then
-      -- Update list of marks used on the raid
-      for id,data in pairs(markedTargets) do
-	 if data.value and  data.value > 100 then -- reserved player mark
-	    LowSetTarget(id)
-	 end
-      end
-      self:IterateGroup(function(self, unit)
-			   local id = GetRaidTargetIndex(unit)
-			   if id then LowSetTarget(id, unit, 300, nil, unit) end
-			end)
-   end
-   
-   if unitHash then
-      if self:IsUnitIgnored(unitHash.priority) then return -1 end
-      unitValue = self:UnitValue(unitName, unitHash)
-      cc = unitHash.ccopt
-      if (not numCcTargets[ uid ]  or numCcTargets[ uid ] < unitHash.ccnum) -- Still can CC more.
-	 and  unitHash.category ~= 1 then -- this mob should be CC'd
-	 if (ccUsed[1] or 0) > 0 then -- we already have a tank defined
-	    tankFirst = false
-	 else
-	    doFakeTank = true
-	 end
-      end
-   end
-
-   if self.trace then self:trace("  NextUnitMark for "..unitName..": tankFirst="..tostring(tankFirst)..", unitValue="..unitValue) end
-
-   local raidMarkList, raidMarkID, raidMarkValue
-
-   if tankFirst or not cc then
-      raidMarkList = self:GetMarkForCategory(1) 
-      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue, true)
-      if raidMarkID then
-	 if doFakeTank then
-	    fakeTank = raidMarkID
-	    if self.debug then
-	       self:debug("Marked %s as tank (fake) with %s", unitName, self:GetTargetName(raidMarkID))
-	    end
-	 else
-	    if self.debug then
-	       self:debug("Marked %s as tank with %s", unitName, self:GetTargetName(raidMarkID))
-	    end
-	 end
-      end
-   end -- tank marks
-
-   if not raidMarkID and cc then 
-      for _,category in ipairs(db.ccprio) do
-	 local class = CC_CLASS[category]
-	 if cc[category] and raidClassList[class] and raidClassList[class] > 0 then 
-	    local cc_used_count = ccUsed[category] or 0
-	    if cc_used_count >= raidClassList[class] then
-	       local minval, replaceid = unitValue, nil
-	       for id,data in pairs(markedTargets) do
-		  if data.ccid == category and data.value < minval then
-		     replaceid, minval = id, data.value
-		  end
-	       end
-	       if replaceid then
-		  self:ReleaseMark(replaceid, markedTargets[replaceid].uid)
-		  cc_used_count = ccUsed[category] or 0
-	       end
-	    end
-	    if not class or cc_used_count < raidClassList[class] then
-	       raidMarkList = self:GetMarkForCategory(category)
-	       raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue)
-	       if raidMarkID then
-		  cc_list_used = category
-		  numCcTargets[ uid ] = (numCcTargets[ uid ] or 0) + 1
-		  if self.debug then
-		     self:debug("Marked %s as cc (%s) with %s", unitName, self:GetCCName(category) or "none",
-			       self:GetTargetName(raidMarkID) or "none?!")
-		  end
-		  break
-	       end
-	    end
-	 end
-      end
-   end
-      
-   -- no mark found, fall back to tank list for default
-   if not raidMarkID and cc then
-      raidMarkList = self:GetMarkForCategory(1)
-      raidMarkID, raidMarkValue = LowFindMark(raidMarkList, unitValue, true, true)
-      if raidMarkID then
-	 if self.debug then
-	    self:debug("Marked %s tank (fallback) with %s", unitName, self:GetTargetName(raidMarkID))
-	 end
-      end 
-   end
-   
-   return raidMarkID or 0, cc_list_used, raidMarkValue
-end
 
 local unitValueCache = {}
 
 function MagicMarker:UnitValue(uid, hash, modifier)
    --   if unitValueCache[unit] then return unitValueCache[unit] end
-   local unitData = hash or self:GetUnitHash(uid)
+   local unitData = hash or self:GetUnitHash(uid, true)
    local value, ccvalue = 0, 0
    if not modifier then modifier = 0 end
    if unitData then
@@ -815,7 +692,7 @@ MagicMarker.smdata = {
    cc = ccPriorityList,
    assigned = assignedTargets,
    external = externalTargets,
-   template = templateTargets,
+   tmpl = templateTargets,
 }
 
 local valueModifier = 0.99
@@ -830,16 +707,40 @@ function SmartMark_FindUnusedMark(list, used)
 end
 
 -- recalculate mark assignments based on the priority lists
+
 do 
+   local raidScanTimer
    local ccUsed = {}
    local marksUsed = {}
    local categoryMarkCache = {}
    local newCcCount = {}
 
+   function MagicMarker:OnCommResetV2()
+      if self.debug then
+	 self:debug("[Net] Raid cache clear received.")
+      end
+
+      valueModifier = 0.99
+
+      for id in pairs(ccUsed)            do ccUsed[id] = nil            end
+      for id in pairs(newCcCount)        do newCcCount[id] = nil        end
+      for id in pairs(assignedTargets)   do assignedTargets[id] = nil   end
+      for id in pairs(categoryMarkCache) do categoryMarkCache[id] = nil end
+      for id in pairs(tankPriorityList)  do tankPriorityList[id] = nil  end
+      for id in pairs(ccPriorityList)    do ccPriorityList[id] = nil    end
+
+      for id = 1,8 do
+	 LowSetTarget(id)
+	 SetExternalTarget(id)
+	 SetTemplateTarget(id)
+	 marksUsed[id] = nil
+      end
+   end
+
    function MagicMarker:SmartMark_RecalculateMarks()
       local id, data, ccount
       local inCombat = InCombatLockdown()
-      local canReprioritize = db.battleMarking or not inCombat
+      local canReprioritize = not inCombat or not next(assignedTargets)
       -- empty data from the previous run
       for id in pairs(categoryMarkCache) do categoryMarkCache[id] = nil end
       for id in pairs(markedTargets)     do LowSetTarget(id)  end
@@ -856,27 +757,25 @@ do
       if self.debug then self:debug("Recalculating mark priority list:") end
 
       -- cache external targets
-      if db.honorMarks then
-	 for id,data in pairs(externalTargets) do
+      for id = 1,8 do 
+	 if db.honorMarks and externalTargets[id].guid then
 	    marksUsed[id] = true
-	    assignedTargets[data.guid] = data
-	    if self.debug then self:debug("++ %s => %s [external]", self:GetTargetName(id), data.name) end
-	 end   
+	    assignedTargets[externalTargets[id].guid] = externalTargets[id]
+	    if self.debug then self:debug("++ %s => %s [external]", self:GetTargetName(id), externalTargets[id].name) end
+	 elseif templateTargets[id].guid then
+	    marksUsed[id] = true
+	    assignedTargets[templateTargets[id].guid] = templateTargets[id]
+	    if self.debug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), templateTargets[id].name) end
+	 end  
       end
 
-      -- template targets
-      for id,data in pairs(templateTargets) do
-	 marksUsed[id] = true
-	 assignedTargets[data] = id
-	 if self.debug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), data) end
-      end
-      
       -- Update list of marks used on the raid
       if db.honorRaidMarks then
 	 self:IterateGroup(function(self, unit)
 			      local id = GetRaidTargetIndex(unit)
-			      if id then
-				 assignedTargets[unit] = id
+			      if id and not templateTargets[id].guid then
+				 local guid = UnitGUID(unit)
+				 assignedTargets[guid] = { name = unit, mark = id, guid = guid, uid = name }
 				 marksUsed[id] = true
 				 if self.debug then
 				    self:debug("++ %s => %s [raid]", self:GetTargetName(id), unit)
@@ -894,7 +793,7 @@ do
 	    for _,category in ipairs(db.ccprio) do
 	       local class = CC_CLASS[category]
 	       local cc = data.hash.ccopt
-	       if cc[category] and raidClassList[class] and raidClassList[class] > 0 then 
+	       if cc[category] and (not class or raidClassList[class] and raidClassList[class] > 0) then 
 		  local cc_used_count = ccUsed[category] or 0
 		  if not class or cc_used_count < raidClassList[class] then
 		     categoryMarkCache[category] = categoryMarkCache[category] or self:GetMarkForCategory(category)
@@ -945,8 +844,9 @@ do
 	    -- Target is not crowd controlled, make it a tank target
 	    local nextid = SmartMark_FindUnusedMark(tankMarkList, marksUsed)
 	    if not nextid then
-	       if self.debug then self:debug("=== no more marks available ===") end
-	       break
+	       data.mark = nil
+	       data.ccused = nil
+	       if self.debug then self:debug("== No mark available for %s.", data.name) end
 	    else
 	       data.mark = nextid
 	       data.ccused = 1
@@ -956,348 +856,241 @@ do
 	 end
       end
 
-
-      local tmphash = {}
-      -- Attempt to remark targets if the raid members are targeting them.
-      local marked = {}
-      self:IterateGroup(function(self, unit)
-			   local target = unit .. "target"
-			   local focus = unit .. "focus"
-			   tmphash.target = UnitGUID(target)
-			   tmphash.focus = UnitGUID(focus) 
-			   for unit, guid in pairs(tmphash) do
-			      if not marked[guid] then
-				 local data = assignedTargets[guid]
-				 if type(data) == "table" then
-				    marked[guid] = true
-				    SetRaidTarget(unit, data.mark)
-				 end
-			      end
-			   end
-			end, true)
+      
+      if raidScanTimer then self:CancelTimer(raidScanTimer, true) end
+      raidScanTimer = self:ScheduleTimer("SmartMark_RemarkRaid", 1.0)
       
       if self.debug then self:debug("Done.") end
 
       -- TODO - need to rework syncing for this. 
       for guid,data in pairs(assignedTargets) do
-	 if type(data) == "table" then
+	 if data.ccused then
 	    LowSetTarget(data.mark, data.uid, data.ccused == 1 and data.value or data.ccval, data.ccused, guid)
-	    SetNetworkData("MARK", data.name, data.mark, data.ccused == 1 and data.value or data.ccval, data.ccused, guid)
-	 else
-	    LowSetTarget(data, guid, 1000, -1, guid)
-	    SetNetworkData("MARK", guid, data, -1, -1, guid)
+	 elseif data.uid ~= data.name then
+	    LowSetTarget(data.mark, data.uid, 0, -1, guid)
+	 elseif data.mark then
+	    LowSetTarget(data.mark, data.uid, nil, -2, data.name)
 	 end
-	 self:SendUrgentMessage()
       end
    end
-end
 
-function MagicMarker:SmartMark_AddGUID(guid, uid, name)
-   for id, data in ipairs(tankPriorityList) do
-      if data.guid == guid then
-	 return data -- already known
-      end
-   end
-   local value, ccval, hash = self:UnitValue(uid, nil, valueModifier)
-   if hash and self:IsUnitIgnored(hash.priority) then return end
-
-   local newhash = {
-      uid = uid,
-      name = hash and hash.name or name,
-      guid = guid,
-      value = value,
-      ccval = ccval,
-      hash = hash
-   }
-   valueModifier = valueModifier - 0.001
-   
-   tankPriorityList[#tankPriorityList+1] = newhash
-   sort(tankPriorityList, SmartMark_TankSorter)
-
-   if newhash.hash.category == 2 and newhash.hash.ccopt then
-      ccPriorityList[#ccPriorityList+1]     = newhash
-      sort(ccPriorityList, SmartMark_CCSorter)
-   end
-
-   self:SmartMark_RecalculateMarks()
-
-   return assignedTargets[guid]
-end
-
-local function SmartMark_CleanList(hash, guid)
-   local found 
-   for id, data in ipairs(hash) do	
-      if moveit then
-	 hash[id-1] = data
-      elseif data.guid == guid then
-	 if self.trace then self:trace(" Found unit to remove: %s", data.guid) end
-	 found = data
-      end
-   end
-   if found then
-      hash[#hash] = nil
-   end
-   return found
-end
-
-function MagicMarker:SmartMark_RemoveGUID(guid, mark)
-   local changed
-   if self.trace then self:trace("Looking for unit on tank list...") end
-   local changed = SmartMark_CleanList(tankPriorityList, guid)
-   if changed then
-      if changed.hash.category == 2 and changed.hash.ccopt then
-	 if self.trace then self:trace("Looking for unit on cc list...") end
-	 -- We only clean cc list if needed
-	 SmartMark_CleanList(ccPriorityList, guid)
-      end
-      changed = true
-   end
-   
-   if externalTargets[mark] then
-      externalTargets[mark] = nil
-      if self.trace then self:trace("Removed external target...") end
-      changed = true
-   end
-   if templateTargets[mark] then
-      templateTargets[mark] = nil
-      if self.trace then self:trace("Removed template target...") end
-      changed = true
-   end
-   if changed and (not InCombatLockdown() or db.battleMarking) then
-      -- only recalculate when not in combat or if battlemarking is enabled.
-      if self.trace then self:trace("Recalculate due to changed unit lists...") end
-      self:SmartMark_RecalculateMarks()
-   end
-end
-
-function MagicMarker:SmartMark_MarkUnit(unit)
-   if not UnitExists(unit) then return end
-   local unitName = UnitName(unit)
-   if UnitIsDead(unit) then
-      return
-   elseif UnitIsEligable(unit) then
-      local unitTarget = GetRaidTargetIndex(unit)
-      local guid, uid = MagicMarker:GetUnitID(unit)
-      local data
-      self:InsertNewUnit(uid, unitName, unit)
-      if not self:IsValidMarker() then
-	 return
-      end
-
-      data = assignedTargets[guid]
-
-      if not data and unitTarget and db.honorMarks then
-	 -- found external marks
-	 if externalTargets[unitTarget] then
-	    if externalTargets[unitTarget].guid ~= guid then
-	       externalTargets[unitTarget].guid = guid
-	       externalTargets[unitTarget].uid  = uid
-	       externalTargets[unitTarget].name = unitName
-	       externalTargets[unitTarget].mark = unitTarget
+   local function SmartMark_MarkRaidTarget(self, unit, _, marked)
+      local target = unit .. "target"
+      local guid = UnitGUID(target)
+      if not marked[guid] then
+	 local data = assignedTargets[guid]
+	 if data and data.value then
+	    marked[guid] = true
+	    if data.mark ~= GetRaidTargetIndex(target) then
+	       if self.trace then
+		  self:trace("Marking %s with %s [%s]",
+			     data.name or guid,
+			     self:GetTargetName(data.mark),
+			     UnitName(unit))
+	       end
+	       SetRaidTarget(target, data.mark)
 	    end
-	 else
-	    for id,data in pairs(externalTargets) do
-	       if data.guid == guid then
-		  externalTargets[unitTarget] = data
-		  externalTargets[id] = nil
+	 end
+      end
+   end
+   
+   function MagicMarker:SmartMark_RemarkRaid()
+      if raidScanTimer then
+	 self:CancelTimer(raidScanTimer, true)
+	 raidScanTimer = nil
+      end
+      self:IterateGroup(SmartMark_MarkRaidTarget, true, {})
+      SetNetworkData("ASSIGN", self:GetAssignData())
+      self:SendBulkMessage()
+   end
+
+   function MagicMarker:SmartMark_AddGUID(guid, uid, name, mobHash)
+      for id, data in ipairs(tankPriorityList) do
+	 if data.guid == guid then
+	    return data -- already known
+	 end
+      end
+      local value, ccval, hash = self:UnitValue(uid, mobHash, valueModifier)
+      if hash and self:IsUnitIgnored(hash.priority) then return end
+
+      local newhash = {
+	 uid = uid,
+	 name = hash and hash.name or name,
+	 guid = guid,
+	 value = value,
+	 ccval = ccval,
+	 hash = hash
+      }
+      valueModifier = valueModifier - 0.001
+      
+      tankPriorityList[#tankPriorityList+1] = newhash
+      sort(tankPriorityList, SmartMark_TankSorter)
+
+      if newhash.hash and newhash.hash.category == 2 and newhash.hash.ccopt then
+	 ccPriorityList[#ccPriorityList+1]     = newhash
+	 sort(ccPriorityList, SmartMark_CCSorter)
+      end
+
+      self:SmartMark_RecalculateMarks()
+
+      return assignedTargets[guid], newhash
+   end
+
+   local function SmartMark_CleanList(hash, guid)
+      local found
+      for id, data in ipairs(hash) do	
+	 if found then
+	    hash[id-1] = data
+	 elseif data.guid == guid then
+	    if MagicMarker.trace then MagicMarker:trace(" Found unit to remove: %s", data.guid) end
+	    found = data
+	 end
+      end
+      if found then
+	 hash[#hash] = nil
+      end
+      return found
+   end
+
+   function MagicMarker:SmartMark_RemoveGUID(guid, mark, fromNetwork, delay)
+      local changed
+      if self.trace then self:trace("Looking for unit on tank list...") end
+      local changed = SmartMark_CleanList(tankPriorityList, guid)
+      if changed then
+	 if self.trace then self:trace("Removed from tank list, checking for CC.") end
+	 if changed.hash.category == 2 and changed.hash.ccopt then
+	    -- We only clean cc list if needed
+	    if SmartMark_CleanList(ccPriorityList, guid) and self.trace then self:trace("Removed from cc list...") end
+	    
+	 end
+	 mark = changed.mark
+      end
+      
+      if mark then
+	 if externalTargets[mark].guid == guid then
+	    SetExternalTarget(mark)
+	    if self.trace then self:trace("Removed external target...") end
+	    changed = true
+	 end
+	 if templateTargets[mark].guid == guid then
+	    SetTemplateTarget(mark)	    
+	    if self.trace then self:trace("Removed template target...") end
+	    changed = true
+	 end
+      end
+
+      if changed then
+	 assignedTargets[guid] = nil
+	 if mark then -- do some cleanup
+	    LowSetTarget(mark)
+	    marksUsed[mark] = nil
+	    if type(changed) == "table" then
+	       if changed.ccused then
+		  -- Clean up crowd control cache
+		  ccUsed[changed.ccused] = (ccUsed[changed.ccused] or 1) - 1
+		  newCcCount[changed.uid] = (newCcCount[changed.uid] or 1) - 1
+	       end
+	    end
+	 end
+	 if not fromNetwork then
+	    SetNetworkData("UNMARKV2", guid, mark)
+	    self:SendUrgentMessage()
+	 end
+	 if not InCombatLockdown() and not delay then
+	    -- only recalculate when not in combat or if battlemarking is enabled.
+	    if self.trace then self:trace("Recalculate due to changed unit lists...") end
+	    self:SmartMark_RecalculateMarks()
+	 end
+      end
+      return changed
+   end
+
+   function MagicMarker:SmartMark_MarkUnit(unit)
+      if not UnitExists(unit) then return end
+      local unitName = UnitName(unit)
+      if UnitIsDead(unit) then
+	 return
+      elseif UnitIsEligable(unit) then
+	 local unitTarget = GetRaidTargetIndex(unit)
+	 local guid, uid = MagicMarker:GetUnitID(unit)
+	 local mobHash = self:InsertNewUnit(uid, unitName, unit)
+	 local data, new
+
+	 if not self:IsValidMarker() then
+	    return
+	 end
+	 if not IsModifierPressed() and unit == "mouseover" then
+	    -- Modifier isn't pressed and it's a mouseover, so return
+	    return
+	 end
+
+	 data = assignedTargets[guid]
+	 if not data then -- not marked but might still be known!
+	    for _,tmpdata in pairs(tankPriorityList) do
+	       if tmpdata.guid == guid then
+		  data = tmpdata
 		  break
 	       end
 	    end
-	    if not externalTargets[unitTarget] then
-	       externalTargets[unitTarget] = {
-		  name = unitName, guid = guid, uid = uid, mark = unitTarget, ccused = -1
-	       }
-	    end
 	 end
-	 if self.debug then
-	    self:debug(L["Added third party mark (%s) for mob %s."],
-		       self:GetTargetName(unitTarget), unitName)
-	 end
-	 return
-      end
-      
-      if type(data) == "table" then
-	 if data.mark ~= unitTarget then
-	    SetRaidTarget(unit, data.mark)
-	 end
-      elseif (IsModifierPressed() or unit ~= "mouseover") then
-	 data = self:SmartMark_AddGUID(guid, uid, unitName)
-	 if data and data.mark ~= unitTarget then
-	    SetRaidTarget(unit, data.mark)
-	 end
-      end
-   end
-end
-
-function MagicMarker:SmartMarkUnit(unit)
-
-   if db.alphasystem then
-      self:SmartMark_MarkUnit(unit)
-   else
-      self:OldSmartMarkUnit(unit)
-   end
-end
-
-function MagicMarker:OldSmartMarkUnit(unit)
-   if not UnitExists(unit) then return end
-
-   local unitName = UnitName(unit)
-
-   if UnitIsDead(unit) then
-      return
-   elseif UnitIsEligable(unit) then
-      local unitTarget = GetRaidTargetIndex(unit)
-      local guid, uid = MagicMarker:GetUnitID(unit)
-      -- This will insert the unit into the database if it's missing
-      self:InsertNewUnit(uid, unitName, unit)
-      if not self:IsValidMarker() then
-	 return
-      end
-      if unitTarget then
-	 if markedTargets[unitTarget].uid == uid then
-	    if self.spam then log.spam("  already marked.") end
-	    return
-	 elseif db.honorMarks and (GetTime() - (markedTargets[unitTarget].time or 0)) > 1.0 then
-	    self:ReserveMark(unitTarget, uid, 50, guid, nil, nil)
-	    if self.debug then
-	       self:debug(L["Added third party mark (%s) for mob %s."],
-			 self:GetTargetName(unitTarget), unitName)
-	    end
-	    return
-	 end
-      elseif recentlyAdded[guid] then
-	 if self.trace then self:trace("Found known target that wasn't marked.") end
-	 self:ReleaseMark(recentlyAdded[guid], unit)
-      end
-            
-      if (IsModifierPressed() or unit ~= "mouseover") then
-	 
-	 if self.trace then self:trace("Marking "..guid.." ("..(unitTarget or "N/A")..")") end
-
-	 if recentlyAdded[guid] then 
-	    if self.trace then self:trace("  already marked") end
-	    return
-	 end
-	 
-	 local newTarget, ccID, value = self:GetNextUnitMark(unit, unitName, uid)
-	 
-	 if newTarget == 0 then
-	    if self.trace then self:trace("  No more raid targets available.") end
-	    if markingEnabled then
-	       self:ToggleMarkingMode()
-	    end
-	 elseif newTarget == -1 then
-	    if self.trace then self:trace("  Target on ignore list") end
-	 else
-	    recentlyAdded[guid] = newTarget
-	    if self.trace then self:trace("  => guid: %s -- uid: %s -- mark: %s -- val: %s -- ccid: %s", guid, tostring(uid), tostring(newTarget), tostring(value), tostring(ccID)) end
-	    self:ReserveMark(newTarget, uid, value, guid, ccID)
-	    SetRaidTarget(unit, newTarget)
-	 end
-      end
-   elseif unitName and self.spam then
-      self:spam("Ignoring "..unitName) 
-   end
-end
-
-function MagicMarker:ReleaseMark(mark, unit, setTarget, fromNetwork)
-   if self.trace then self:trace("Releasing mark %d from %s.", mark, unit) end
-   if setTarget then SetRaidTarget(unit, 0) end
-   local olduid
-   if db.alphasystem then
-      if externalTargets[mark] then
-	 olduid = externalTargets[mark].uid
-	 externalTargets[mark] = nil
-	 self:SmartMark_RecalculateMarks()
-      else
-	 for id,data in pairs(tankPriorityList) do
-	    if self.trace then self:trace("Comparing %d to %d", data.mark, mark) end
-	    if data.mark == mark then
-	       olduid = data.uid
-	       MagicMarker:SmartMark_RemoveGUID(data.guid)
-	    end
-	 end
-      end
-      templateTargets[mark] = nil
-   else
-      olduid = markedTargets[mark].uid
-      if fakeTank == mark then
-	 fakeTank = nil
-      end
-      if olduid then
-	 recentlyAdded[markedTargets[mark].guid] = nil
-	 local ccid = markedTargets[mark].ccid
-	 if ccid and ccUsed[ccid] then
-	    ccUsed[ ccid ] = ccUsed[ ccid ] - 1
-	    if self.spam then
-	       self:spam("  num --ccUsed for %s = %d",
-			 self:GetCCName(ccid), ccUsed[ccid])
-	    end
-	    if ccid > 1 then
-	       if (numCcTargets[ olduid ] or 0) > 1 then
-		  numCcTargets[ olduid ] = numCcTargets[ olduid ] - 1
-	       else
-		  numCcTargets[ olduid ] = nil
+	 if not data and unitTarget and db.honorMarks then
+	    local ext = externalTargets[unitTarget] 
+	    if ext.guid ~= guid then -- guids are not matching
+	       for id,data in pairs(externalTargets) do
+		  if data.guid == guid then 
+		     SetExternalTarget(id) -- we had it under a different target, release it
+		     break
+		  end
 	       end
+	       SetExternalTarget(unitTarget, guid, uid, unitName, mobHash) -- set it
+	       if self.debug then
+		  self:debug(L["Added third party mark (%s) for mob %s."],
+			     self:GetTargetName(unitTarget), unitName)
+	       end
+	       self:SmartMark_RecalculateMarks()
 	    end
+	    return
 	 end
-	 LowSetTarget(mark)
-      end
-   end
+	 
+	 if not data then
+	    data, new = self:SmartMark_AddGUID(guid, uid, unitName, mobHash) 
+	 end   
 
-   if olduid then
-      if not fromNetwork then
-	 SetNetworkData("UNMARK", olduid, mark)
-	 self:SendUrgentMessage()
-      end
-      return true
-   end
-end
-
-function MagicMarker:ReserveMark(mark, unit, value, guid, ccid, setTarget, fromNetwork, name)
-   if not MagicMarker:IsValidMarker() then return end
-   if self.trace then self:trace("Reserving mark %d for %s with value %d, ccid=%s, set=%s.", mark, unit, value, tostring(ccid), tostring(setTarget)) end
-   
-   if db.alphasystem then
-      if value == -1 then
-	 templateTargets[mark] = unit
-	 if setTarget then SetRaidTarget(unit, mark) end
-	 self:SmartMark_RecalculateMarks()
-      else
-	 if self.spam then self:spam("Adding guid %s => %s", guid, name) end
-	 self:SmartMark_AddGUID(guid, GUIDToUID(guid), name)
-      end
-      return true
-   else
-      local olduid = markedTargets[mark].uid
-      local oldval =  markedTargets[mark].value or 0
-      if not olduid or value == -1 or oldval < value or (fromNetwork and oldval == 50) then 
-	 if olduid then
-	    self:ReleaseMark(mark, olduid, setTarget, fromNetwork)
-	 end
-	 
-	 LowSetTarget(mark, unit, (value == -1 and 2000) or value, ccid, guid)
-	 
-	 if ccid then
-	    ccUsed[ ccid ] = (ccUsed[ ccid ] or 0) + 1
-	    if self.spam then
-	       self:spam("  num ++ccUsed for %s = %d",
-			 self:GetCCName(ccid), ccUsed[ccid])
-	    end
-	 end
-	 
-	 if setTarget then
-	    SetRaidTarget(unit, mark)
-	 end
-	 
-	 if not fromNetwork then
-	    SetNetworkData("MARK", unit, mark, value, ccid, guid)
+	 if data and data.mark ~= unitTarget then
+	    self:SetRaidTarget(unit, data.mark)
+	    SetNetworkData("MARKV2", guid, data.mark, nil, data.name)
 	    self:SendUrgentMessage()
 	 end
-	 return true
       end
    end
-   return false
+end
+
+do
+   local tmpdata = {}
+   function MagicMarker:GetAssignData()
+      for id in pairs(tmpdata) do
+	 if not assignedTargets[id] then
+	    tmpdata[id] = nil
+	 end
+      end
+      for id,data in pairs(assignedTargets) do
+	 if data.value then 
+	    if not tmpdata[id] then tmpdata[id] = {} end
+	    local m = tmpdata[id]
+	    m.name  = data.name
+	    m.mark  = data.mark
+	    m.val   = data.ccused == 1 and data.value or data.ccval
+	    m.cc    = self:GetCCName(data.ccused, 1)
+	 end
+      end
+      return tmpdata
+   end
+end
+
+function MagicMarker:SetRaidTarget(unit, mark)
+   if mark and unit and GetRaidTargetIndex(unit) ~= mark then
+      SetRaidTarget(unit, mark)
+   end
 end
 
 function MagicMarker:SendUrgentMessage()
@@ -1311,16 +1104,17 @@ function MagicMarker:SendBulkMessage()
 end
 
 function MagicMarker:MarkSingle()
-   self:SmartMarkUnit("target")
+   self:SmartMark_MarkUnit("target")
 end
 
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
-      local mark = GetRaidTargetIndex("target")
-      if db.alphasystem then
-	 self:SmartMark_RemoveGUID(UnitGUID("target"), mark)
+      guid = UnitGUID("target")
+      mark = GetRaidTargetIndex("target")
+      MagicMarker:SmartMark_RemoveGUID(guid, mark)
+      if mark then
+	 SetRaidTarget("target", 0)
       end
-      if mark then self:ReleaseMark(mark, "target", true) end
    end
 end
 
@@ -1335,12 +1129,10 @@ function MagicMarker:ResetMarkData(hardReset)
    local usedRaidIcons
    local playerIcon
    local playerName = UnitName("player")
-   local targets
+   local targets = {}
    local markToUID = {}
    valueModifier = 0.99
-   for id in pairs(ccUsed) do ccUsed[id] = nil end
-   for id in pairs(recentlyAdded) do recentlyAdded[id] = nil end
-   for id in pairs(numCcTargets) do numCcTargets[id] = nil end
+
    for id in pairs(tankPriorityList) do tankPriorityList[id] = nil end
    for id in pairs(ccPriorityList) do ccPriorityList[id] = nil end
    
@@ -1351,46 +1143,33 @@ function MagicMarker:ResetMarkData(hardReset)
       assignedTargets[id] = nil
    end
 
-   fakeTank = nil
 
    if db.honorRaidMarks and not hardReset then
       usedRaidIcons = {}
       -- Look at the marks in the raid to ensure we don't reset them.
       self:IterateGroup(function(self, unit)
 			   local id = GetRaidTargetIndex(unit)
-			   if id then
+			   if id and not templateTargets[id].guid then
 			      usedRaidIcons[id] = unit
 			      if unit == playerName then
 				 playerIcon = id
 			      end
 			   end
-		     end)
+			end)
    end
-
+   
    
    for id = 1, 8 do
-      if usedRaidIcons and usedRaidIcons[id] then
-	 templateTargets[id] = usedRaidIcons[id]
-      else
-	 templateTargets[id] = nil
-	 
-	 if externalTargets[id] then
-	    if not targets then targets = {} end
-	    targets[id] = externalTargets[id].uid
-	 elseif markedTargets[id] then
-	    if not targets then targets = {} end
-	    targets[id] = markedTargets[id].uid
-	 elseif marktoUID[id] then
-	    if not targets then targets = {} end
-	    targets[id] = marktoUID[id]
-	 end
+      if not (usedRaidIcons and usedRaidIcons[id]) then
 	 LowSetTarget(id)
 	 if hardReset or db.resetRaidIcons then SetRaidTarget("player", id) end
+	 SetTemplateTarget(id)
+	 SetExternalTarget(id)
       end
-      externalTargets[id] = nil
    end
+
    if targets then
-      SetNetworkData("CLEAR", targets)
+      SetNetworkData("CLEARV2")
       self:SendUrgentMessage()
    end
    -- Hack, sometimes the last mark isn't removed.
@@ -1421,6 +1200,8 @@ function MagicMarker:ReportRaidMarks()
       dest = "RAID"
    elseif GetNumPartyMembers() > 0 then
       dest = "PARTY"
+   else
+      return
    end
    
    local sortData = {}
@@ -1517,3 +1298,15 @@ function MagicMarker:OnProfileChanged(event, newdb)
    if MMFu then MMFu:GenerateProfileConfig() end
 end
 
+-- number of groups able to enter the instance, used when scanning groups for CC etc.
+MagicMarker.zoneGroupNum = {
+   ["BlackTemple"] = 5,
+   ["Gruul'sLair"] = 5,
+   ["HyjalSummit"] = 5,
+   ["Karazhan"] = 2,
+   ["Magtheridon'sLair"] = 5,
+   ["SerpentshrineCavern"] = 5,
+   ["SunwellPlateau"] = 5,
+   ["TempestKeep"] = 5,
+   ["Zul'Aman"] = 2,
+}

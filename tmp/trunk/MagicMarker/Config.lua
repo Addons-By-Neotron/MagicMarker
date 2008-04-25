@@ -445,6 +445,12 @@ do
 			type = "toggle",
 			order = 70,
 		     },
+		     filterdead = {
+			name = L["Ignore dead people"],
+			desc = L["FILTERDEADHELP"], 
+			type = "toggle",
+			order = 74,
+		     },
 		     minTankTargets = {
 			name = L["Minimum # of tank targets"],
 			desc = L["MINTANKHELP"], 
@@ -452,13 +458,6 @@ do
 			min = 1, max = 8,
 			step = 1,
 			order = 50,
-			disabled = function() return not db.alphasystem end
-		     },
-		     alphasystem = {
-			name = L["New marking system"],
-			desc = L["NEWMARKHELP"], 
-			type = "toggle",
-			order = 49
 		     },
 		     modifier = {
 			name = L["Smart Mark Modifier"],
@@ -497,6 +496,7 @@ do
 			type = "toggle",
 			order = 130,
 			width = "full",
+			hidden = true, -- disabled for now, it's confusing as hell
 		     },
 		     resetRaidIcons = {
 			name = L["Reset raid icons when resetting the cache"],
@@ -846,7 +846,7 @@ function MagicMarker:SetZoneConfig(info, value)
 	 self:ZoneChangedNewArea()
       elseif var == "targetMark" then
 	 if value then
-	    self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMarkUnit", "target")
+	    self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
 	 else
 	    self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 	 end
@@ -959,7 +959,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
    local simpleZone,zone, isHeroic = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, mm = 1, heroic = isHeroic }
    local changed
-
+   local mobHash
    
    if not zoneHash.mobs[uid] then
       if zoneHash.mobs[simpleName] then
@@ -983,8 +983,9 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
 
       changed = true
    end
+   mobHash = zoneHash.mobs[uid]
    
-   if not zoneHash.mobs[uid].desc then
+   if not mobHash.desc then
       local family = UnitCreatureFamily(unit)
       local type = UnitCreatureType(unit)
       local mana = UnitManaMax(unit)
@@ -998,13 +999,13 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
 	 desc =  desc ..", ".. L["unit is a caster"].."."
       end
       
-      zoneHash.mobs[uid].desc  = desc
+      mobHash.desc  = desc
       changed = true
    end
    
-   if zoneHash.mobs[uid].name ~= name then
+   if mobHash.name ~= name then
       -- different locale, update name
-      zoneHash.mobs[uid].name = name
+      mobHash.name = name
       changed = true
    end
 
@@ -1019,6 +1020,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
       end
       self:NotifyChange()
    end
+   return mobHash
 end
 
 function MagicMarker:RemoveZone(var)
@@ -1277,8 +1279,10 @@ function MagicMarker:LoadMobListForZone(var)
 end
 
 function MagicMarker:GetCCName(ccid, val)
-   if not ccid then
-      return (val == 50 and L["External"]) or L["Template"]
+   if ccid == -1 then 
+      return L["External"]
+   elseif ccid == -2 then
+      return L["Template"]
    elseif ccid == 1 then
       return (val and L["TANK"]) or tolower(L["TANK"])
    else
@@ -1286,11 +1290,16 @@ function MagicMarker:GetCCName(ccid, val)
    end
 end
 
-function MagicMarker:GetTargetName(ccid, link)
-   if link then
-      return format("{%s}", sub(RT_LIST[ccid], 2))
-   else
-      return sub(RT_LIST[ccid], 2)
+do
+   local iconLink = "|TInterface\\AddOns\\MagicMarker\\Textures\\%s.tga:0|t"
+   function MagicMarker:GetTargetName(ccid, link)
+      if not ccid then
+	 return "N/A"
+      elseif link then
+	 return format("{%s}", sub(RT_LIST[ccid], 2))
+      else
+	 return iconLink:format(sub(RT_LIST[ccid], 2)) 
+      end
    end
 end
 
