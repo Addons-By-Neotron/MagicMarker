@@ -888,6 +888,7 @@ do
 			     self:GetTargetName(data.mark),
 			     UnitName(unit))
 	       end
+	       data.lastSetMark = data.mark
 	       SetRaidTarget(target, data.mark)
 	    end
 	 end
@@ -1057,6 +1058,7 @@ do
 	 end   
 
 	 if data and data.mark ~= unitTarget then
+	    data.lastSetMark = data.mark
 	    self:SetRaidTarget(unit, data.mark)
 	    SetNetworkData("MARKV2", guid, data.mark, nil, data.name)
 	    self:SendUrgentMessage()
@@ -1078,7 +1080,7 @@ do
 	    if not tmpdata[id] then tmpdata[id] = {} end
 	    local m = tmpdata[id]
 	    m.name  = data.name
-	    m.mark  = data.mark
+	    m.mark  = data.mark == data.lastSetMark and data.mark
 	    m.val   = data.ccused == 1 and data.value or data.ccval
 	    m.cc    = self:GetCCName(data.ccused, 1)
 	 end
