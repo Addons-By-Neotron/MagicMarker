@@ -417,7 +417,7 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
       local data = assignedTargets[guid]
       if data then
 	 if self.debug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
-	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark)
+	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark, false, true)
       end
    end
 end

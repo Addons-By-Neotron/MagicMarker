@@ -455,7 +455,7 @@ do
 			name = L["Minimum # of tank targets"],
 			desc = L["MINTANKHELP"], 
 			type = "range",
-			min = 1, max = 8,
+			min = 0, max = 8,
 			step = 1,
 			order = 50,
 		     },
