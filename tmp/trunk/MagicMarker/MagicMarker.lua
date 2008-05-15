@@ -116,38 +116,44 @@ local function SetNetworkData(cmd, data, misc1, misc2, misc3, misc4)
 end
 
 local function SetExternalTarget(id, guid, uid, name, hash)
-   externalTargets[id].guid = guid
-   externalTargets[id].uid  = uid
-   externalTargets[id].name = name
-   externalTargets[id].mark = guid and id or nil
-   externalTargets[id].hash = hash
+   if id and id > 0 and id < 9 then
+      externalTargets[id].guid = guid
+      externalTargets[id].uid  = uid
+      externalTargets[id].name = name
+      externalTargets[id].mark = guid and id or nil
+      externalTargets[id].hash = hash
+   end
 end
 
 local function SetTemplateTarget(id, name, network)
-   templateTargets[id].guid = name and UnitGUID(name) or nil
-   templateTargets[id].name = name
-   templateTargets[id].uid  = name
-   templateTargets[id].mark = name and id or nil
-   if name then
-      SetExternalTarget(id) 
-      for oid = 1, 8 do
-	 -- We can only have the same template target once so clean it up
-	 if oid ~= id and templateTargets[oid].name == name then
-	    SetTemplateTarget(oid)
+   if id and id > 0 and id < 9 then 
+      templateTargets[id].guid = name and UnitGUID(name) or nil
+      templateTargets[id].name = name
+      templateTargets[id].uid  = name
+      templateTargets[id].mark = name and id or nil
+      if name then
+	 SetExternalTarget(id) 
+	 for oid = 1, 8 do
+	    -- We can only have the same template target once so clean it up
+	    if oid ~= id and templateTargets[oid].name == name then
+	       SetTemplateTarget(oid)
+	    end
 	 end
-      end
-      if not network then
-	 SetNetworkData("MARKV2", name, id, "TMPL")
-	 MagicMarker:SendUrgentMessage()
+	 if not network then
+	    SetNetworkData("MARKV2", name, id, "TMPL")
+	    MagicMarker:SendUrgentMessage()
+	 end
       end
    end
 end
 
 local function LowSetTarget(id, uid, val, ccid, guid)
-   markedTargets[id].guid  = guid
-   markedTargets[id].uid  = uid 
-   markedTargets[id].ccid  = ccid
-   markedTargets[id].value = val
+   if id and id > 0 and id < 9 then 
+      markedTargets[id].guid  = guid
+      markedTargets[id].uid  = uid 
+      markedTargets[id].ccid  = ccid
+      markedTargets[id].value = val
+   end
 end
 
 local function GUIDToUID(guid)
@@ -962,7 +968,6 @@ do
 	 if changed.hash.category == 2 and changed.hash.ccopt then
 	    -- We only clean cc list if needed
 	    if SmartMark_CleanList(ccPriorityList, guid) and self.trace then self:trace("Removed from cc list...") end
-	    
 	 end
 	 mark = changed.mark
       end
