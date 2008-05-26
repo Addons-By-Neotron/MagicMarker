@@ -216,7 +216,7 @@ function MagicMarker:OnInitialize()
    MagicMarkerDB.debug = nil   
    MagicMarkerDB.logLevel = nil
 
-   for id = 1,8 do
+   for id = 0,9 do
       markedTargets[id] = {}
       externalTargets[id] = {}
       templateTargets[id] = {}
@@ -323,7 +323,8 @@ end
 
 function MagicMarker:QueryAddonVersions()
    SetNetworkData("VCHECK")
-   self:SendUrgentMessage()
+   self:SendUrgentMessage("GUILD")
+   self:SendUrgentMessage("RAID")
 end
 
 function MagicMarker:MergeZoneData(zone,zoneData)
@@ -864,7 +865,7 @@ do
 
       
       if raidScanTimer then self:CancelTimer(raidScanTimer, true) end
-      raidScanTimer = self:ScheduleTimer("SmartMark_RemarkRaid", 1.0)
+      raidScanTimer = self:ScheduleTimer("SmartMark_SendAssignments", 1.0)
       
       if self.debug then self:debug("Done.") end
 
@@ -901,12 +902,12 @@ do
       end
    end
    
-   function MagicMarker:SmartMark_RemarkRaid()
+   function MagicMarker:SmartMark_SendAssignments()
       if raidScanTimer then
 	 self:CancelTimer(raidScanTimer, true)
 	 raidScanTimer = nil
       end
-      self:IterateGroup(SmartMark_MarkRaidTarget, true, {})
+--      self:IterateGroup(SmartMark_MarkRaidTarget, true, {})
       SetNetworkData("ASSIGN", self:GetAssignData())
       self:SendBulkMessage()
    end
@@ -971,14 +972,14 @@ do
 	 end
 	 mark = changed.mark
       end
-      
+
       if mark then
-	 if externalTargets[mark].guid == guid then
+	 if externalTargets[mark] and externalTargets[mark].guid == guid then
 	    SetExternalTarget(mark)
 	    if self.trace then self:trace("Removed external target...") end
 	    changed = true
 	 end
-	 if templateTargets[mark].guid == guid then
+	 if templateTargets[mark] and templateTargets[mark].guid == guid then
 	    SetTemplateTarget(mark)	    
 	    if self.trace then self:trace("Removed template target...") end
 	    changed = true
@@ -1100,13 +1101,13 @@ function MagicMarker:SetRaidTarget(unit, mark)
    end
 end
 
-function MagicMarker:SendUrgentMessage()
-   MagicComm:SendUrgentMessage(networkData, "MM")
+function MagicMarker:SendUrgentMessage(channel)
+   MagicComm:SendUrgentMessage(networkData, "MM", channel)
 end
 
-function MagicMarker:SendBulkMessage()
+function MagicMarker:SendBulkMessage(channel)
    if MagicMarker:IsValidMarker() then
-      MagicComm:SendBulkMessage(networkData, "MM")
+      MagicComm:SendBulkMessage(networkData, "MM", channel)
    end
 end
 

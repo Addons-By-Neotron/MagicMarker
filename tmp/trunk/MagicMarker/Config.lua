@@ -40,6 +40,7 @@ local ZoneLookup  = BabbleZone:GetLookupTable()
 
 local MobNotesDB
 local options, cmdoptions, standardZoneOptions, standardMobOptions
+local lastRaidIconType
 BabbleZone = nil
 
 local db
@@ -714,6 +715,7 @@ function MagicMarker:GetRaidTargetConfig(info)
    if not db.targetdata[type] then
       return nil
    end
+   lastRaidIconType = type
    return RT_LIST[ db.targetdata[type][id] ]
 end
 
@@ -1151,7 +1153,8 @@ function MagicMarker:GenerateOptions()
       for icon = 1,8 do
 	 subopts[catName].args["icon"..icon] = {
 	    type = "select",
-	    name = "Raid Icon #"..icon,
+	    name = L[catName].." #"..icon,
+	    width = "full",
 	    dialogControl = "MMRaidIcon",
 	    order = icon*10,
 	    hidden = "IsHiddenRT",
@@ -1275,6 +1278,26 @@ function MagicMarker:LoadMobListForZone(var)
 	 }
       }
    end
+   self:NotifyChange()
+end
+
+function MagicMarker:MoveRaidIconDown(num)
+   if not lastRaidIconType then return end
+   if self.trace then self:trace("Moving %s down from position %d", tostring(lastRaidIconType), num) end
+   if db.targetdata[lastRaidIconType][num+1] then
+      local old = db.targetdata[lastRaidIconType][num]
+      db.targetdata[lastRaidIconType][num] = db.targetdata[lastRaidIconType][num+1]   
+      db.targetdata[lastRaidIconType][num+1] = old
+      self:NotifyChange()
+   end
+end
+
+function MagicMarker:MoveRaidIconUp(num)
+   if not lastRaidIconType then return end
+   if self.trace then self:trace("Moving %s up from position %d", tostring(lastRaidIconType), num) end
+   local old = db.targetdata[lastRaidIconType][num]
+   db.targetdata[lastRaidIconType][num] = db.targetdata[lastRaidIconType][num-1]   
+   db.targetdata[lastRaidIconType][num-1] = old
    self:NotifyChange()
 end
 

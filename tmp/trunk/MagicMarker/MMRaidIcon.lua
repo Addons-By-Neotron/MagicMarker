@@ -87,6 +87,19 @@ do
 	 self:Fire("OnValueChanged",ret)
       end
    end
+
+   local function Button_MoveUp(this)
+      local self = this.obj
+      if self.userdata.num > 1 then
+	 MagicMarker:MoveRaidIconUp(self.userdata.num)
+      end
+   end
+
+   local function Button_MoveDown(this)
+      local self = this.obj
+      MagicMarker:MoveRaidIconDown(self.userdata.num)
+   end
+   
    
    local function Dropdown_TogglePullout(this)
       local self = this.obj
@@ -226,18 +239,20 @@ do
    
    local function SetLabel(self, text)
       if text and text ~= "" then
-	 self.label:SetText(text)
-	 self.label:Show()
-	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,-18)
-	 self.icon:SetPoint("TOPRIGHT",self.editbox,"TOPLEFT",0,0)
-	 self.frame:SetHeight(44)
-      else
-	 self.label:SetText("")
-	 self.label:Hide()
-	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,0)
-	 self.icon:SetPoint("RIGHT",self.editbox,"LEFT",0,0)
-	 self.frame:SetHeight(26)
+--	 self.label:SetText(text)
+--	 self.label:Show()
+--	 self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,-18)
+--	 self.icon:SetPoint("TOPRIGHT",self.editbox,"TOPLEFT",0,0)
+--	 self.frame:SetHeight(44)
+	 local ud = self.userdata
+	 ud.name, ud.num = string.match(text, "(.*) #(%d*)")
+	 ud.num = tonumber(ud.num)
       end
+      self.label:SetText("")
+      self.label:Hide()
+      self.editbox:SetPoint("TOPLEFT",self.frame,"TOPLEFT",16,0)
+      self.icon:SetPoint("RIGHT",self.editbox,"LEFT",0,0)
+      self.frame:SetHeight(26)
    end
 
    local function CreateLine(self, row, column)
@@ -303,6 +318,29 @@ do
       frame.obj = self
       
       self.alignoffset = 30
+
+      local buttdown = CreateFrame("Button",nil,frame,"UIPanelButtonTemplate2")
+      self.buttdown = buttdown
+      buttdown.obj = self
+      buttdown:SetText(" - ");
+      buttdown:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+      buttdown:SetHeight(24)
+      buttdown:SetWidth(24)
+      buttdown:SetScript("OnMouseDown", function() end)
+      buttdown:SetScript("OnMouseUp", function() end)
+      buttdown:SetScript("OnClick",Button_MoveDown)
+
+      local buttup = CreateFrame("Button",nil,frame,"UIPanelButtonTemplate2")
+      self.buttup = buttup
+      buttup.obj = self
+      buttup:SetText(" + ");
+      buttup:SetPoint("BOTTOMRIGHT", buttdown, "BOTTOMLEFT", 0, 0)
+      buttup:SetHeight(24)
+      buttup:SetWidth(24)
+      buttup:SetScript("OnMouseDown", function() end)
+      buttup:SetScript("OnMouseUp", function() end)
+      buttup:SetScript("OnClick", Button_MoveUp)
+      
       
       local editbox = CreateFrame("EditBox",nil,frame)
       self.editbox = editbox
@@ -331,7 +369,8 @@ do
       editbox:SetBackdropBorderColor(0.4,0.4,0.4)
       
       editbox:SetPoint("TOPLEFT",icon,"TOPLEFT",-16,0)
-      editbox:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",0,0)
+      editbox:SetPoint("BOTTOMRIGHT",buttup,"BOTTOMLEFT",0,0)
+
       local button = CreateFrame("Button",nil,frame)
       self.button = button
       button.obj = self
@@ -347,7 +386,7 @@ do
       button:GetDisabledTexture():SetTexCoord(.09,.91,.09,.91)
       button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
       button:GetHighlightTexture():SetTexCoord(.09,.91,.09,.91)
-      button:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",0,0)
+      button:SetPoint("BOTTOMRIGHT",buttup,"BOTTOMLEFT",0,0)
       button:SetScript("OnClick",Dropdown_TogglePullout)
 
 
@@ -361,7 +400,7 @@ do
       pullout:SetBackdropColor(0,0,0)
       pullout:SetFrameStrata("FULLSCREEN_DIALOG")
       pullout:SetPoint("TOPLEFT",frame,"BOTTOMLEFT",0,0)
-      pullout:SetPoint("TOPRIGHT",frame,"BOTTOMRIGHT",-24,0)
+      pullout:SetPoint("TOPRIGHT",frame,"BOTTOMRIGHT",-72,0)
       pullout:SetClampedToScreen(true)
       pullout:Hide()
       
@@ -373,6 +412,7 @@ do
       label:Hide()
       self.label = label
       
+--      local buttup = CreateFrame("Button", nil, frame);
       self.lines = {}
 
       AceGUI:RegisterAsWidget(self)
