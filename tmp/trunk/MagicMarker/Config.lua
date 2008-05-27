@@ -628,9 +628,11 @@ do
       options.args.ccprio.args["ccopt"..num] = {
 	 name = string.format("%s #%d", L["CC"], num), 
 	 type = "select",
+	 width="full",
 	 values = ccDropdown,
 	 order = 100+num,
 	 hidden = "IsHiddenCC",
+	 dialogControl = "MMCCPrio",
       }
    end
 end
@@ -674,28 +676,28 @@ local function uniqList(list, id, newValue, empty, max)
    local addEmpty = false
    list[id] = newValue
 
-   if id == #list then
-      for iter = 1,id-1 do
-	 if list[iter] == value then
-	    addEmpty = true
-	 end
-      end
-   end
+--   if id == #list then
+--      for iter = 1,id-1 do
+--	 if list[iter] == value then
+--	    addEmpty = true
+--	 end
+--      end
+--   end
    
    local currentPos = 1
-   local seen_value = { empty = true }
+   local seen_value = {  }
    
    for iter = 1,max do
-      if list[iter] and not seen_value[ list[iter] ] then
+      if list[iter] and not seen_value[ list[iter] ] and list[iter] ~= empty then
 	 list[currentPos] = list[iter]
-	 currentPos = currentPos+1
+	 currentPos = currentPos + 1
 	 seen_value[ list[iter] ] = true
       end
    end
-   if addEmpty then
-      list[currentPos] = empty
-      currentPos = currentPos + 1
-   end
+--   if addEmpty then
+--      list[currentPos] = empty
+--      currentPos = currentPos + 1
+--   end
    for iter = currentPos, max do
       list[iter] = nil
    end
@@ -904,6 +906,21 @@ function MagicMarker:AddNewRT(var)
    local val = db.targetdata[var[#var-1]] or {}
    val[#val+1] = 9
    db.targetdata[var[#var-1]] = val
+end
+
+function MagicMarker:AddAllRT(var)
+   local ccid = var[#var-1]
+   local val = db.targetdata[ccid] or {}
+   local used = {}
+   for _,id in ipairs(val) do
+      used[id] = true
+   end
+   for id = 1,8 do
+      if not used[id] then
+	 val[#val+1] = id
+	 db.targetdata[ccid] = val
+      end
+   end
 end
 
 function MagicMarker:GetZoneName(zone)
@@ -1146,6 +1163,13 @@ function MagicMarker:GenerateOptions()
 	       func = "AddNewRT",
 	       order = 1000,
 	       hidden = "IsHiddenAddRT", 
+	    },
+	    auto = {
+	       type = "execute",
+	       name = L["Add all raid icons"],
+	       func = "AddAllRT",
+	       order = 1001,
+	       hidden = "IsHiddenAddRT", 
 	    }
 	 },
       }
@@ -1298,6 +1322,25 @@ function MagicMarker:MoveRaidIconUp(num)
    local old = db.targetdata[lastRaidIconType][num]
    db.targetdata[lastRaidIconType][num] = db.targetdata[lastRaidIconType][num-1]   
    db.targetdata[lastRaidIconType][num-1] = old
+   self:NotifyChange()
+end
+
+
+function MagicMarker:MoveCCPrioDown(num)
+   if self.trace then self:trace("Swapping CC position %d down one", num) end
+   if db.ccprio[num+1] then
+      local old = db.ccprio[num]
+      db.ccprio[num] = db.ccprio[num+1]   
+      db.ccprio[num+1] = old
+      self:NotifyChange()
+   end
+end
+
+function MagicMarker:MoveCCPrioUp(num)
+   if self.trace then self:trace("Swapping CC position %d up one", num) end
+   local old = db.ccprio[num]
+   db.ccprio[num] = db.ccprio[num-1]   
+   db.ccprio[num-1] = old
    self:NotifyChange()
 end
 

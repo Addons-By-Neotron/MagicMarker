@@ -17,4 +17,5 @@ Locales.xml
 MagicMarker.lua
 Config.lua
 MMRaidIcon.lua
+MMCCPrio.lua
 MarkTemplates.lua

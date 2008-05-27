@@ -45,6 +45,7 @@ L["Accept raid mark broadcast messages"] = true
 L["Accept CC priority broadcast messages"] = true
 L["Add new crowd control"] = true
 L["Add raid icon"] = true
+L["Add all raid icons"] = true
 L["Broadcast all zone data to the raid group."] = true
 L["Broadcast raid target settings to the raid group."] = true
 L["Broadcast zone data to the raid group."] = true
