@@ -491,6 +491,14 @@ do
 			order = 120,
 			width = "full",
 		     },
+		     noCombatRemark = {
+			name = L["Preserve raid icons on units in combat"],
+			desc = L["IN COMBAT UNIT HELP TEXT"], 
+			type = "toggle",
+			order = 125,
+			width = "full",
+		     },
+
 		     battleMarking = {
 			name = L["Enable target re-prioritization during combat"],
 			desc = L["INCOMBATHELPTEXT"], 
@@ -1364,7 +1372,7 @@ do
       elseif link then
 	 return format("{%s}", sub(RT_LIST[ccid], 2))
       else
-	 return iconLink:format(sub(RT_LIST[ccid], 2)) 
+	 return iconLink:format(sub(RT_LIST[ccid] or "  ", 2)) 
       end
    end
 end

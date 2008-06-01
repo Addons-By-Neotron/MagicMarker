@@ -58,6 +58,7 @@ L["Delay between remarking"] = true
 L["Enable Magic Marker in this zone"] = true
 L["Enable auto-marking on target change"] = true
 L["Enable target re-prioritization during combat"] = true
+L["Preserve raid icons on units in combat"] = true
 L["General Options"] = true
 L["Honor pre-existing raid icons"] = true
 L["Introduction"] = true
@@ -159,6 +160,7 @@ L["SMARTMARKMODHELP"] = "Modifier key to press to enable smart marking. If you s
 L["NEWMARKHELP"] = "Enable the new prioritization system. It is designed to minimize the amount of remarking needed but is still in development. To use it hold in the modifier to sweep over all mobs you want to mark once. Then release the modifier and sweep over them a second time to do the final marking. Note if you manually mark or unmark a mob you need to sweep over all mobs again to ensure proper marks."
 L["MINTANKHELP"] = "Minimum number of mobs to mark as tanks. This requires the new marking system. If insufficient tank targets are available after crowd control is set, the least prioritized crowd control targets will be released for tank targets."
 L["FILTERDEADHELP"] = "Ignore dead people when iterating the raid group."
+L["IN COMBAT UNIT HELP TEXT"] = "If enabled, Magic Marker will preserve raid marks on units that are combat. This will prevent accidental, unintended remarking during combat."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true
@@ -223,6 +225,7 @@ L["Difficulty"] = true
 L["Unit Name"] = true
 L["Mark Type"] = true
 L["Score"] = true
+L["Marked"] = true
 L["Report the raid icon assignments to raid/party chat"] = true
 L["Report raid assignments"] = true
 L["Profile name"] = true
