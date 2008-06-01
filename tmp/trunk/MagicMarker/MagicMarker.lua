@@ -682,6 +682,10 @@ function MagicMarker:OnAssignData(targets, sender)
    if not sender then sender = "Unknown" end
    if self.debug then self:debug("[Net:%s] Received assignment data.", sender) end
    for guid,data in pairs(targets) do
+      if not data.hash then
+	 if self.warn then self:warn("[Net:%s] Assignment data is not compatible. Ignoring.", sender) end
+	 return
+      end
       data.guid = guid
       -- Set the right "value" parameter
       if data.ccused == 1 then data.value = data.val else data.ccval = data.val end
