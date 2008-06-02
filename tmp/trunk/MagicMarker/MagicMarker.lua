@@ -103,6 +103,7 @@ local defaultConfigDB = {
       modifier = "ALT",
       minTankTargets = 1,
       noCombatRemark = true,
+      burnDownIsTank = false
    }
 }
 
@@ -848,18 +849,25 @@ do
 
       if not inCombat then -- Never change cc targets to tank targets during combat
 	 local maxCCTargets = #tankPriorityList - db.minTankTargets
-	 local assignedCount =  #assignedTargets
+	 local assignedCount = 0
+	 for id in pairs(assignedTargets) do
+	    assignedCount = assignedCount + 1
+	 end
 	 -- Ensure we have sufficient available targets for tanking.
-	 if assignedCount >= maxCCTargets then
+	 if self.trace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (need to release %d targets).",
+				       assignedCount, #ccPriorityList, #tankPriorityList, db.minTankTargets, assignedCount-maxCCTargets) end
+				       
+	 if assignedCount > maxCCTargets then
 	    for id = #ccPriorityList, 1, -1 do
 	       data = ccPriorityList[id]
-	       if data.sender ~= playerName and assignedTargets[data.guid] then 
+	       if data.sender ~= playerName and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
 		  assignedTargets[data.guid] = nil
 		  assignedCount = assignedCount - 1
 		  if self.debug then self:debug("-- %s => %s [insufficient tank targets].", self:GetTargetName(data.mark), data.name) end
 		  marksUsed[data.mark] = nil
 		  data.mark = nil
-		  if assignedCount < maxCCTargets then
+		  
+		  if assignedCount <= maxCCTargets then
 		     -- released enough
 		     break
 		  end
@@ -1103,11 +1111,13 @@ do
    local tmpdata = {}
    function MagicMarker:GetAssignData()
       for id in pairs(tmpdata) do
-	 tmpdata[id] = nil
+	 if not assignedTargets[id] then
+	    tmpdata[id] = nil
+	 end
       end
       for id,data in pairs(assignedTargets) do
 	 if data.value and data.mark and data.lastSetMark == data.mark and data.mark > 0 and data.mark < 9  then
-	    local m = tmpdata[id]
+	    local m = tmpdata[id] or {}
 	    m.name  = data.name
 	    m.uid   = data.uid
 	    m.hash  = data.hash
@@ -1117,6 +1127,8 @@ do
 	    m.val   = data.ccused == 1 and data.value or data.ccval
 	    m.cc    = self:GetCCName(data.ccused, 1)
 	    m.ccused = data.ccused
+	 else
+	    tmpdata[id] = nil
 	 end
       end
       return tmpdata

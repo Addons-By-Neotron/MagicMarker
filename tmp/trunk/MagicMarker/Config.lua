@@ -61,6 +61,10 @@ local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, ccpriDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
 
+function MagicMarker:GetCCID(ccname)
+   return CONFIG_MAP[ccname]
+end
+
 function MagicMarker:GetIconTexture(id)
    return string.format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
 			sub(RT_LIST[id], 2))
@@ -487,6 +491,13 @@ do
 		     honorRaidMarks = {
 			name = L["Preserve raid group icons"],
 			desc = L["NOREUSEHELPTEXT"], 
+			type = "toggle",
+			order = 120,
+			width = "full",
+		     },
+		     burnDownIsTank = {
+			name = L["Count Burn Down target as tanked mobs"],
+			desc = L["BURN DOWN HELP"], 
 			type = "toggle",
 			order = 120,
 			width = "full",

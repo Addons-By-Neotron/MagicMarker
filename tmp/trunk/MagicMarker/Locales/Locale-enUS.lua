@@ -91,6 +91,7 @@ L["Control"] = true
 L["New marking system"] = true
 L["Minimum # of tank targets"] = true
 L["Ignore dead people"] = true
+L["Count Burn Down target as tanked mobs"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true
@@ -161,6 +162,7 @@ L["NEWMARKHELP"] = "Enable the new prioritization system. It is designed to mini
 L["MINTANKHELP"] = "Minimum number of mobs to mark as tanks. This requires the new marking system. If insufficient tank targets are available after crowd control is set, the least prioritized crowd control targets will be released for tank targets."
 L["FILTERDEADHELP"] = "Ignore dead people when iterating the raid group."
 L["IN COMBAT UNIT HELP TEXT"] = "If enabled, Magic Marker will preserve raid marks on units that are combat. This will prevent accidental, unintended remarking during combat."
+L["BURN DOWN HELP"] = "If enabled, mobs marked as burn down will be counted towards the minimum numbers to mark as tanks. This is useful since it will ensure that solo burn down targets (such as the scouts in Zul'Aman) will always be marked consistently."
 
 -- Printed non-debug messages
 L["Added new mob %s in zone %s."] = true
