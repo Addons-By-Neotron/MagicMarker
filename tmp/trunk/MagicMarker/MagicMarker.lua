@@ -310,7 +310,7 @@ end
 local verRespMsg = "%s: %s revision %s"
 
 function MagicMarker:OnVersionResponse(ver, major, minor, sender)
-   self:Print(verRespMsg:format(sender, major or "Unknown", minor or "Unknown"))
+   self:Print(verRespMsg:format(sender or "Unknown Sender", major or "Unknown", minor or "Unknown"))
 end
 
 function MagicMarker:QueryAddonVersions()
@@ -663,11 +663,11 @@ local function IsModifierPressed()
    end
 end
 
-local function SmartMark_TankSorter(unit1, unit2) 
+local function SmartMark_TankSorter(unit1, unit2)
    if unit1.value == unit2.value then
       return unit1.guid < unit2.guid -- ensure stable sort
    else
-      return unit1.value > unit2.value
+      return (unit1.value or 0) > (unit2.value or 0)
    end
 end
 
@@ -689,7 +689,6 @@ function MagicMarker:OnAssignData(targets, sender)
       end
       data.guid = guid
       -- Set the right "value" parameter
-      if data.ccused == 1 then data.value = data.val else data.ccval = data.val end
       data.val = nil
       InsertUnitData(data, tankPriorityList)
       if data.ccval then
@@ -795,7 +794,7 @@ do
 	    assignedTargets[data.guid] = data
 	    marksUsed[data.mark] = true
 	    if data.ccused ~= 1 then
-	       ccUsed[data.ccused] = true
+	       ccUsed[data.ccused] = (ccUsed[data.ccused] or 0) + 1
 	       newCcCount[ data.uid ] = (newCcCount[ data.uid ] or 0) + 1
 	    end
 	 end
@@ -1084,7 +1083,8 @@ do
 	    data, new = self:SmartMark_AddGUID(guid, uid, unitName, mobHash) 
 	 end   
 
-	 if data and data.mark ~= unitTarget then
+	 if data and data.mark and data.mark > 0 and data.mark < 9 and
+	    data.mark ~= unitTarget then
 	    if db.noCombatRemark and unitTarget  and unitTarget > 0 and unitTarget < 9 and UnitAffectingCombat(unit) then
 	       local tmp = markedTargets[data.mark]
 	       markedTargets[data.mark] = markedTargets[unitTarget]
@@ -1110,6 +1110,7 @@ end
 do
    local tmpdata = {}
    function MagicMarker:GetAssignData()
+      
       for id in pairs(tmpdata) do
 	 if not assignedTargets[id] then
 	    tmpdata[id] = nil
@@ -1117,16 +1118,20 @@ do
       end
       for id,data in pairs(assignedTargets) do
 	 if data.value and data.mark and data.lastSetMark == data.mark and data.mark > 0 and data.mark < 9  then
+	    if self.spam then self:spam("Adding assign target: %s [%s] => %s", data.name, id, tostring(data.mark)) end
 	    local m = tmpdata[id] or {}
 	    m.name  = data.name
 	    m.uid   = data.uid
 	    m.hash  = data.hash
 	    m.sender = data.sender or playerName
 	    m.mark  = data.mark
+	    m.value = data.value
+	    m.ccval = data.ccval
 	    m.lastSetMark = data.lastSetMark
 	    m.val   = data.ccused == 1 and data.value or data.ccval
 	    m.cc    = self:GetCCName(data.ccused, 1)
 	    m.ccused = data.ccused
+	    tmpdata[id] = m
 	 else
 	    tmpdata[id] = nil
 	 end
