@@ -56,7 +56,29 @@ local strfind = strfind
 local strlen = strlen
 local sub = string.sub
 local sort = table.sort
-
+local ipairs = ipairs
+local pairs = pairs
+local tinsert = tinsert
+local tostring = tostring
+local LibStub = LibStub
+local tonumber = tonumber
+local type = type
+local IsInInstance = IsInInstance
+local MMFu = MMFu
+local GetNumRaidMembers = GetNumRaidMembers
+local GetNumPartyMembers = GetNumPartyMembers
+local next = next
+local UnitExists = UnitExists
+local UnitIsPlayer = UnitIsPlayer
+local IsRaidLeader = IsRaidLeader
+local GetBindingKey = GetBindingKey
+local IsRaidOfficer = IsRaidOfficer
+local IsPartyLeader = IsPartyLeader
+local IsShiftKeyDown = IsShiftKeyDown
+local IsControlKeyDown = IsControlKeyDown
+local GetRaidRosterInfo = GetRaidRosterInfo
+local UnitAffectingCombat = UnitAffectingCombat
+local SendChatMessage = SendChatMessage
 
 -- Number of CC used for each crowd control method
 local networkData = {}
@@ -310,7 +332,7 @@ end
 local verRespMsg = "%s: %s revision %s"
 
 function MagicMarker:OnVersionResponse(ver, major, minor, sender)
-   self:Print(verRespMsg:format(sender or "Unknown Sender", major or "Unknown", minor or "Unknown"))
+   self:Print(format(verRespMsg, sender or "Unknown Sender", major or "Unknown", minor or "Unknown"))
 end
 
 function MagicMarker:QueryAddonVersions()
@@ -386,7 +408,7 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
       if not ccid then return end
-      uid = GUIDToUID(guid)
+      local uid = GUIDToUID(guid)
       if not uid then return end
       
       local hash = self:GetUnitHash(uid, true)
@@ -555,7 +577,7 @@ function MagicMarker:IterateGroup(callback, useID, ...)
 
       for id = 1,GetNumRaidMembers() do
 	 name, _, groupid, _, _, class, _, online, dead = GetRaidRosterInfo(id)
-	 if name == playerName or (online and (not db.filterdead or not dead) and (not maxgroup or groupid <= maxgroup)) then
+	 if name == playerName or (online and (not db.filterdead or not dead) and (not maxgrp or groupid <= maxgrp)) then
 	    callback(self, (useID and "raid"..id) or name, class, ...)
 	 end
       end
@@ -691,7 +713,7 @@ function MagicMarker:OnAssignData(targets, sender)
       -- Set the right "value" parameter
       data.val = nil
       InsertUnitData(data, tankPriorityList)
-      if data.ccval then
+      if data.hash.ccopt then
 	 InsertUnitData(data, ccPriorityList)
       end
    end
@@ -716,7 +738,7 @@ MagicMarker.smdata = {
 
 local valueModifier = 0.99
 
-function SmartMark_FindUnusedMark(list, used)
+local function SmartMark_FindUnusedMark(list, used)
    for _,id in pairs(list) do
       if not used[id] then
 	 used[id] = true
@@ -806,7 +828,7 @@ do
 			      local id = GetRaidTargetIndex(unit)
 			      if id and not templateTargets[id].guid then
 				 local guid = UnitGUID(unit)
-				 assignedTargets[guid] = { name = unit, mark = id, guid = guid, uid = name }
+				 assignedTargets[guid] = { name = unit, mark = id, guid = guid, uid = unit }
 				 marksUsed[id] = true
 				 if self.debug then
 				    self:debug("++ %s => %s [raid]", self:GetTargetName(id), unit)
@@ -925,7 +947,7 @@ do
    local MT 
    function MagicMarker:SmartMark_SendAssignments()
       if updateAssignDataTimer then
-	 self:CancelTimer(raidScanTimer, true)
+	 self:CancelTimer(updateAssignDataTimer, true)
 	 updateAssignDataTimer = nil
       end
       SetNetworkData("ASSIGN", self:GetAssignData())
@@ -1162,8 +1184,8 @@ end
 
 function MagicMarker:UnmarkSingle()
    if UnitExists("target") then
-      guid = UnitGUID("target")
-      mark = GetRaidTargetIndex("target")
+      local guid = UnitGUID("target")
+      local mark = GetRaidTargetIndex("target")
       self:SmartMark_RemoveGUID(guid, mark)
       if mark then
 	 SetRaidTarget("target", 0)
@@ -1257,7 +1279,7 @@ end
 
 function MagicMarker:ReportRaidMarks()
    local assign = {}
-   local test
+   local dest, test
    if GetNumRaidMembers() > 0 then
       dest = "RAID"
    elseif GetNumPartyMembers() > 0 then
@@ -1284,14 +1306,14 @@ function MagicMarker:ReportRaidMarks()
       
       for _, id in pairs(sortData) do
 	 id = valueToId[id]
-	 data = markedTargets[id]
+	 local data = markedTargets[id]
 	 local unitData = self:GetUnitHash(data.uid)
 	 if unitData then
 	    if data.ccid then
-	       test = string.format("%s %s: %s",
-				    self:GetTargetName(id, true),
-				    self:GetCCName(data.ccid, 1),
-				    unitData.name)
+	       test = format("%s %s: %s",
+			     self:GetTargetName(id, true),
+			     self:GetCCName(data.ccid, 1),
+			     unitData.name)
 	       
 	       if data.ccid == 1 then
 		  SendChatMessage(test,dest)
@@ -1299,9 +1321,9 @@ function MagicMarker:ReportRaidMarks()
 		  assign[#assign+1] = test
 	       end
 	    elseif data.value == 50 then
-	       assign[#assign+1] =string.format("%s Other: %s",
-						self:GetTargetName(id, true),
-						unitData.name)
+	       assign[#assign+1] = format("%s Other: %s",
+					  self:GetTargetName(id, true),
+					  unitData.name)
 	    end
 	 end
       end
@@ -1352,7 +1374,7 @@ function MagicMarker:OnProfileChanged(event, newdb)
 	 end
       end
       self:SetLogLevel(db.logLevel)
-      self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
+      self:SetStatusText(format(L["Active profile: %s"], self.db:GetCurrentProfile()))
    end
       
    self:NotifyChange()

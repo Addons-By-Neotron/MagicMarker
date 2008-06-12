@@ -22,6 +22,9 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
+local UnitClass = UnitClass
+local GetRaidTargetIndex = GetRaidTargetIndex
+local SetRaidTarget = SetRaidTarget
 
 
 local decursers = { MAGE = 1000, DRUID = 1000 }

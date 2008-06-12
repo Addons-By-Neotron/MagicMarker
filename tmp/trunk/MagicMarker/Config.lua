@@ -1,6 +1,6 @@
 --[[
 **********************************************************************
-MagicMarker - your best friend for raid marking. See README.txt for
+MagicMarker best friend for raid marking. See README.txt for
 more details.
 **********************************************************************
 This file is part of MagicMarker, a World of Warcraft Addon
@@ -10,8 +10,8 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-MagicMarker is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY without even the implied warranty of
+MagicMarker is distributed in the hope that it will be useful, WITHOUT
+but ANY WARRANTY without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
@@ -21,12 +21,42 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
 local CONFIG_VERSION = 7
-local format = format
+local format = string.format
 local sub = string.sub
 local strmatch = strmatch
 local tonumber = tonumber
 local tolower = strlower
 local UnitGUID = UnitGUID
+local LibStub = LibStub
+local ipairs = ipairs
+local pairs = pairs
+local select = select
+local tinsert = tinsert
+local tconcat = table.concat
+local tostring = tostring
+local tsort = table.sort
+local next = next
+local gsub = gsub
+local type = type
+
+local GetRealZoneText = GetRealZoneText
+local IsInInstance = IsInInstance
+local GetCurrentDungeonDifficulty = GetCurrentDungeonDifficulty
+local UnitCreatureFamily = UnitCreatureFamily
+local UnitCreatureType = UnitCreatureType
+local UnitManaMax = UnitManaMax
+local UnitClassification = UnitClassification
+local GetBindingKey = GetBindingKey
+local SetBinding = SetBinding
+local GetBindingAction = GetBindingAction
+local GetBindingText = GetBindingText
+local SetBindings = SetBindings
+local GetCurrentBindingSet = GetCurrentBindingSet
+local SaveBindings = SaveBindings
+
+local KEY_BOUND = KEY_BOUND
+local KEY_UNBOUND_ERROR = KEY_UNBOUND_ERROR
+local _G = _G
 
 local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
@@ -66,7 +96,7 @@ function MagicMarker:GetCCID(ccname)
 end
 
 function MagicMarker:GetIconTexture(id)
-   return string.format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
+   return format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
 			sub(RT_LIST[id], 2))
 end
 
@@ -86,7 +116,7 @@ do
    end
    
    function KeybindHelper:GetKeybind(info)
-      return table.concat(self:MakeKeyBindingTable(GetBindingKey(info.arg)), ", ")
+      return tconcat(self:MakeKeyBindingTable(GetBindingKey(info.arg)), ", ")
    end
    
    function KeybindHelper:SetKeybind(info, key)
@@ -98,7 +128,7 @@ do
       else
 	 local oldAction = GetBindingAction(key)
 	 if ( oldAction ~= "" and oldAction ~= info.arg ) then
-	    MagicMarker:SetStatusText(KEY_UNBOUND_ERROR:format(GetBindingText(oldAction, "BINDING_NAME_")), true)
+	    MagicMarker:SetStatusText(format(KEY_UNBOUND_ERROR, GetBindingText(oldAction, "BINDING_NAME_")), true)
 	 else
 	    MagicMarker:SetStatusText(KEY_BOUND, true)
 	 end
@@ -116,7 +146,7 @@ function MagicMarker:SetStatusText(text, update)
       frame:SetStatusText(text)
       if updateStatusTimer then self:CancelTimer(updateStatusTimer, true) end
       if update then
-	 updateStatustimer = self:ScheduleTimer("SetStatusText", 10, string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
+	 updateStatustimer = self:ScheduleTimer("SetStatusText", 10, format(L["Active profile: %s"], self.db:GetCurrentProfile()))
       else
 	 updateStatustimer = false 
       end
@@ -158,7 +188,7 @@ function MagicMarker:ToggleConfigDialog()
       C:Close("Magic Marker")
    else
       C:Open("Magic Marker")
-      self:SetStatusText(string.format(L["Active profile: %s"], self.db:GetCurrentProfile()))
+      self:SetStatusText(format(L["Active profile: %s"], self.db:GetCurrentProfile()))
    end
 end
 
@@ -645,7 +675,7 @@ do
    
    for num = 1,CONFIG_MAP.NUMCC do
       options.args.ccprio.args["ccopt"..num] = {
-	 name = string.format("%s #%d", L["CC"], num), 
+	 name = format("%s #%d", L["CC"], num), 
 	 type = "select",
 	 width="full",
 	 values = ccDropdown,
@@ -773,7 +803,7 @@ function MagicMarker:UpdateUsedCCMethods()
 	 sorted[#sorted+1] = L[CC_LIST[id]]
       end
    end
-   table.sort(sorted)
+   tsort(sorted)
    
    if next(sorted) then
       for id = 1, #sorted do
@@ -990,7 +1020,7 @@ end
 local optionsCallout
 
 local function white(str)
-   return string.format("|cffffffff%s|r", str)
+   return format("|cffffffff%s|r", str)
 end
 function MagicMarker:InsertNewUnit(uid, name, unit)
    local simpleName = self:SimplifyName(name)
@@ -1110,7 +1140,7 @@ function MagicMarker:BuildMobConfig(var)
 	    width = "full",
 	    func = "RemoveMob",
 	    confirm = true,
-	    confirmText = string.format(L["Are you sure you want to delete |cffd9d919%s|r from the database?"], name)
+	    confirmText = format(L["Are you sure you want to delete |cffd9d919%s|r from the database?"], name)
 	 }
       }
    }
@@ -1273,7 +1303,7 @@ function MagicMarker:ZoneConfigData(id, zone)
 	    width = "full",
 	    func = "RemoveZone",
 	    confirm = true,
-	    confirmText = string.format(L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"],
+	    confirmText = format(L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"],
 					ZoneLookup[zone.name] or zone.name)
 	 },
 	 loader = {
@@ -1383,7 +1413,7 @@ do
       elseif link then
 	 return format("{%s}", sub(RT_LIST[ccid], 2))
       else
-	 return iconLink:format(sub(RT_LIST[ccid] or "  ", 2)) 
+	 return format(iconLink, sub(RT_LIST[ccid] or "  ", 2)) 
       end
    end
 end
