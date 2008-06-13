@@ -64,7 +64,6 @@ local LibStub = LibStub
 local tonumber = tonumber
 local type = type
 local IsInInstance = IsInInstance
-local MMFu = MMFu
 local GetNumRaidMembers = GetNumRaidMembers
 local GetNumPartyMembers = GetNumPartyMembers
 local next = next
