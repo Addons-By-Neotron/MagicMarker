@@ -933,6 +933,7 @@ do
    end
 
    local updateAssignDataTimer
+
    function MagicMarker:ScheduleAssignDataSend(network)
       if updateAssignDataTimer then
 	 self:CancelTimer(updateAssignDataTimer, true)
@@ -940,6 +941,26 @@ do
       end
       if not network then
 	 updateAssignDataTimer = self:ScheduleTimer("SmartMark_SendAssignments", 2.0)
+      end
+      self:UpdateMMFuCount()
+   end
+
+   function MagicMarker:UpdateMMFuCount()
+      if MMFu and MMFu.SetTargetCount then
+	 local total = 0
+	 local marked = 0
+	 local mmdata = self:GetMarkData()
+	 if mmdata  then 
+	    for id, data in pairs(mmdata) do
+	       if data.uid and data.value then
+		  total = total + 1
+		  if data.valid then
+		     marked = marked + 1
+		  end
+	       end
+	    end
+	 end
+	 MMFu:SetTargetCount(marked, total)
       end
    end
 
@@ -1189,6 +1210,7 @@ function MagicMarker:UnmarkSingle()
       if mark then
 	 SetRaidTarget("target", 0)
       end
+      self:UpdateMMFuCount()
    end
 end
 
@@ -1266,6 +1288,7 @@ function MagicMarker:ResetMarkData(hardReset)
    end
    if self.info then self:info(L["Resetting raid targets."]) end
    self:ScanGroupMembers()
+   if MMFu and MMFu.SetTargetCount then MMFu:SetTargetCount(0, 0) end
 end
 
 local function myconcat(hash, key, str)
