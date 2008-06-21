@@ -92,6 +92,7 @@ L["New marking system"] = true
 L["Minimum # of tank targets"] = true
 L["Ignore dead people"] = true
 L["Count Burn Down target as tanked mobs"] = true
+L["MagicMarker_Data version newer than the previously imported data. Do you want to import it?"] = true
 
 -- Options config confirmation
 L["Are you |cffd9d919REALLY|r sure you want to delete |cffd9d919%s|r and all its mob data from the database?"] = true

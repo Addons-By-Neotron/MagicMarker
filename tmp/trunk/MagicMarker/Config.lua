@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 7
+local CONFIG_VERSION = 8
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -1486,6 +1486,15 @@ function MagicMarker:UpgradeDatabase()
       end      
    end
 
+
+   if version < 8 then
+      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	 for mob, mobData in pairs(zoneData.mobs) do
+	    mobData.cc = nil
+	 end
+      end
+   end
+   
    MagicMarkerDB.version = CONFIG_VERSION
 end
 

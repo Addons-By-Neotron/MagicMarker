@@ -340,10 +340,54 @@ function MagicMarker:QueryAddonVersions()
    self:SendUrgentMessage("RAID")
 end
 
-function MagicMarker:MergeZoneData(zone,zoneData)
+
+-- This allows importing from the MagicMarker_Data addon
+
+function MagicMarker:ImportData(data, version, reallyimport)
+   if db.importedVersion and db.importedVersion >= version then
+      return
+   end
+
+   if reallyimport then
+      for zone,zoneData in pairs(data) do
+	 self:MergeZoneData(zone, zoneData, true)
+      end
+      db.importedVersion = version
+   else
+      local popup = _G.StaticPopupDialogs
+      if type(popup) ~= "table" then popup = {} end
+      if type(popup["MMImportQuery"]) ~= "table" then
+	 popup["MMImportQuery"] = {
+	    text = L["MagicMarker_Data version newer than the previously imported data. Do you want to import it?"],
+	    button1 = L["Yes"],
+	    button2 = L["No"],
+	    whileDead = 1,
+	    hideOnEscape = 1,
+	    timeout = 0,
+	    OnAccept = function() MagicMarker:ImportData(data, version, true) end
+
+	 }
+      end
+      StaticPopup_Show("MMImportQuery")
+   end
+end
+
+function MagicMarker:MergeCCMethods(dest, source)
+   if not source.ccopt then return end
+   if not dest.ccopt then
+      dest.ccopt = source.ccopt
+      return
+   end
+   for id in pairs(source.ccopt) do
+      dest.ccopt[id] = true
+   end
+end
+
+function MagicMarker:MergeZoneData(zone, zoneData, override)
    local localData = mobdata[zone]
    local localMob, simpleName
-   if not localData or db.mobDataBehavior == 3 then  -- replace
+   if self.debug then self:debug("Merging data for zone %s.", zoneData.name) end
+   if not localData or (db.mobDataBehavior == 3 and not override) then  -- replace
       mobdata[zone] = zoneData
    else 
       localData = localData.mobs
@@ -366,9 +410,14 @@ function MagicMarker:MergeZoneData(zone,zoneData)
 	       end
 	    end
 	 end
-	 if not localData[mob] or db.mobDataBehavior == 2 then
-	    if self.trace then self:trace("Replacing entry for %s from remote data.", data.name) end
+	 if not localData[mob] or (db.mobDataBehavior == 2 and not override) then
+	    if self.trace then self:trace("Replacing entry for %s from merged data.", data.name) end
+	    local oldData = localData[mob]
 	    localData[mob] = data
+	    self:MergeCCMethods(data, oldData)
+	 else
+	    if self.trace then self:trace("Adding additional crowd control methods for %s from merged data.", data.name) end
+	    self:MergeCCMethods(localData[mob], data)
 	 end
       end
    end   
@@ -622,7 +671,9 @@ end
 -- Return whether a target is eligable for marking
 local function UnitIsEligable (unit)
    local type = UnitCreatureType(unit)
-   return UnitExists(unit) and UnitCanAttack("player", unit) and not UnitIsDead(unit)
+   return UnitExists(unit)
+      and (UnitCanAttack("player", unit) or UnitIsEnemy("player", unit))
+      and not UnitIsDead(unit)
       and  type ~= "Critter" and type ~= "Totem" 
       and not UnitPlayerControlled(unit)  and not UnitIsPlayer(unit)
 end
