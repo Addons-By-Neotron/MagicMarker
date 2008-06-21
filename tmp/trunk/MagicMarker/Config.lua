@@ -1395,6 +1395,59 @@ function MagicMarker:GetCCName(ccid, val)
    end
 end
 
+function MagicMarker:GetTargetHashData()
+   if not UnitExists("target") then return nil end
+   local guid, uid, name = self:GetUnitID("target")
+   local hash = self:GetUnitHash(uid, true)
+   return hash
+
+   
+end
+
+function MagicMarker:Target_ChangePriority(change, cc)
+   local hash = self:GetTargetHashData()
+   if not hash then return end
+   local priority
+   local list
+   if cc then
+      priority = hash.ccpriority
+      list = CCPRI_LIST
+   else
+      priority = hash.priority
+      list = PRI_LIST
+   end      
+   local newprio = priority - change
+   
+   if newprio < 1 then
+      newprio = 1
+   elseif newprio > #list then
+      newprio = #list
+   end
+   if priority ~= newprio then
+      if cc then
+	 hash.ccpriority = newprio
+      else
+	 hash.priority = newprio
+      end
+      if self.info then
+	 self:info(L["Changed %s priority for %s to %s."],
+		   tolower(cc and L["CC"] or L["TANK"]), 
+		   hash.name, L[list[newprio]])
+      end
+      self:NotifyChange();
+   end
+end
+
+function MagicMarker:Target_SwapCategory()
+   local hash = self:GetTargetHashData()
+   if not hash then return end
+   if hash.category == 1 then hash.category = 2 else hash.category = 1 end
+   if self.info then
+      self:info(L["Changed category for %s to %s."], hash.name, L[ACT_LIST[hash.category]])
+   end
+   self:NotifyChange();
+end
+
 do
    local iconLink = "|TInterface\\AddOns\\MagicMarker\\Textures\\%s.tga:0|t"
    function MagicMarker:GetTargetName(ccid, link)
@@ -1526,6 +1579,12 @@ AddKeyBinding("MAGICMARKRAID", L["Mark party/raid targets"])
 AddKeyBinding("MAGICMARKSAVE", L["Save party/raid mark layout"])
 AddKeyBinding("MAGICMARKLOAD", L["Load party/raid mark layout"])
 AddKeyBinding("MAGICMARKSMARTMARK", L["Smart marking modifier key"], L["SMARTMARKKEYHELP"])
+
+AddKeyBinding("MAGICMARKINCREASEPRIO", L["Increase mob priority"], L["INCREASE PRIO HELP"])
+AddKeyBinding("MAGICMARKDECREASEPRIO", L["Decrease mob priority"], L["DECREASE PRIO HELP"])
+AddKeyBinding("MAGICMARKINCREASEPRIOCC", L["Increase CC mob priority"], L["INCREASE CC PRIO HELP"])
+AddKeyBinding("MAGICMARKDECREASEPRIOCC", L["Decrease CC mob priority"], L["DECREASE CC PRIO HELP"])
+AddKeyBinding("MAGICMARKSWAPTYPE", L["Toggle mob category"], L["SWAP TYPE HELP"])
 
 LibStub("AceConfig-3.0"):RegisterOptionsTable(L["Magic Marker"],
 					      function(name) return (name == "dialog" and options) or cmdoptions end,

@@ -23,4 +23,19 @@
         <Binding name="MAGICMARKSMARTMARK" runOnUp="true">
                 MagicMarker.markKeyDown = keystate == "down"
         </Binding>
+        <Binding name="MAGICMARKINCREASEPRIO">
+                MagicMarker:Target_ChangePriority(1)
+        </Binding>
+        <Binding name="MAGICMARKDECREASEPRIO">
+                MagicMarker:Target_ChangePriority(-1)
+        </Binding>
+        <Binding name="MAGICMARKINCREASEPRIOCC">
+                MagicMarker:Target_ChangePriority(1, true)
+        </Binding>
+        <Binding name="MAGICMARKDECREASEPRIOCC">
+                MagicMarker:Target_ChangePriority(-1, true)
+        </Binding>
+        <Binding name="MAGICMARKSWAPTYPE">
+                MagicMarker:Target_SwapCategory()
+        </Binding>
 </Bindings>

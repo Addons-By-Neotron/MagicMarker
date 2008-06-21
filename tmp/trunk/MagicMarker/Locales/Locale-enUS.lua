@@ -36,7 +36,18 @@ L["Mark party/raid targets"] = true
 L["Save party/raid mark layout"] = true
 L["Load party/raid mark layout"] = true
 L["Smart marking modifier key"] = true
+L["Increase mob priority"] = true
+L["Decrease mob priority"] = true
+L["Increase CC mob priority"] = true
+L["Decrease CC mob priority"] = true
+L["Toggle mob category"] = true
+
 L["SMARTMARKKEYHELP"] = "Hold down this key to mark targets on mouseover. Releasing the key will disable marking. If this key binding is unset, the modifier key specified in the Options => General Options will be used instead."
+L["INCREASE PRIO HELP"] = "Increase the tank priority of the selected mob. Note that this quick key only affects tank priority. To modify the crowd control priority you need to go into the config UI."
+L["DECREASE PRIO HELP"] = "Decrease the tank priority of the selected mob. Note that this quick key only affects tank priority. To modify the crowd control priority you need to go into the config UI."
+L["INCREASE CC PRIO HELP"] = "Increase crowd control priority of the selected mob."
+L["DECREASE CC PRIO HELP"] = "Decrease crowd control the priority of the selected mob."
+L["SWAP TYPE HELP"] = "Change this mob's category from Tank to Crowd Control and vice versa."
 
 -- Options Config
 L["%s has a total of %d mobs.\n%s of these are newly discovered."] = true
@@ -174,6 +185,8 @@ L["Unable to determine the class for %s."] = true
 L["Deleting zone %s from the database!"] = true
 L["Deleting mob %s from zone %s from the database!"] = true
 L["Added third party mark (%s) for mob %s."] = true
+L["Changed %s priority for %s to %s."] = true
+L["Changed category for %s to %s."] = true
 
 -- Log levels
 L["NONE"] = "Disabled"
