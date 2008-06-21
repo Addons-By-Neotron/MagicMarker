@@ -495,6 +495,9 @@ do
    local notPvPInstance = { raid = true, party = true }
    function MagicMarker:ZoneChangedNewArea()
       local zone,name = self:GetZoneName()
+      if not self.MMFu and MMFu then
+	 MagicMarker:RegisterMMFu(MMFu)
+      end
       if zone == nil or zone == "" then
 	 self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
       else
@@ -516,10 +519,14 @@ do
    end
 end
 
+function MagicMarker:RegisterMMFu(plugin)
+   self.MMFu = plugin
+end
+
 function MagicMarker:EnableEvents(markOnTarget)
    if not self.addonEnabled then
       self.addonEnabled = true
-      if MMFu then MMFu:Update() end
+      if self.MMFu then self.MMFu:Update() end
       if self.info then self:info(L["Magic Marker enabled."]) end
       if markOnTarget then
 	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
@@ -536,7 +543,7 @@ end
 function MagicMarker:DisableEvents()
    if self.addonEnabled then
       self.addonEnabled = false
-      if MMFu then MMFu:Update() end
+      if self.MMFu then self.MMFu:Update() end
       if self.info then self:info(L["Magic Marker disabled."]) end
       self:UnregisterEvent("PLAYER_REGEN_ENABLED") -- rescan group every time we exit combat.
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
@@ -997,7 +1004,7 @@ do
    end
 
    function MagicMarker:UpdateMMFuCount()
-      if MMFu and MMFu.SetTargetCount then
+      if self.MMFu and self.MMFu.SetTargetCount then
 	 local total = 0
 	 local marked = 0
 	 local mmdata = self:GetMarkData()
@@ -1011,7 +1018,7 @@ do
 	       end
 	    end
 	 end
-	 MMFu:SetTargetCount(marked, total)
+	 self.MMFu:SetTargetCount(marked, total)
       end
    end
 
@@ -1340,7 +1347,7 @@ function MagicMarker:ResetMarkData(hardReset)
    end
    if self.info then self:info(L["Resetting raid targets."]) end
    self:ScanGroupMembers()
-   if MMFu and MMFu.SetTargetCount then MMFu:SetTargetCount(0, 0) end
+   if self.MMFu and self.MMFu.SetTargetCount then self.MMFu:SetTargetCount(0, 0) end
 end
 
 local function myconcat(hash, key, str)
@@ -1453,7 +1460,7 @@ function MagicMarker:OnProfileChanged(event, newdb)
       
    self:NotifyChange()
 
-   if MMFu then MMFu:GenerateProfileConfig() end
+   if self.MMFu then self.MMFu:GenerateProfileConfig() end
 end
 
 -- number of groups able to enter the instance, used when scanning groups for CC etc.

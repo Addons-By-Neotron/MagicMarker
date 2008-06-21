@@ -1261,8 +1261,8 @@ function MagicMarker:GenerateOptions()
    self:UpdateUsedCCMethods()
 
    options.args.options.args.profile = DBOpt:GetOptionsTable(self.db)
-   if MMFu then
-      MMFu:GenerateProfileConfig()
+   if self.MMFu then
+      self.MMFu:GenerateProfileConfig()
    end
 end
 
