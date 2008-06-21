@@ -725,14 +725,6 @@ local function uniqList(list, id, newValue, empty, max)
    local addEmpty = false
    list[id] = newValue
 
---   if id == #list then
---      for iter = 1,id-1 do
---	 if list[iter] == value then
---	    addEmpty = true
---	 end
---      end
---   end
-   
    local currentPos = 1
    local seen_value = {  }
    
@@ -743,13 +735,11 @@ local function uniqList(list, id, newValue, empty, max)
 	 seen_value[ list[iter] ] = true
       end
    end
---   if addEmpty then
---      list[currentPos] = empty
---      currentPos = currentPos + 1
---   end
+
    for iter = currentPos, max do
       list[iter] = nil
    end
+
    return list
 end
    

@@ -1121,6 +1121,7 @@ do
 	    if self.trace then self:trace("Recalculate due to changed unit lists...") end
 	    self:SmartMark_RecalculateMarks()
 	 end
+	 self:UpdateMMFuCount()
       end
       return changed
    end
