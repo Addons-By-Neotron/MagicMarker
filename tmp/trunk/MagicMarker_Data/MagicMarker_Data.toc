@@ -1,0 +1,13 @@
+## Interface: 20400
+## Title: Magic Marker Data
+## Notes: Preset data for importing into Magic Marker
+## Author: NeoTron
+## Version: 1.0
+## DefaultState: enabled
+## X-Category: Raid
+## X-eMail: neotron@gmail.com
+
+## Dependencies: MagicMarker
+
+data.lua
+MagicMarker_Data.lua
