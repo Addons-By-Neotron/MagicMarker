@@ -373,7 +373,7 @@ function MagicMarker:ImportData(data, version, reallyimport)
 end
 
 function MagicMarker:MergeCCMethods(dest, source)
-   if not source.ccopt then return end
+   if not source or not source.ccopt or not dest then return end
    if not dest.ccopt then
       dest.ccopt = source.ccopt
       return
