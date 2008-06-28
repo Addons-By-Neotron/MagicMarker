@@ -66,7 +66,7 @@ local DBOpt = LibStub("AceDBOptions-3.0")
 
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
-local ZoneLookup  = BabbleZone:GetLookupTable()
+local ZoneLookup  = BabbleZone:GetUnstrictLookupTable()
 
 local MobNotesDB
 local options, cmdoptions, standardZoneOptions, standardMobOptions
