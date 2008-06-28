@@ -754,7 +754,7 @@ local function SmartMark_CCSorter(unit1, unit2)
    if unit1.ccval == unit2.ccval then
       return unit1.guid < unit2.guid -- ensure stable sort
    else
-      return unit1.ccval > unit2.ccval
+      return ( unit1.ccval or 0) > (unit2.ccval or 0) -- should never happen.. but it does!?
    end
 end
 
@@ -762,7 +762,7 @@ function MagicMarker:OnAssignData(targets, sender)
    if not sender then sender = "Unknown" end
    if self.debug then self:debug("[Net:%s] Received assignment data.", sender) end
    for guid,data in pairs(targets) do
-      if not data.hash then
+      if not data.hash or not data.ccval then
 	 if self.warn then self:warn("[Net:%s] Assignment data is not compatible. Ignoring.", sender) end
 	 return
       end
@@ -867,12 +867,15 @@ do
       end
 
       -- This will hard-prioritize network assigned targets
+      local assignedCount = 0
+      
       for id,data in ipairs(tankPriorityList) do
 	 if data.sender and data.sender ~= playerName and data.mark then
 	    if self.trace then self:trace("Reserving %s for %s (from %s).", self:GetTargetName(data.mark), data.name, data.sender) end
 	    assignedTargets[data.guid] = data
 	    marksUsed[data.mark] = true
 	    if data.ccused ~= 1 then
+	       assignedCount = assignedCount + 1
 	       ccUsed[data.ccused] = (ccUsed[data.ccused] or 0) + 1
 	       newCcCount[ data.uid ] = (newCcCount[ data.uid ] or 0) + 1
 	    end
@@ -893,13 +896,12 @@ do
 			      end
 			   end)
       end
-      
-      
+
       -- Calculate marks for crowd control first
       for id = 1, #ccPriorityList do
 	 data = ccPriorityList[id]
 	 ccount = newCcCount[data.uid] or 0
-	 if not assignedTargets[data.guid] and ccount < data.hash.ccnum then -- still got more cc for this UID
+	 if not assignedTargets[data.guid] and data.hash and ccount < data.hash.ccnum then -- still got more cc for this UID
 	    for _,category in ipairs(db.ccprio) do
 	       local class = CC_CLASS[category]
 	       local cc = data.hash.ccopt
@@ -914,6 +916,7 @@ do
 			assignedTargets[data.guid] = data
 			newCcCount[ data.uid ] = ccount + 1
 			ccUsed[category] = cc_used_count + 1
+			assignedCount = assignedCount + 1
 			if self.debug then
 			   self:debug("++ %s => %s [%s]", self:GetTargetName(nextid), data.name, self:GetCCName(category) or "none")
 			end
@@ -927,18 +930,14 @@ do
 
       if not inCombat then -- Never change cc targets to tank targets during combat
 	 local maxCCTargets = #tankPriorityList - db.minTankTargets
-	 local assignedCount = 0
-	 for id in pairs(assignedTargets) do
-	    assignedCount = assignedCount + 1
-	 end
 	 -- Ensure we have sufficient available targets for tanking.
-	 if self.trace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (need to release %d targets).",
-				       assignedCount, #ccPriorityList, #tankPriorityList, db.minTankTargets, assignedCount-maxCCTargets) end
+	 if self.trace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (max %d cc'd so need to release %d targets).",
+				       assignedCount, #ccPriorityList, #tankPriorityList, db.minTankTargets,  maxCCTargets, assignedCount - maxCCTargets - #ccPriorityList) end
 				       
 	 if assignedCount > maxCCTargets then
 	    for id = #ccPriorityList, 1, -1 do
 	       data = ccPriorityList[id]
-	       if data.sender ~= playerName and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
+	       if (not data.sender or data.sender == playerName) and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
 		  assignedTargets[data.guid] = nil
 		  assignedCount = assignedCount - 1
 		  if self.debug then self:debug("-- %s => %s [insufficient tank targets].", self:GetTargetName(data.mark), data.name) end
@@ -1060,7 +1059,7 @@ do
       end
 
       self:SmartMark_RecalculateMarks()
-
+      
       return assignedTargets[guid], newhash
    end
 
@@ -1332,12 +1331,10 @@ function MagicMarker:ResetMarkData(hardReset)
       end
    end
 
-   if targets then
-      SetNetworkData("CLEARV2")
-      self:SendUrgentMessage()
-   end
-   -- Hack, sometimes the last mark isn't removed.
-   
+   SetNetworkData("CLEARV2")
+   self:SendUrgentMessage()
+
+   -- Hack, sometimes the last mark isn't removed.   
    if hardReset or db.resetRaidIcons then
       if playerIcon then 
 	 SetRaidTarget("player", playerIcon)
