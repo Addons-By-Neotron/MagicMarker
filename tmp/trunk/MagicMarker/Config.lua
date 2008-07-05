@@ -689,7 +689,7 @@ end
 function MagicMarker:SetProfileParam(var, value)
    local varName = var[#var]
    db[varName] = value
-   if self.spam then 
+   if self.hasSpam then 
       self:spam("Setting parameter %s to %s.", varName, tostring(value))
    end
 
@@ -700,7 +700,7 @@ end
 
 function MagicMarker:GetProfileParam(var) 
    local varName = var[#var]
-   if self.spam then
+   if self.hasSpam then
       self:spam("Getting parameter %s as %s.", varName, tostring(db[varName]))
    end
    return db[varName]
@@ -766,7 +766,7 @@ function MagicMarker:GetCCPrio(info)
    if value == CC_LIST['00NONE'] then
       value = nil
    end
-   if self.spam then self:spam("Get %s as %s", var, tostring(value)) end
+   if self.hasSpam then self:spam("Get %s as %s", var, tostring(value)) end
    return value
 end
 
@@ -774,7 +774,7 @@ function MagicMarker:SetCCPrio(info, value)
    local var = info[#info]
    db.ccprio = uniqList(db.ccprio or {}, getID(var), CONFIG_MAP[value], 1, CONFIG_MAP.NUMCC)
    self:UpdateUsedCCMethods()
-   if self.spam then self:spam("Set %s to %s", var, tostring(value)) end
+   if self.hasSpam then self:spam("Set %s to %s", var, tostring(value)) end
 end
 
 function MagicMarker:UpdateUsedCCMethods()
@@ -816,12 +816,13 @@ function MagicMarker:SetMobConfig(info, value, state)
    local region = info[#info-2]
    if var ~= "ccnum" then
       value = CONFIG_MAP[value]
-   end      
+   end
+   local mobhash = mobdata[region].mobs[mob]
    if var == "ccopt" then
       if value == CONFIG_MAP['00NONE'] then
-	 mobdata[region].mobs[mob].ccopt = nil
+	 mobhash.ccopt = nil
       else
-	 local ccopt = mobdata[region].mobs[mob].ccopt or {}
+	 local ccopt = mobhash.ccopt or {}
 
 	 ccopt[value] = state or nil
 	 if value == CONFIG_MAP.TURNUNDEAD then
@@ -831,24 +832,24 @@ function MagicMarker:SetMobConfig(info, value, state)
 
 	    	 
 	 if not next(ccopt) then
-	    mobdata[region].mobs[mob].ccopt = nil
+	    mobhash.ccopt = nil
 	 else
-	    mobdata[region].mobs[mob].ccopt = ccopt
+	    mobhash.ccopt = ccopt
 	 end
       end
-      if self.spam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
+      if self.hasSpam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s[%s] => %s", region, mob, var, CC_LIST[value], tostring(state)) end
    else
-      mobdata[region].mobs[mob][var] = value
-      if self.spam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      mobhash[var] = value
+      if self.hasSpam then self:spam("|cffffff00SetMobConfig:|r %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    
-   if mobdata[region].mobs[mob].new then
-      mobdata[region].mobs[mob].new = nil
+   if mobhash.new then
+      mobhash.new = nil
       -- Remove the "new" mark
       options.args.mobs.args[region].plugins.mobList[mob].name = 
-	 mobdata[region].mobs[mob].name
+	 mobhash.name
    end
-   
+   self:QueueData_Add(region, mob, mobhash)
 end
 
 function MagicMarker:GetMobConfig(info, key)
@@ -865,7 +866,7 @@ function MagicMarker:GetMobConfig(info, key)
       elseif value then
 	 value = mobdata[region].mobs[mob].ccopt[CONFIG_MAP[key]]
       end
-      if self.spam then self:spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
+      if self.hasSpam then self:spam("GetMobConfig: %s/%s/%s[%s] => %s", region, mob, var, key, tostring(value)) end
    else
       if var == "priority"  then
 	 value = PRI_LIST[value or 1]
@@ -874,7 +875,7 @@ function MagicMarker:GetMobConfig(info, key)
       elseif var == "category" then
 	 value = ACT_LIST[value or 1]
       end
-      if self.spam then self:spam("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
+      if self.hasSpam then self:spam("GetMobConfig: %s/%s/%s => %s", region, mob, var, tostring(value)) end
    end
    return value
 end
@@ -883,7 +884,7 @@ function MagicMarker:SetZoneConfig(info, value)
    local var = info[#info]
    local region = info[#info-1]
    mobdata[region][var] = value
-   if self.spam then self:spam("Setting %s:%s to %s", region, var, tostring(value)) end
+   if self.hasSpam then self:spam("Setting %s:%s to %s", region, var, tostring(value)) end
    if region == self:GetZoneName() then
       if var == "mm" then
 	 self:ZoneChangedNewArea()
@@ -1037,7 +1038,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
 	 }
       end
 
-      if self.info then self:info(format(L["Added new mob %s in zone %s."],name, zone)) end
+      if self.hasInfo then self:info(format(L["Added new mob %s in zone %s."],name, zone)) end
 
       changed = true
    end
@@ -1083,7 +1084,7 @@ end
 
 function MagicMarker:RemoveZone(var)
    local zone = var[#var-1]
-   if self.warn then
+   if self.hasWarn then
       self:warn(L["Deleting zone %s from the database!"],
 	       ZoneLookup[mobdata[zone].name] or mobdata[zone].name)
    end
@@ -1097,7 +1098,7 @@ function MagicMarker:RemoveMob(var)
    local zone = var[#var-2]
    local hash = mobdata[zone]
       
-   if self.info then
+   if self.hasInfo then
       self:info(L["Deleting mob %s from zone %s from the database!"],
 	       hash.mobs[mob].name, ZoneLookup[hash.name] or hash.name)
    end
@@ -1116,7 +1117,7 @@ function MagicMarker:BuildMobConfig(var)
    
    configBuilt = true
 
-   if self.trace then self:trace("Generating configuration for %s in zone %s", mob, zone) end
+   if self.hasTrace then self:trace("Generating configuration for %s in zone %s", mob, zone) end
 
    subopts[mob].args.loader.hidden = true
    
@@ -1162,7 +1163,7 @@ function MagicMarker:UnloadOptions()
       if id ~= "headerdata" then
 	 hash.args.loader.hidden = false
 	 hash.plugins.mobList = nil
-	 if self.trace then self:trace("Unloaded mob options for %s.", hash.name) end
+	 if self.hasTrace then self:trace("Unloaded mob options for %s.", hash.name) end
       end
    end
    configBuilt = false
@@ -1322,7 +1323,7 @@ function MagicMarker:LoadMobListForZone(var)
 
    name = ZoneReverse[name] or name
 
-   if self.trace then self:trace("Loading mob list for zone %s", name) end
+   if self.hasTrace then self:trace("Loading mob list for zone %s", name) end
 
    zoneData.args.loader.hidden = true 
    zoneData.plugins.mobList = subopts
@@ -1346,7 +1347,7 @@ end
 
 function MagicMarker:MoveRaidIconDown(num)
    if not lastRaidIconType then return end
-   if self.trace then self:trace("Moving %s down from position %d", tostring(lastRaidIconType), num) end
+   if self.hasTrace then self:trace("Moving %s down from position %d", tostring(lastRaidIconType), num) end
    if db.targetdata[lastRaidIconType][num+1] then
       local old = db.targetdata[lastRaidIconType][num]
       db.targetdata[lastRaidIconType][num] = db.targetdata[lastRaidIconType][num+1]   
@@ -1357,7 +1358,7 @@ end
 
 function MagicMarker:MoveRaidIconUp(num)
    if not lastRaidIconType then return end
-   if self.trace then self:trace("Moving %s up from position %d", tostring(lastRaidIconType), num) end
+   if self.hasTrace then self:trace("Moving %s up from position %d", tostring(lastRaidIconType), num) end
    local old = db.targetdata[lastRaidIconType][num]
    db.targetdata[lastRaidIconType][num] = db.targetdata[lastRaidIconType][num-1]   
    db.targetdata[lastRaidIconType][num-1] = old
@@ -1366,7 +1367,7 @@ end
 
 
 function MagicMarker:MoveCCPrioDown(num)
-   if self.trace then self:trace("Swapping CC position %d down one", num) end
+   if self.hasTrace then self:trace("Swapping CC position %d down one", num) end
    if db.ccprio[num+1] then
       local old = db.ccprio[num]
       db.ccprio[num] = db.ccprio[num+1]   
@@ -1376,7 +1377,7 @@ function MagicMarker:MoveCCPrioDown(num)
 end
 
 function MagicMarker:MoveCCPrioUp(num)
-   if self.trace then self:trace("Swapping CC position %d up one", num) end
+   if self.hasTrace then self:trace("Swapping CC position %d up one", num) end
    local old = db.ccprio[num]
    db.ccprio[num] = db.ccprio[num-1]   
    db.ccprio[num-1] = old
@@ -1398,14 +1399,12 @@ end
 function MagicMarker:GetTargetHashData()
    if not UnitExists("target") then return nil end
    local guid, uid, name = self:GetUnitID("target")
-   local hash = self:GetUnitHash(uid, true)
-   return hash
-
-   
+   local hash, zone = self:GetUnitHash(uid, true)
+   return hash, uid, zone
 end
 
 function MagicMarker:Target_ChangePriority(change, cc)
-   local hash = self:GetTargetHashData()
+   local hash, uid, zone = self:GetTargetHashData()
    if not hash then return end
    local priority
    local list
@@ -1429,23 +1428,25 @@ function MagicMarker:Target_ChangePriority(change, cc)
       else
 	 hash.priority = newprio
       end
-      if self.info then
+      if self.hasInfo then
 	 self:info(L["Changed %s priority for %s to %s."],
 		   tolower(cc and L["CC"] or L["TANK"]), 
 		   hash.name, L[list[newprio]])
       end
       self:NotifyChange();
+      self:QueueData_Add(zone, uid, hash)
    end
 end
 
 function MagicMarker:Target_SwapCategory()
-   local hash = self:GetTargetHashData()
+   local hash, uid, zone = self:GetTargetHashData()
    if not hash then return end
    if hash.category == 1 then hash.category = 2 else hash.category = 1 end
-   if self.info then
+   if self.hasInfo then
       self:info(L["Changed category for %s to %s."], hash.name, L[ACT_LIST[hash.category]])
    end
    self:NotifyChange();
+   self:QueueData_Add(zone, uid, hash)
 end
 
 do

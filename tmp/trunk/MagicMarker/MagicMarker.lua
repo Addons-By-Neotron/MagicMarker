@@ -32,9 +32,6 @@ local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 MagicMarker.MAJOR_VERSION = "MagicMarker-1.0"
 MagicMarker.MINOR_VERSION = MINOR_VERSION
 
-MagicMarker:SetPerformanceMode(true) -- ensure unused loggers are unset
-
-
 -- Upvalue of global functions
 local GetRaidTargetIndex = GetRaidTargetIndex
 local GetRealZoneText = GetRealZoneText
@@ -100,6 +97,7 @@ local assignedTargets = {}  -- guid => data
 local externalTargets = {}  -- [mark] => data
 local templateTargets = {}  -- [mark] => data
 local playerName
+
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
 local CC_CLASS = {
    false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
@@ -268,23 +266,37 @@ end
 
 function MagicMarker:OnMobdataReceive(zone, data, version, sender) 
    if version ~= MagicMarkerDB.version then 
-      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
    if db.acceptMobData then
-      if self.debug then self:debug("[Net] Received mob data for %s from %s.", data.name, sender) end
+      if self.hasDebug then self:debug("[Net] Received mob data for %s from %s.", data.name, sender) end
       self:MergeZoneData(zone, data)
+   end
+   self:NotifyChange()
+end
+
+function MagicMarker:OnMobdataPartialReceive(data, version, sender) 
+   if version ~= MagicMarkerDB.version then 
+      if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      return
+   end
+   if db.acceptMobData then
+      if self.hasDebug then self:debug("[Net] Received partial mob database update from %s.", sender) end
+      for zone, zonedata in pairs(data) do 
+	 self:MergeZoneData(zone, zonedata, nil, true)
+      end
    end
    self:NotifyChange()
 end
 
 function MagicMarker:OnTargetReceive(data, version, sender) 
    if version ~= MagicMarkerDB.version then 
-      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
    if db.acceptRaidMarks then
-      if self.debug then self:debug("[Net] Received raid mark configuration from %s.", sender) end
+      if self.hasDebug then self:debug("[Net] Received raid mark configuration from %s.", sender) end
       db.targetdata = data
    end
    self:NotifyChange()
@@ -292,11 +304,11 @@ end
 
 function MagicMarker:OnCCPrioReceive(data, version, sender) 
    if version ~= MagicMarkerDB.version then 
-      if self.trace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
+      if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
    if db.acceptCCPrio then
-      if self.debug then self:debug("[Net] Received crowd control prioritizations %s.", sender) end
+      if self.hasDebug then self:debug("[Net] Received crowd control prioritizations %s.", sender) end
       db.ccprio = data
    end
    self:NotifyChange()
@@ -317,13 +329,13 @@ function MagicMarker:OnCommUnmarkV2(guid, mark, sender)
    local data = assignedTargets[guid]
    local changed = MagicMarker:SmartMark_RemoveGUID(guid, mark, true)
    local name = guid
-   if self.debug then
+   if self.hasDebug then
       name = (data and data.name) or name
       if not sender then sender = "Unknown" end
    end
    if changed then
-      if self.debug then self:debug("[Net:%s] Removing %s from %s.", sender, self:GetTargetName(mark), name) end
-   elseif self.trace then
+      if self.hasDebug then self:debug("[Net:%s] Removing %s from %s.", sender, self:GetTargetName(mark), name) end
+   elseif self.hasTrace then
       self:trace("[Net:%s] Already removed %s from %s.", sender, self:GetTargetName(mark), name)
    end
 end
@@ -338,6 +350,39 @@ function MagicMarker:QueryAddonVersions()
    SetNetworkData("VCHECK")
    self:SendUrgentMessage("GUILD")
    self:SendUrgentMessage("RAID")
+end
+
+
+-- Queue data to be sent after modifying the configuration data
+local queuedData = {}
+local queuedDataTimer 
+
+function MagicMarker:QueueData_Add(zone, mob, hash)
+   if not queuedData[zone] then
+      queuedData[zone] = {}
+   end
+   queuedData[zone][mob] = hash
+   self:QueueData_Schedule()
+   if self.hasSpam then self:spam("Queued %s in zone %s for partial update.", hash.name, zone) end
+end
+
+function MagicMarker:QueueData_Schedule()
+   if queuedDataTimer then
+      self:CancelTimer(queuedDataTimer, true)
+   end
+   queuedDataTimer = self:ScheduleTimer("QueueData_Send", 5)
+end
+
+function MagicMarker:QueueData_Send()
+   if InCombatLockdown() then
+      self:QueueData_Schedule()
+      return
+   end
+   SetNetworkData("MOBDATA_PARTIAL", queuedData)
+   self:SendBulkMessage("RAID")
+   for id,data in pairs(queuedData) do
+      queuedData[id] = nil
+   end
 end
 
 
@@ -383,15 +428,19 @@ function MagicMarker:MergeCCMethods(dest, source)
    end
 end
 
-function MagicMarker:MergeZoneData(zone, zoneData, override)
+function MagicMarker:MergeZoneData(zone, zoneData, override, partial)
    local localData = mobdata[zone]
    local localMob, simpleName
-   if self.debug then self:debug("Merging data for zone %s.", zoneData.name) end
-   if not localData or (db.mobDataBehavior == 3 and not override) then  -- replace
+   if self.hasDebug then self:debug("Merging data for zone %s.", zoneData.name or zone) end
+   if not partial and (not localData or (db.mobDataBehavior == 3 and not override)) then  -- replace
+      if self.hasTrace then self:trace("Replacing local data with networked data.") end 
       mobdata[zone] = zoneData
-   else 
+   elseif localData then
       localData = localData.mobs
-      for mob, data in pairs(zoneData.mobs) do
+      if zoneData.mobs then
+	 zoneData = zoneData.mobs
+      end
+      for mob, data in pairs(zoneData) do
 	 -- Enable me for 2.4 to handle numeric ID keys
 	 simpleName = self:SimplifyName(mob.name)
 	 if simpleName ~= mob then
@@ -410,18 +459,22 @@ function MagicMarker:MergeZoneData(zone, zoneData, override)
 	       end
 	    end
 	 end
-	 if not localData[mob] or (db.mobDataBehavior == 2 and not override) then
-	    if self.trace then self:trace("Replacing entry for %s from merged data.", data.name) end
+	 if not localData[mob] or (db.mobDataBehavior == 2 and not override) or
+	    (db.mobDataBehavior == 3 and partial) then
+	    if self.hasTrace then self:trace("Replacing entry for %s from merged data.", data.name) end
 	    local oldData = localData[mob]
 	    localData[mob] = data
 	    self:MergeCCMethods(data, oldData)
 	 else
-	    if self.trace then self:trace("Adding additional crowd control methods for %s from merged data.", data.name) end
+	    if self.hasTrace then self:trace("Adding additional crowd control methods for %s from merged data.", data.name) end
 	    self:MergeCCMethods(localData[mob], data)
 	 end
       end
-   end   
-   self:AddZoneConfig(zone, zoneData)
+   end
+
+   if mobdata[zone] then
+      self:AddZoneConfig(zone, mobdata[zone])
+   end
 end
 
 function MagicMarker:BroadcastZoneData(zone)
@@ -440,13 +493,13 @@ function MagicMarker:BroadcastAllZones()
 end
 
 function MagicMarker:BroadcastRaidTargets()
-   if self.trace then self:trace("Broadcast raid target data to the raid.") end
+   if self.hasTrace then self:trace("Broadcast raid target data to the raid.") end
    SetNetworkData("TARGETS", db.targetdata)
    self:SendBulkMessage()
 end
 
 function MagicMarker:BroadcastCCPriorities()
-   if self.trace then self:trace("Broadcast cc priority data to the raid.") end
+   if self.hasTrace then self:trace("Broadcast cc priority data to the raid.") end
    SetNetworkData("CCPRIO", db.ccprio)
    self:SendBulkMessage()
 end
@@ -459,7 +512,7 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
       local uid = GUIDToUID(guid)
       if not uid then return end
       
-      local hash = self:GetUnitHash(uid, true)
+      local hash, zone = self:GetUnitHash(uid, true)
       if hash then
 	 if not hash.ccopt then
 	    hash.ccopt = {}
@@ -467,7 +520,8 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
 	 local addcc = function(newccid)
 			  if not hash.ccopt[newccid] then
 			     hash.ccopt[newccid] = true
-			     if self.debug then
+			     self:QueueData_Add(zone, hash)
+			     if self.hasDebug then
 				self:debug("Learned that %s can be CC'd with %s",
 					   hash.name, spellname)
 			     end
@@ -485,7 +539,7 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
    elseif event == "UNIT_DIED" or event == "PARTY_KILL" then
       local data = assignedTargets[guid]
       if data then
-	 if self.debug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
+	 if self.hasDebug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
 	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark, false, true)
       end
    end
@@ -527,7 +581,7 @@ function MagicMarker:EnableEvents(markOnTarget)
    if not self.addonEnabled then
       self.addonEnabled = true
       if self.MMFu then self.MMFu:Update() end
-      if self.info then self:info(L["Magic Marker enabled."]) end
+      if self.hasInfo then self:info(L["Magic Marker enabled."]) end
       if markOnTarget then
 	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
       end
@@ -544,7 +598,7 @@ function MagicMarker:DisableEvents()
    if self.addonEnabled then
       self.addonEnabled = false
       if self.MMFu then self.MMFu:Update() end
-      if self.info then self:info(L["Magic Marker disabled."]) end
+      if self.hasInfo then self:info(L["Magic Marker disabled."]) end
       self:UnregisterEvent("PLAYER_REGEN_ENABLED") -- rescan group every time we exit combat.
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
       self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
@@ -565,7 +619,7 @@ end
 local party_idx = { "party1", "party2", "party3", "party4" }
 
 function MagicMarker:MarkRaidTargets()
-   if self.debug then self:debug("Making all targets of the raid.") end
+   if self.hasDebug then self:debug("Making all targets of the raid.") end
    self:IterateGroup(function (self, unit) self:SmartMark_MarkUnit(unit.."target") end, true)
 end
 
@@ -575,8 +629,8 @@ function MagicMarker:LogClassInformation(unitName, class)
    if not class then _,class = UnitClass(unitName)  end
    if class then 
       raidClassList[class] = (raidClassList[class] or 0) + 1
-      if self.trace then self:trace("  found %s => %s.", unitName, class) end
-   elseif self.warn then
+      if self.hasTrace then self:trace("  found %s => %s.", unitName, class) end
+   elseif self.hasWarn then
       self:warn(L["Unable to determine the class for %s."], unitName)
    end
 end
@@ -585,7 +639,7 @@ function MagicMarker:ScanGroupMembers()
    if raidClassList.FAKE then return end
    for id,_ in pairs(raidClassList) do raidClassList[id] = 0 end
    if UnitClass("player") then
-      if self.trace then self:trace("Rescanning raid/party member classes.") end
+      if self.hasTrace then self:trace("Rescanning raid/party member classes.") end
       self:IterateGroup(self.LogClassInformation)
    end
 end
@@ -595,13 +649,13 @@ function MagicMarker:CacheRaidMarkForUnit(unit)
    local id = GetRaidTargetIndex(unit)
    if id then
       MagicMarkerDB.raidMarkCache[unit] = id
-      if self.debug then self:debug("Cached "..id.." for "..unit); end
+      if self.hasDebug then self:debug("Cached "..id.." for "..unit); end
    end
 end
 
 function MagicMarker:CacheRaidMarks()
    MagicMarkerDB.raidMarkCache = {}   
-   if self.debug then self:debug("Caching raid / party marks.") end
+   if self.hasDebug then self:debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
 
@@ -621,7 +675,7 @@ end
 
 function MagicMarker:IterateGroup(callback, useID, ...)
    local id, name
-   if self.spam then self:spam("Iterating group...") end
+   if self.hasSpam then self:spam("Iterating group...") end
    
    if GetNumRaidMembers() > 0 then
       local maxgrp, class, groupid, online, dead
@@ -647,7 +701,7 @@ function MagicMarker:IterateGroup(callback, useID, ...)
 end
 
 function MagicMarker:MarkRaidFromTemplate(template)
-   if self.debug then self:debug("Marking from template: "..template) end
+   if self.hasDebug then self:debug("Marking from template: "..template) end
    local usedMarks = {}
    if template == "arch" or template == "archimonde" then
       self:IterateGroup(MagicMarker.MarkTemplates.decursers.func, false, usedMarks)
@@ -655,7 +709,7 @@ function MagicMarker:MarkRaidFromTemplate(template)
    elseif MagicMarker.MarkTemplates[template] and MagicMarker.MarkTemplates[template].func then
       self:IterateGroup(MagicMarker.MarkTemplates[template].func, false, usedMarks)
    else
-      if self.warn then self:warn(L["Unknown raid template: %s"], template) end
+      if self.hasWarn then self:warn(L["Unknown raid template: %s"], template) end
    end
 
    if next(usedMarks) then
@@ -692,12 +746,12 @@ function MagicMarker:GetUnitHash(uid, currentZone)
       local zone = MagicMarker:GetZoneName()
       local tmpHash = mobdata[zone]
       if tmpHash then
-	 return tmpHash.mobs[uid]
+	 return tmpHash.mobs[uid], zone
       end
    end
-   for _, data in pairs(mobdata) do
+   for zone, data in pairs(mobdata) do
       if data.mobs[uid] then
-	 return data.mobs[uid]
+	 return data.mobs[uid], zone
       end
    end
 end
@@ -725,7 +779,7 @@ function MagicMarker:UnitValue(uid, hash, modifier)
 	 end
       end
    end
-   if self.trace then self:trace("Unit Value for %s = [%d, %d]", uid, value, ccvalue) end
+   if self.hasTrace then self:trace("Unit Value for %s = [%d, %d]", uid, value, ccvalue) end
 --   unitValueCache[unit]  = value
    return value+modifier, ccvalue+modifier, unitData
 end
@@ -752,7 +806,7 @@ end
 
 local function SmartMark_CCSorter(unit1, unit2) 
    if unit1.ccval == unit2.ccval then
-      return unit1.guid < unit2.guid -- ensure stable sort
+      return (unit1.guid or "") < (unit2.guid or "") -- ensure stable sort
    else
       return ( unit1.ccval or 0) > (unit2.ccval or 0) -- should never happen.. but it does!?
    end
@@ -760,10 +814,10 @@ end
 
 function MagicMarker:OnAssignData(targets, sender)
    if not sender then sender = "Unknown" end
-   if self.debug then self:debug("[Net:%s] Received assignment data.", sender) end
+   if self.hasDebug then self:debug("[Net:%s] Received assignment data.", sender) end
    for guid,data in pairs(targets) do
       if not data.hash or not data.ccval then
-	 if self.warn then self:warn("[Net:%s] Assignment data is not compatible. Ignoring.", sender) end
+	 if self.hasWarn then self:warn("[Net:%s] Assignment data is not compatible. Ignoring.", sender) end
 	 return
       end
       data.guid = guid
@@ -813,7 +867,7 @@ do
    local newCcCount = {}
 
    function MagicMarker:OnCommResetV2()
-      if self.debug then
+      if self.hasDebug then
 	 self:debug("[Net] Raid cache clear received.")
       end
 
@@ -851,18 +905,18 @@ do
       end
 
 
-      if self.debug then self:debug("Recalculating mark priority list:") end
+      if self.hasDebug then self:debug("Recalculating mark priority list:") end
 
       -- cache external targets
       for id = 1,8 do 
 	 if db.honorMarks and externalTargets[id].guid then
 	    marksUsed[id] = true
 	    assignedTargets[externalTargets[id].guid] = externalTargets[id]
-	    if self.debug then self:debug("++ %s => %s [external]", self:GetTargetName(id), externalTargets[id].name) end
+	    if self.hasDebug then self:debug("++ %s => %s [external]", self:GetTargetName(id), externalTargets[id].name) end
 	 elseif templateTargets[id].guid then
 	    marksUsed[id] = true
 	    assignedTargets[templateTargets[id].guid] = templateTargets[id]
-	    if self.debug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), templateTargets[id].name) end
+	    if self.hasDebug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), templateTargets[id].name) end
 	 end  
       end
 
@@ -871,7 +925,7 @@ do
       
       for id,data in ipairs(tankPriorityList) do
 	 if data.sender and data.sender ~= playerName and data.mark then
-	    if self.trace then self:trace("Reserving %s for %s (from %s).", self:GetTargetName(data.mark), data.name, data.sender) end
+	    if self.hasTrace then self:trace("Reserving %s for %s (from %s).", self:GetTargetName(data.mark), data.name, data.sender) end
 	    assignedTargets[data.guid] = data
 	    marksUsed[data.mark] = true
 	    if data.ccused ~= 1 then
@@ -890,7 +944,7 @@ do
 				 local guid = UnitGUID(unit)
 				 assignedTargets[guid] = { name = unit, mark = id, guid = guid, uid = unit }
 				 marksUsed[id] = true
-				 if self.debug then
+				 if self.hasDebug then
 				    self:debug("++ %s => %s [raid]", self:GetTargetName(id), unit)
 				 end			      
 			      end
@@ -917,7 +971,7 @@ do
 			newCcCount[ data.uid ] = ccount + 1
 			ccUsed[category] = cc_used_count + 1
 			assignedCount = assignedCount + 1
-			if self.debug then
+			if self.hasDebug then
 			   self:debug("++ %s => %s [%s]", self:GetTargetName(nextid), data.name, self:GetCCName(category) or "none")
 			end
 			break
@@ -931,7 +985,7 @@ do
       if not inCombat then -- Never change cc targets to tank targets during combat
 	 local maxCCTargets = #tankPriorityList - db.minTankTargets
 	 -- Ensure we have sufficient available targets for tanking.
-	 if self.trace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (max %d cc'd so need to release %d targets).",
+	 if self.hasTrace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (max %d cc'd so need to release %d targets).",
 				       assignedCount, #ccPriorityList, #tankPriorityList, db.minTankTargets,  maxCCTargets, assignedCount - maxCCTargets - #ccPriorityList) end
 				       
 	 if assignedCount > maxCCTargets then
@@ -940,7 +994,7 @@ do
 	       if (not data.sender or data.sender == playerName) and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
 		  assignedTargets[data.guid] = nil
 		  assignedCount = assignedCount - 1
-		  if self.debug then self:debug("-- %s => %s [insufficient tank targets].", self:GetTargetName(data.mark), data.name) end
+		  if self.hasDebug then self:debug("-- %s => %s [insufficient tank targets].", self:GetTargetName(data.mark), data.name) end
 		  marksUsed[data.mark] = nil
 		  data.mark = nil
 		  
@@ -962,12 +1016,12 @@ do
 	    if not nextid then
 	       data.mark = nil
 	       data.ccused = nil
-	       if self.debug then self:debug("== No mark available for %s.", data.name) end
+	       if self.hasDebug then self:debug("== No mark available for %s.", data.name) end
 	    else
 	       data.mark = nextid
 	       data.ccused = 1
 	       assignedTargets[data.guid] = data
-	       if self.debug then self:debug("++ %s => %s [tank].", self:GetTargetName(nextid), data.name or "Unknown name") end
+	       if self.hasDebug then self:debug("++ %s => %s [tank].", self:GetTargetName(nextid), data.name or "Unknown name") end
 	    end
 	 end
       end
@@ -975,7 +1029,7 @@ do
 
       self:ScheduleAssignDataSend(network)
 
-      if self.debug then self:debug("Done.") end
+      if self.hasDebug then self:debug("Done.") end
 
       -- TODO - need to rework syncing for this. 
       for guid,data in pairs(assignedTargets) do
@@ -1081,13 +1135,13 @@ do
 
    function MagicMarker:SmartMark_RemoveGUID(guid, mark, fromNetwork, delay)
       local changed
-      if self.trace then self:trace("Looking for unit on tank list...") end
+      if self.hasTrace then self:trace("Looking for unit on tank list...") end
       local changed = SmartMark_CleanList(tankPriorityList, guid)
       if changed then
-	 if self.trace then self:trace("Removed from tank list, checking for CC.") end
+	 if self.hasTrace then self:trace("Removed from tank list, checking for CC.") end
 	 if changed.hash.category == 2 and changed.hash.ccopt then
 	    -- We only clean cc list if needed
-	    if SmartMark_CleanList(ccPriorityList, guid) and self.trace then self:trace("Removed from cc list...") end
+	    if SmartMark_CleanList(ccPriorityList, guid) and self.hasTrace then self:trace("Removed from cc list...") end
 	 end
 	 mark = changed.mark
       end
@@ -1095,12 +1149,12 @@ do
       if mark then
 	 if externalTargets[mark] and externalTargets[mark].guid == guid then
 	    SetExternalTarget(mark)
-	    if self.trace then self:trace("Removed external target...") end
+	    if self.hasTrace then self:trace("Removed external target...") end
 	    changed = true
 	 end
 	 if templateTargets[mark] and templateTargets[mark].guid == guid then
 	    SetTemplateTarget(mark)	    
-	    if self.trace then self:trace("Removed template target...") end
+	    if self.hasTrace then self:trace("Removed template target...") end
 	    changed = true
 	 end
       end
@@ -1124,7 +1178,7 @@ do
 	 end
 	 if not InCombatLockdown() and not delay then
 	    -- only recalculate when not in combat or if battlemarking is enabled.
-	    if self.trace then self:trace("Recalculate due to changed unit lists...") end
+	    if self.hasTrace then self:trace("Recalculate due to changed unit lists...") end
 	    self:SmartMark_RecalculateMarks()
 	 end
 	 self:UpdateMMFuCount()
@@ -1170,7 +1224,7 @@ do
 		  end
 	       end
 	       SetExternalTarget(unitTarget, guid, uid, unitName, mobHash) -- set it
-	       if self.debug then
+	       if self.hasDebug then
 		  self:debug(L["Added third party mark (%s) for mob %s."],
 			     self:GetTargetName(unitTarget), unitName)
 	       end
@@ -1191,11 +1245,11 @@ do
 	       markedTargets[unitTarget] = tmp
 	       LowSetTarget(data.mark)
 	       data.mark = unitTarget
-	       if self.trace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end
+	       if self.hasTrace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end
 	       
 	    else
 	       self:SetRaidTarget(unit, data.mark)
-	       if self.trace then
+	       if self.hasTrace then
 		  self:trace("Marking %s with %s [%s]",
 			     data.name or guid, self:GetTargetName(data.mark),  data.sender or playerName)
 	       end
@@ -1218,7 +1272,7 @@ do
       end
       for id,data in pairs(assignedTargets) do
 	 if data.value and data.mark and data.lastSetMark == data.mark and data.mark > 0 and data.mark < 9  then
-	    if self.spam then self:spam("Adding assign target: %s [%s] => %s", data.name, id, tostring(data.mark)) end
+	    if self.hasSpam then self:spam("Adding assign target: %s [%s] => %s", data.name, id, tostring(data.mark)) end
 	    local m = tmpdata[id] or {}
 	    m.name  = data.name
 	    m.uid   = data.uid
@@ -1342,7 +1396,7 @@ function MagicMarker:ResetMarkData(hardReset)
 	 self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.75)
       end
    end
-   if self.info then self:info(L["Resetting raid targets."]) end
+   if self.hasInfo then self:info(L["Resetting raid targets."]) end
    self:ScanGroupMembers()
    if self.MMFu and self.MMFu.SetTargetCount then self.MMFu:SetTargetCount(0, 0) end
 end

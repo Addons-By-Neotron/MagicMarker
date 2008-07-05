@@ -44,7 +44,7 @@ local function MarkIfClassHelper(self, unit, classes, class, usedMarks)
 	 if not usedMarks[id] then
 	    SetRaidTarget(unit, id)
 	    usedMarks[id] = unit
-	    if self.debug then self:debug("Marking "..unit.." with target "..id) end
+	    if self.hasDebug then self:debug("Marking "..unit.." with target "..id) end
 	    return true
 	 end
       end
