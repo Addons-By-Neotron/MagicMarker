@@ -389,7 +389,7 @@ end
 -- This allows importing from the MagicMarker_Data addon
 
 function MagicMarker:ImportData(data, version, reallyimport)
-   if db.importedVersion and db.importedVersion >= version then
+   if MagicMarkerDB.importedVersion and MagicMarkerDB.importedVersion >= version then
       return
    end
 
@@ -397,7 +397,7 @@ function MagicMarker:ImportData(data, version, reallyimport)
       for zone,zoneData in pairs(data) do
 	 self:MergeZoneData(zone, zoneData, true)
       end
-      db.importedVersion = version
+      MagicMarkerDB.importedVersion = version
    else
       local popup = _G.StaticPopupDialogs
       if type(popup) ~= "table" then popup = {} end
