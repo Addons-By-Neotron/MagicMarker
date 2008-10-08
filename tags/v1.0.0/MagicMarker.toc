@@ -1,0 +1,21 @@
+## Interface: 20400
+## Title: Magic Marker
+## Notes: Automated smart raid marking to speed up trash clearing in instance runs
+## Author: NeoTron
+## Version: 1.0
+## DefaultState: enabled
+## X-Category: Raid
+## X-eMail: neotron@gmail.com
+
+## OptionalDeps: Ace3, MobNotes, LibBabble-Zone-3.0, LibLogger-1.0, MagicComm
+## X-Embeds: Ace3, LibBabble-Zone-3.0, LibLogger-1.0, MagicComm
+## SavedVariables: MagicMarkerDB, MagicMarkerConfigDB
+
+# Library files
+embeds.xml
+Locales.xml
+MagicMarker.lua
+Config.lua
+MMRaidIcon.lua
+MMCCPrio.lua
+MarkTemplates.lua
