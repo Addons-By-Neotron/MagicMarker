@@ -128,6 +128,7 @@ L["SCAREBEAST"] = "Scare Beast"
 L["SEDUCE"] = "Seduction"
 L["BLIND"] = "Blind"
 L["BURN"] = "Burn Down"
+L["HEX"] = "Hex"
 L["00NONE"] = "None"
 
 -- Priority names
