@@ -102,7 +102,7 @@ local playerName
 local CC_CLASS = {
    false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
    "PRIEST", "WARLOCK", "ROGUE", "WARLOCK", "DRUID",
-   "DRUID", "PALADIN", "HUNTER", "WARLOCK", "PALADIN", "ROGUE",false
+   "DRUID", "PALADIN", "HUNTER", "WARLOCK", "PALADIN", "ROGUE",false, "SHAMAN"
 }
 
 
