@@ -1495,7 +1495,6 @@ function MagicMarker:FixProfileDefaults()
 end
 
 function MagicMarker:OnProfileChanged(event, newdb)
-
    if event ~= "OnProfileDeleted" then
       db = self.db.profile
       self:FixProfileDefaults()
