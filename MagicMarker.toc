@@ -2,7 +2,7 @@
 ## Title: Magic Marker
 ## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
-## Version: 1.0
+## Version: 1.0.@project-revision@
 ## DefaultState: enabled
 ## X-Category: Raid
 ## X-eMail: neotron@gmail.com
