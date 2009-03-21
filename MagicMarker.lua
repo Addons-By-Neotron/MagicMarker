@@ -20,17 +20,16 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local MINOR_VERSION = tonumber(("$Revision$"):match("%d+"))
-
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 					       "AceEvent-3.0", "AceTimer-3.0",
 					       "LibLogger-1.0")
 local MagicMarker = MagicMarker
+local mod = MagicMarker
 local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 MagicMarker.MAJOR_VERSION = "MagicMarker-1.0"
-MagicMarker.MINOR_VERSION = MINOR_VERSION
+MagicMarker.MINOR_VERSION = tonumber('@project-revision@') or tonumber(("$Revision$"):match("%d+"))
 
 -- Upvalue of global functions
 local GetRaidTargetIndex = GetRaidTargetIndex
@@ -538,9 +537,20 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
       end
    elseif event == "UNIT_DIED" or event == "PARTY_KILL" then
       local data = assignedTargets[guid]
+
       if data then
 	 if self.hasDebug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
 	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark, false, true)
+      end
+   end
+      -- Special Thaddius hack; Stalagg and Feugen never dies, so unmark if we detect Thaddius death
+   if MagicMarker.unmarkThaddiusAdds and GUIDToUID(guid) == "15928" then
+      MagicMarker.unmarkThaddiusAdds = nil
+      for id,mobdata in pairs(tankPriorityList) do
+	 local uid = GUIDToUID(mobdata.guid)
+	 if uid == "15929" or uid == "15930" then
+	    MagicMarker:SmartMark_RemoveGUID(mobdata.guid, mobdata.mark, false, true)
+	 end
       end
    end
 end
@@ -815,6 +825,10 @@ end
 function MagicMarker:OnAssignData(targets, sender)
    if not sender then sender = "Unknown" end
    if self.hasDebug then self:debug("[Net:%s] Received assignment data.", sender) end
+--   for id in pairs(tankPriorityList) do
+--      tankPriorityList[id] = nil
+--      ccPriorityList[id] = nil
+--   end
    for guid,data in pairs(targets) do
       if not data.hash or not data.ccval then
 	 if self.hasWarn then self:warn("[Net:%s] Assignment data is not compatible. Ignoring.", sender) end
@@ -823,6 +837,7 @@ function MagicMarker:OnAssignData(targets, sender)
       data.guid = guid
       -- Set the right "value" parameter
       data.val = nil
+      data.sender = sender
       InsertUnitData(data, tankPriorityList)
       if data.hash.ccopt then
 	 InsertUnitData(data, ccPriorityList)
@@ -831,6 +846,7 @@ function MagicMarker:OnAssignData(targets, sender)
    sort(tankPriorityList, SmartMark_TankSorter)
    sort(ccPriorityList, SmartMark_CCSorter)
    self:SmartMark_RecalculateMarks(true)
+   self:UpdateMMFuCount()
 end
 
 function MagicMarker:IsValidMarker()
@@ -845,6 +861,7 @@ MagicMarker.smdata = {
    assigned = assignedTargets,
    external = externalTargets,
    tmpl = templateTargets,
+   marked = markedTargets
 }
 
 local valueModifier = 0.99
@@ -886,6 +903,7 @@ do
 	 SetTemplateTarget(id)
 	 marksUsed[id] = nil
       end
+      if self.MMFu and self.MMFu.SetTargetCount then self.MMFu:SetTargetCount(0, 0) end
    end
 
    function MagicMarker:SmartMark_RecalculateMarks(network)
@@ -994,7 +1012,7 @@ do
 	       if (not data.sender or data.sender == playerName) and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
 		  assignedTargets[data.guid] = nil
 		  assignedCount = assignedCount - 1
-		  if self.hasDebug then self:debug("-- %s => %s [insufficient tank targets].", self:GetTargetName(data.mark), data.name) end
+		  if self.hasDebug then self:debug("-- %s => %s [insufficient tank targets] = %s", self:GetTargetName(data.mark), data.name, data.guid) end
 		  marksUsed[data.mark] = nil
 		  data.mark = nil
 		  
@@ -1016,12 +1034,12 @@ do
 	    if not nextid then
 	       data.mark = nil
 	       data.ccused = nil
-	       if self.hasDebug then self:debug("== No mark available for %s.", data.name) end
+	       if self.hasDebug then self:debug("== No mark available for %s = %s.", data.name, data.guid) end
 	    else
 	       data.mark = nextid
 	       data.ccused = 1
 	       assignedTargets[data.guid] = data
-	       if self.hasDebug then self:debug("++ %s => %s [tank].", self:GetTargetName(nextid), data.name or "Unknown name") end
+	       if self.hasDebug then self:debug("++ %s => %s [tank] = %s", self:GetTargetName(nextid), data.name or "Unknown name", data.guid) end
 	    end
 	 end
       end
@@ -1113,6 +1131,7 @@ do
       end
 
       self:SmartMark_RecalculateMarks()
+      self:UpdateMMFuCount()
       
       return assignedTargets[guid], newhash
    end
@@ -1176,7 +1195,7 @@ do
 	    SetNetworkData("UNMARKV2", guid, mark)
 	    self:SendUrgentMessage()
 	 end
-	 if not InCombatLockdown() and not delay then
+	 if not InCombatLockdown() and not delay and not fromNetwork then
 	    -- only recalculate when not in combat or if battlemarking is enabled.
 	    if self.hasTrace then self:trace("Recalculate due to changed unit lists...") end
 	    self:SmartMark_RecalculateMarks()
@@ -1200,9 +1219,15 @@ do
 	 if not self:IsValidMarker() then
 	    return
 	 end
+	 
 	 if not IsModifierPressed() and unit == "mouseover" then
 	    -- Modifier isn't pressed and it's a mouseover, so return
 	    return
+	 end
+
+	 -- Special hack for Thaddius, adds don't die...
+	 if uid == "15929" or uid == "15930" then
+	    MagicMarker.unmarkThaddiusAdds = true
 	 end
 
 	 data = assignedTargets[guid]
@@ -1214,6 +1239,7 @@ do
 	       end
 	    end
 	 end
+	 
 	 if not data and unitTarget and db.honorMarks then
 	    local ext = externalTargets[unitTarget] 
 	    if ext.guid ~= guid then -- guids are not matching
@@ -1229,12 +1255,13 @@ do
 			     self:GetTargetName(unitTarget), unitName)
 	       end
 	       self:SmartMark_RecalculateMarks()
+	       self:UpdateMMFuCount()
 	    end
 	    return
 	 end
 	 
 	 if not data then
-	    data, new = self:SmartMark_AddGUID(guid, uid, unitName, mobHash) 
+	    data, new = self:SmartMark_AddGUID(guid, uid, unitName, mobHash)
 	 end   
 
 	 if data and data.mark and data.mark > 0 and data.mark < 9 and
@@ -1245,8 +1272,7 @@ do
 	       markedTargets[unitTarget] = tmp
 	       LowSetTarget(data.mark)
 	       data.mark = unitTarget
-	       if self.hasTrace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end
-	       
+	       if self.hasTrace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end	       
 	    else
 	       self:SetRaidTarget(unit, data.mark)
 	       if self.hasTrace then
@@ -1271,7 +1297,7 @@ do
 	 end
       end
       for id,data in pairs(assignedTargets) do
-	 if data.value and data.mark and data.lastSetMark == data.mark and data.mark > 0 and data.mark < 9  then
+	 if data.value and data.mark and data.mark > 0 and data.mark < 9  and data.mark == data.lastSetMark then
 	    if self.hasSpam then self:spam("Adding assign target: %s [%s] => %s", data.name, id, tostring(data.mark)) end
 	    local m = tmpdata[id] or {}
 	    m.name  = data.name
