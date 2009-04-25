@@ -129,8 +129,8 @@ L["SEDUCE"] = "Seduction"
 L["BLIND"] = "Blind"
 L["BURN"] = "Burn Down"
 L["HEX"] = "Hex"
+L["REPENTANCE"] = "Repentance"
 L["00NONE"] = "None"
-
 -- Priority names
 L["P0"] = "Same as Tank"
 L["P1"] = "Very High"
