@@ -19,4 +19,3 @@ Config.lua
 MMRaidIcon.lua
 MMCCPrio.lua
 MarkTemplates.lua
-
