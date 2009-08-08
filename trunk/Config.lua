@@ -41,7 +41,7 @@ local type = type
 
 local GetRealZoneText = GetRealZoneText
 local IsInInstance = IsInInstance
-local GetCurrentDungeonDifficulty = GetCurrentDungeonDifficulty
+local GetInstanceDifficulty = GetInstanceDifficulty
 local UnitCreatureFamily = UnitCreatureFamily
 local UnitCreatureType = UnitCreatureType
 local UnitManaMax = UnitManaMax
