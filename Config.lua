@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 8
+local CONFIG_VERSION = 9
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -79,6 +79,7 @@ local mobdata
 
 local configBuilt
 
+
 -- Config UI name => ID
 local CONFIG_MAP = {
 }
@@ -95,6 +96,57 @@ local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
 local RT_LIST =  { "Star",  "Circle",  "Diamond",  "Triangle",  "Moon",  "Square",  "Cross",  "Skull", "None" }
 local ccDropdown, ccpriDropdown, priDropdown, catDropdown, raidIconDropdown, logLevelsDropdown
+
+local dungeon_tiers = {
+   wotlk = {
+      ["Naxxramas"]=true,
+      ["TheEyeofEternity"]=true,
+      ["TheObsidianSanctum"]=true,
+      ["TrialoftheCrusader"]=true,
+      ["Ulduar"]=true,
+      ["VaultofArchavon"]=true,
+      ["TheCullingofStratholme"]=true,
+      ["TheOculus"]=true,
+      ["TrialoftheChampion"]=true,
+      ["HallsofLightning"]=true,
+      ["UtgardePinnacle"]=true,
+      ["HallsofStone"]=true,
+      ["Gundrak"]=true,
+      ["TheVioletHold"]=true,
+      ["Drak'TharonKeep"]=true,
+      ["Ahn'kahet:TheOldKingdom"]=true,
+      ["Azjol-Nerub"]=true,
+      ["TheNexus"]=true,
+      ["UtgardeKeep"]=true,      
+   },
+   bc = {
+      ["BlackTemple"]=true,
+      ["HyjalSummit"]=true,
+      ["SerpentshrineCavern"]=true,
+      ["Gruul'sLair"]=true,
+      ["Magtheridon'sLair"]=true,
+      ["Karazhan"]=true,
+      ["SunwellPlateau"]=true,
+      ["TempestKeep"]=true,
+      ["Zul'Aman"]=true,
+      ["ShadowLabyrinth"]=true,
+      ["TheBlackMorass"]=true,
+      ["TheSteamvault"]=true,
+      ["TheShatteredHalls"]=true,
+      ["Magisters'Terrace"]=true,
+      ["TheArcatraz"]=true,
+      ["TheBotanica"]=true,
+      ["TheMechanar"]=true,
+      ["SethekkHalls"]=true,
+      ["OldHillsbradFoothills"]=true,
+      ["AuchenaiCrypts"]=true,
+      ["Mana-Tombs"]=true,
+      ["TheUnderbog"]=true,
+      ["TheSlavePens"]=true,
+      ["TheBloodFurnace"]=true,
+      ["HellfireRamparts"]=true,
+   }
+}
 
 function MagicMarker:GetCCID(ccname)
    return CONFIG_MAP[ccname]
@@ -308,7 +360,11 @@ do
 	 mobs = {
 	    type = "group",
 	    name = L["Mob Database"],
-	    args = {}, 
+	    args = {
+	       vanilla = { name = "Original", type = "group", args = {}, order = 30 },
+	       wotlk = { name = "Wrath of the Lich King", type = "group", args = {}, order = 10},
+	       bc = { name = "Burning Crusade", type = "group", args = {}, order = 20},
+	    }, 
 	    order = 300,
 	    cmdHidden = true, 
 	    dropdownHidden = true, 
@@ -851,8 +907,7 @@ function MagicMarker:SetMobConfig(info, value, state)
    if mobhash.new then
       mobhash.new = nil
       -- Remove the "new" mark
-      options.args.mobs.args[region].plugins.mobList[mob].name = 
-	 mobhash.name
+      self:GetZoneConfigHash(mobdata[region], region).args[region].plugins.mobList[mob].name = mobhash.name
    end
    self:QueueData_Add(region, mob, mobhash)
 end
@@ -976,11 +1031,12 @@ function MagicMarker:GetZoneName(zone)
    zone = ZoneReverse[zone] or zone
 
    simple = self:SimplifyName(zone)
-   if IsInInstance() and GetCurrentDungeonDifficulty() == 2 then
+   local inInstance, type = IsInInstance()
+   if inInstance and type ~= "raid" and GetInstanceDifficulty() == 2 then
       simple = simple .. "Heroic"
       heroic = true
    end
-   return simple, zone, heroic
+   return simple, zone, heroic, type == "raid"
 end
 
 local simpleNameCache = {}
@@ -1020,11 +1076,11 @@ local function white(str)
 end
 function MagicMarker:InsertNewUnit(uid, name, unit)
    local simpleName = self:SimplifyName(name)
-   local simpleZone,zone, isHeroic = self:GetZoneName()
+   local simpleZone, zone, isHeroic, isRaid = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, mm = 1, heroic = isHeroic }
    local changed
    local mobHash
-   
+   zoneHash.isRaid = isRaid 
    if not zoneHash.mobs[uid] then
       if zoneHash.mobs[simpleName] then
 	 -- 2.4 conversion to use mob id instead of simplified mob name
@@ -1072,20 +1128,59 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
       mobHash.name = name
       changed = true
    end
-
+   
+   local subZoneHash = self:GetZoneConfigHash(zoneHash, simpleZone)
    if changed then
-      if not options.args.mobs.args[simpleZone] then
-	 options.args.mobs.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
+      if not subZoneHash.args[simpleZone] then
+	 subZoneHash.args[simpleZone] = self:ZoneConfigData(simpleZone, zoneHash)
       else 
-	 if options.args.mobs.args[simpleZone].args.loader.hidden then
+	 if subZoneHash.args[simpleZone].args.loader.hidden then
 	    self:LoadMobListForZone(simpleZone)
 	 end
-	 options.args.mobs.args[simpleZone].args.zoneInfo.name = self:GetZoneInfo(zoneHash)
+	 subZoneHash.args[simpleZone].args.zoneInfo.name = self:GetZoneInfo(zoneHash)
       end
       self:NotifyChange()
    end
    return mobHash
 end
+
+function MagicMarker:GetZoneConfigHash(zone, name)
+   local era
+   local shortname = strreplace(name, "Heroic", "")
+   if dungeon_tiers.wotlk[shortname] then
+      era = options.args.mobs.args.wotlk
+   elseif  dungeon_tiers.bc[shortname] then 
+      era = options.args.mobs.args.bc
+   else
+      era = options.args.mobs.args.vanilla
+   end
+  
+   local subZoneHash
+   if zone.heroic then
+      subZoneHash = era.args.heroic or {
+	 type = "group",
+	 name = L["Heroic"],
+	 args = {}
+      }
+      era.args.heroic = subZoneHash
+   elseif zone.isRaid then
+	 subZoneHash = era.args.raid or {
+	 type = "group",
+	 name = L["Raid"],
+	 args = {}
+      }
+      era.args.raid = subZoneHash
+   else
+      subZoneHash = era.args.normal or {
+	 type = "group",
+	 name = L["Normal"],
+	 args = {}
+      }
+      era.args.normal = subZoneHash
+   end
+   return subZoneHash
+end
+
 
 function MagicMarker:RemoveZone(var)
    local zone = var[#var-1]
@@ -1093,8 +1188,11 @@ function MagicMarker:RemoveZone(var)
       self:warn(L["Deleting zone %s from the database!"],
 	       ZoneLookup[mobdata[zone].name] or mobdata[zone].name)
    end
+   local zoneData = mobdata[zone]
    mobdata[zone] = nil
-   options.args.mobs.args[zone] = nil
+   if zoneData then
+      self:GetZoneConfigHash(zoneData, zone).args[zone] = nil
+   end
    self:NotifyChange()
 end
 
@@ -1108,16 +1206,18 @@ function MagicMarker:RemoveMob(var)
 	       hash.mobs[mob].name, ZoneLookup[hash.name] or hash.name)
    end
    hash.mobs[mob] = nil
-   options.args.mobs.args[zone].plugins.mobList[mob] = nil
-   options.args.mobs.args[zone].args.zoneInfo.name = self:GetZoneInfo(hash)
+   local zoneData = self:GetZoneConfigHash(hash, zone)
+   zoneData.args[zone].plugins.mobList[mob] = nil
+   zoneData.args[zone].args.zoneInfo.name = self:GetZoneInfo(hash)
    self:NotifyChange()
 end
 
 function MagicMarker:BuildMobConfig(var)
    local mob = var[#var-1]
    local zone = var[#var-2]
-   local zoneHash = options.args.mobs.args[zone]
-   local subopts = options.args.mobs.args[zone].plugins.mobList
+
+   local zoneHash = self:GetZoneConfigHash(mobdata[zone], zone)
+   local subopts = zoneHash.args[zone].plugins.mobList
    local name = subopts[mob].name
    
    configBuilt = true
@@ -1150,31 +1250,6 @@ function MagicMarker:NotifyChange()
    R:NotifyChange(L["Magic Marker"])
 end
  
-local unloadTimer
-
-function MagicMarker:UnloadOptions()
-   if C.OpenFrames[L["Magic Marker"]] then
-      if not unloadTimer then
-	 unloadTimer = self:ScheduleRepeatingTimer("UnloadOptions", 5)
-      end
-      return
-   end
-   if unloadTimer then
-      self:CancelTimer(unloadTimer, true)  
-      unloadTimer = nil
-   end
-   
-   for id, hash in pairs(options.args.mobs.args) do
-      if id ~= "headerdata" then
-	 hash.args.loader.hidden = false
-	 hash.plugins.mobList = nil
-	 if self.hasTrace then self:trace("Unloaded mob options for %s.", hash.name) end
-      end
-   end
-   configBuilt = false
-   R:NotifyChange(L["Magic Marker"])
-end
-
 function MagicMarker:GenerateOptions()
    local opts = options.args.categories.args
    local subopts, order
@@ -1246,11 +1321,13 @@ function MagicMarker:GenerateOptions()
 	    type = "description",
 	    name = L["MOBDATAHELPTEXT"]
 	 }
+      
       },
       order = 0,
    }
    for id, zone in pairs(mobdata) do
-      opts[id] = self:ZoneConfigData(id, zone)
+      local subZone = self:GetZoneConfigHash(zone, id)
+      subZone.args[id] = self:ZoneConfigData(id, zone)
    end
 
    -- command line options
@@ -1273,15 +1350,12 @@ function MagicMarker:GenerateOptions()
 end
 
 function MagicMarker:AddZoneConfig(zone, zonedata)
-   options.args.mobs.args[zone] = self:ZoneConfigData(zone, zonedata)
+   local subZone = self:GetZoneConfigHash(zonedata, zone)
+   subZone.args[zone] = self:ZoneConfigData(zone, zonedata)
 end
 
 function MagicMarker:ZoneConfigData(id, zone)
    local name = ZoneLookup[zone.name] or zone.name
-   if zone.heroic then
-      name = L["Heroic"] .. " " .. name 
-   end
-
    return {
       type = "group",
       name = name,
@@ -1320,7 +1394,7 @@ end
 
 function MagicMarker:LoadMobListForZone(var)
    local zone = (type(var) == "table" and var[#var-1]) or var
-   local zoneData = options.args.mobs.args[zone]
+   local zoneData = self:GetZoneConfigHash(mobdata[zone], zone).args[zone]
    local name = mobdata[zone].name
    local subopts = {}
 
@@ -1467,86 +1541,125 @@ do
    end
 end
 
-function MagicMarker:UpgradeDatabase()
-   local version = MagicMarkerDB.version or 0
 
-   if version < 1 then
-      -- Added two new priority levels and change logging 
-      MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO
-      MagicMarkerDB.debug = nil
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 for mob, mobData in pairs(zoneData.mobs) do
-	    if mobData.priority == 4 then
-	       mobData.priority = 6
-	    else
-	       mobData.priority = mobData.priority + 1
-	    end
-	 end
-      end
-   end
+-- All raid instances
+do
+   local raids = {
+      "MoltenCore", "BlackwingLair", "TempleofAhn'Qiraj", "Ahn'Qiraj", 
+      "RuinsofAhn'Qiraj", "Zul'Gurub", "Karazhan", "Zul'Aman",
+      "Gruul'sLair", "Magtheridon'sLair",
+      "SerpentshrineCavern", "WorldBoss", "TempestKeep",
+      "BlackTemple", "HyjalSummit", "Naxxramas", "SunwellPlateau",
+      "TheObsidianSanctum", "VaultofArchavon",
+      "TheEyeofEternity", "Ulduar", "TrialoftheCrusader"
+   }
 
-   if version < 2 then
-      -- zone-level enable/disable feature, default to enable
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 zoneData.mm = true
-      end
-   end
+   -- all WotLK raid instances
+   local mergeRaids = {
+      Naxxramas=true,  TheObsidianSanctum=true, VaultofArchavon=true, TheEyeofEternity=true, Ulduar=true, TrialoftheCrusader=true
+   }
 
-   if version < 3 then
-      self.db.profile.logLevel = MagicMarkerDB.logLevel
-   end
-
-   if version < 4 then
-      -- Added "max mobs to CC" option, default to 8 (max)
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 for mob, mobData in pairs(zoneData.mobs) do
-	    mobData.ccnum = 8
-	 end
-      end
-   end
-   
-   if version < 5 then
-      local ccopt
-      -- Changed to non-prioritized cc-list for mobs 
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 for mob, mobData in pairs(zoneData.mobs) do
-	    ccopt = {}
-	    for _,ccid in pairs(mobData.cc) do
-	       if ccid ~= CONFIG_MAP['00NONE'] then
-		  ccopt[ccid] = true
+   function MagicMarker:UpgradeDatabase()
+      local version = MagicMarkerDB.version or 0
+      
+      if version < 1 then
+	 -- Added two new priority levels and change logging 
+	 MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO
+	 MagicMarkerDB.debug = nil
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    for mob, mobData in pairs(zoneData.mobs) do
+	       if mobData.priority == 4 then
+		  mobData.priority = 6
+	       else
+		  mobData.priority = mobData.priority + 1
 	       end
 	    end
-	    if next(ccopt) then
-	       mobData.ccopt = ccopt
-	    else
-	       mobData.ccopt = nil
+	 end
+      end
+      
+      if version < 2 then
+	 -- zone-level enable/disable feature, default to enable
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    zoneData.mm = true
+	 end
+      end
+      
+      if version < 3 then
+	 self.db.profile.logLevel = MagicMarkerDB.logLevel
+      end
+      
+      if version < 4 then
+	 -- Added "max mobs to CC" option, default to 8 (max)
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    for mob, mobData in pairs(zoneData.mobs) do
+	       mobData.ccnum = 8
 	    end
-	    mobData.cc = nil
 	 end
       end
-   end
-   
-   if version < 7 then
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 zoneData.handler = nil -- oops, didn't mean to store that in there!
-	 for mob, mobData in pairs(zoneData.mobs) do
-	    mobData.ccpriority = 6 -- default ccpriority to "same as tank"
-	 end
-      end      
-   end
-
-
-   if version < 8 then
-      for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
-	 for mob, mobData in pairs(zoneData.mobs) do
-	    mobData.cc = nil
+      
+      if version < 5 then
+	 local ccopt
+	 -- Changed to non-prioritized cc-list for mobs 
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    for mob, mobData in pairs(zoneData.mobs) do
+	       ccopt = {}
+	       for _,ccid in pairs(mobData.cc) do
+		  if ccid ~= CONFIG_MAP['00NONE'] then
+		     ccopt[ccid] = true
+		  end
+	       end
+	       if next(ccopt) then
+		  mobData.ccopt = ccopt
+	       else
+		  mobData.ccopt = nil
+	       end
+	       mobData.cc = nil
+	    end
 	 end
       end
+      
+      if version < 7 then
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    zoneData.handler = nil -- oops, didn't mean to store that in there!
+	    for mob, mobData in pairs(zoneData.mobs) do
+	       mobData.ccpriority = 6 -- default ccpriority to "same as tank"
+	    end
+	 end      
+      end
+      
+      
+      if version < 8 then
+	 for zone,zoneData in pairs(MagicMarkerDB.mobdata) do
+	    for mob, mobData in pairs(zoneData.mobs) do
+	       mobData.cc = nil
+	    end
+	 end
+      end
+      if version < 9 then
+	 local db = self.db.profile
+	 local origBehavior = db.mobDataBehavior
+	 self:Print("Upgrading database. Merging normal and heroic raids into a single entry.")
+	 db.mobDataBehavior = 2 -- heroic will override normal
+	 for _,zoneName in ipairs(raids) do 
+	    local zone = MagicMarkerDB.mobdata[zoneName]
+	    if zone then
+	       zone.isRaid = true
+	    end
+	    if mergeRaids[zoneName] then
+	       local heroicKey = zoneName.."Heroic"
+	       local heroicZone = MagicMarkerDB.mobdata[heroicKey]
+	       if heroicZone then
+		  heroicZone.name = zone.name
+		  self:MergeZoneData(zoneName, heroicZone)
+		  MagicMarkerDB.mobdata[heroicKey] = nil
+	       end
+	    end
+	 end
+	 db.mobDataBehavior = origBehavior
+      end
+      MagicMarkerDB.version = CONFIG_VERSION
    end
-   
-   MagicMarkerDB.version = CONFIG_VERSION
 end
-
 
 local keyBindingOrder = 1000
 
