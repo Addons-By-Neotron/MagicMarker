@@ -209,16 +209,15 @@ function MagicMarker:OnInitialize()
 
    MagicMarkerDB.unitCategoryMap = nil -- Delete old data, no way to convert since it's missing zone info
 
-   self:UpgradeDatabase()
-   
    mobdata = MagicMarkerDB.mobdata
-
    db = self.db.profile
    -- Buggy FuBar_MM caused these to be stored as strings
    db.logLevel = tonumber(db.logLevel)
    db.mobDataBehavior = tonumber(db.mobDataBehavior)
-
    db.remarkDelay = nil -- no longer needed
+
+   self:UpgradeDatabase()
+   
 
    -- sets ccprio/raid target defaults
    self:FixProfileDefaults()
