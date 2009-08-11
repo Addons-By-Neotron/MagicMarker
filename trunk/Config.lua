@@ -1649,7 +1649,9 @@ do
 	       local heroicKey = zoneName.."Heroic"
 	       local heroicZone = MagicMarkerDB.mobdata[heroicKey]
 	       if heroicZone then
-		  heroicZone.name = zone.name
+		  if zone then 
+		     heroicZone.name = zone.name
+		  end
 		  self:MergeZoneData(zoneName, heroicZone)
 		  MagicMarkerDB.mobdata[heroicKey] = nil
 	       end
