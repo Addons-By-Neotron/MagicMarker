@@ -178,7 +178,7 @@ local function LowSetTarget(id, uid, val, ccid, guid)
 end
 
 local function GUIDToUID(guid)
-   local uid = tonumber(sub(guid, 7, 12), 16)
+   local uid = tonumber(sub(guid, 6, 10), 16)
    if uid == 0 then
       return nil
    end
