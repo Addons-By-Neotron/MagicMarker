@@ -1,4 +1,4 @@
-## Interface: 30200
+## Interface: 30300
 ## Title: Magic Marker
 ## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
