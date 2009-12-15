@@ -850,7 +850,7 @@ function MagicMarker:OnAssignData(targets, sender)
 end
 
 function MagicMarker:IsValidMarker()
-   return IsRaidLeader() or IsRaidOfficer() or IsPartyLeader()
+   return IsRaidLeader() or IsRaidOfficer() or (GetNumPartyMembers() > 0 and GetNumRaidMembers() == 0)
 end
 
 -- This is solely for debugging purposes
