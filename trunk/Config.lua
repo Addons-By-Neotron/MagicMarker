@@ -1534,7 +1534,7 @@ do
       if not ccid then
 	 return "N/A"
       elseif link then
-	 return format("{%s}", sub(RT_LIST[ccid], 2))
+	 return format("{rt%d}", ccid)
       else
 	 return format(iconLink, sub(RT_LIST[ccid] or "  ", 2)) 
       end
