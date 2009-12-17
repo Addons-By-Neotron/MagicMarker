@@ -104,6 +104,7 @@ local dungeon_tiers = {
       ["TheObsidianSanctum"]=true,
       ["TrialoftheCrusader"]=true,
       ["Ulduar"]=true,
+      ["IcecrownCitadel"]=true,
       ["VaultofArchavon"]=true,
       ["TheCullingofStratholme"]=true,
       ["TheOculus"]=true,
@@ -1551,12 +1552,12 @@ do
       "SerpentshrineCavern", "WorldBoss", "TempestKeep",
       "BlackTemple", "HyjalSummit", "Naxxramas", "SunwellPlateau",
       "TheObsidianSanctum", "VaultofArchavon",
-      "TheEyeofEternity", "Ulduar", "TrialoftheCrusader"
+      "TheEyeofEternity", "Ulduar", "TrialoftheCrusader", "IcecrownCitadel"
    }
 
    -- all WotLK raid instances
    local mergeRaids = {
-      Naxxramas=true,  TheObsidianSanctum=true, VaultofArchavon=true, TheEyeofEternity=true, Ulduar=true, TrialoftheCrusader=true
+      Naxxramas=true,  TheObsidianSanctum=true, VaultofArchavon=true, TheEyeofEternity=true, Ulduar=true, TrialoftheCrusader=true, IcecrownCitadel=true
    }
 
    function MagicMarker:UpgradeDatabase()
