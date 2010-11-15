@@ -68,7 +68,6 @@ local UnitIsPlayer = UnitIsPlayer
 local IsRaidLeader = IsRaidLeader
 local GetBindingKey = GetBindingKey
 local IsRaidOfficer = IsRaidOfficer
-local IsPartyLeader = IsPartyLeader
 local IsShiftKeyDown = IsShiftKeyDown
 local IsControlKeyDown = IsControlKeyDown
 local GetRaidRosterInfo = GetRaidRosterInfo
@@ -850,7 +849,7 @@ function MagicMarker:OnAssignData(targets, sender)
 end
 
 function MagicMarker:IsValidMarker()
-   return IsRaidLeader() or IsRaidOfficer() or (GetNumPartyMembers() > 0 and GetNumRaidMembers() == 0)
+   return IsRaidLeader() or IsRaidOfficer() or GetNumRaidMembers() == 0
 end
 
 -- This is solely for debugging purposes
