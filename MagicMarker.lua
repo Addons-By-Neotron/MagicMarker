@@ -16,20 +16,20 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
+along with mod.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
 MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
-					       "AceEvent-3.0", "AceTimer-3.0",
-					       "LibLogger-1.0")
+						     "AceEvent-3.0", "AceTimer-3.0",
+						     "LibLogger-1.0")
 local MagicMarker = MagicMarker
 local mod = MagicMarker
 local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
-MagicMarker.MAJOR_VERSION = "MagicMarker-1.0"
-MagicMarker.MINOR_VERSION = tonumber('@project-revision@') or tonumber(("$Revision$"):match("%d+"))
+mod.MAJOR_VERSION = "MagicMarker-1.0"
+mod.MINOR_VERSION = tonumber('@project-revision@') or tonumber(("$Revision$"):match("%d+"))
 
 -- Upvalue of global functions
 local GetRaidTargetIndex = GetRaidTargetIndex
@@ -161,7 +161,7 @@ local function SetTemplateTarget(id, name, network)
 	 end
 	 if not network then
 	    SetNetworkData("MARKV2", name, id, "TMPL")
-	    MagicMarker:SendUrgentMessage()
+	    mod:SendUrgentMessage()
 	 end
       end
    end
@@ -185,15 +185,15 @@ local function GUIDToUID(guid)
 end
 
 -- Returns [GUID, UID, Name]
-function MagicMarker:GetUnitID(unit)
+function mod:GetUnitID(unit)
    local guid, uid
    local unitName = UnitName(unit)
    guid = UnitGUID(unit)
    uid = GUIDToUID(guid)
-   return guid, uid or MagicMarker:SimplifyName(unitName), unitName
+   return guid, uid or mod:SimplifyName(unitName), unitName
 end
 
-function MagicMarker:OnInitialize()
+function mod:OnInitialize()
    -- Set up the config database
    self.db = LibStub("AceDB-3.0"):New("MagicMarkerConfigDB", defaultConfigDB, "Default")
    self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
@@ -204,7 +204,6 @@ function MagicMarker:OnInitialize()
    -- this is the mob database
    MagicMarkerDB = MagicMarkerDB or { }
    MagicMarkerDB.frameStatusTable = MagicMarkerDB.frameStatusTable or {}
-   MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {} 
 
    MagicMarkerDB.unitCategoryMap = nil -- Delete old data, no way to convert since it's missing zone info
 
@@ -244,25 +243,26 @@ function MagicMarker:OnInitialize()
    spellIdToCCID = MagicComm.spellIdToCCID
 end
 
-function MagicMarker:OnEnable()
+function mod:OnEnable()
+   mod:SetupLDB()
    playerName = UnitName("player")
    
    self:RegisterEvent("ZONE_CHANGED_NEW_AREA","ZoneChangedNewArea")
    self:ZoneChangedNewArea()
    self:GenerateOptions()
-   self:RegisterChatCommand("mmtmpl", function() MagicMarker:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r or |cffdfa9cf/magic tmpl|r instead.")  end, false, true)
+   self:RegisterChatCommand("mmtmpl", function() mod:Print("This command is deprected. Use |cffdfa9cf/mm tmpl|r or |cffdfa9cf/magic tmpl|r instead.")  end, false, true)
 
    MagicComm:RegisterListener(self, "MM")
 end
 
-function MagicMarker:OnDisable()
+function mod:OnDisable()
    MagicComm:UnregisterListener(self, "MM")
    self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
    self:UnregisterChatCommand("magic")
    self:DisableEvents()
 end
 
-function MagicMarker:OnMobdataReceive(zone, data, version, sender) 
+function mod:OnMobdataReceive(zone, data, version, sender) 
    if version ~= MagicMarkerDB.version then 
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
@@ -274,7 +274,7 @@ function MagicMarker:OnMobdataReceive(zone, data, version, sender)
    self:NotifyChange()
 end
 
-function MagicMarker:OnMobdataPartialReceive(data, version, sender) 
+function mod:OnMobdataPartialReceive(data, version, sender) 
    if version ~= MagicMarkerDB.version then 
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
@@ -288,7 +288,7 @@ function MagicMarker:OnMobdataPartialReceive(data, version, sender)
    self:NotifyChange()
 end
 
-function MagicMarker:OnTargetReceive(data, version, sender) 
+function mod:OnTargetReceive(data, version, sender) 
    if version ~= MagicMarkerDB.version then 
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
@@ -300,7 +300,7 @@ function MagicMarker:OnTargetReceive(data, version, sender)
    self:NotifyChange()
 end
 
-function MagicMarker:OnCCPrioReceive(data, version, sender) 
+function mod:OnCCPrioReceive(data, version, sender) 
    if version ~= MagicMarkerDB.version then 
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
@@ -323,9 +323,9 @@ local function InsertUnitData(unitdata, hash)
    hash[#hash+1] = unitdata
 end
 
-function MagicMarker:OnCommUnmarkV2(guid, mark, sender)
+function mod:OnCommUnmarkV2(guid, mark, sender)
    local data = assignedTargets[guid]
-   local changed = MagicMarker:SmartMark_RemoveGUID(guid, mark, true)
+   local changed = mod:SmartMark_RemoveGUID(guid, mark, true)
    local name = guid
    if self.hasDebug then
       name = (data and data.name) or name
@@ -340,11 +340,11 @@ end
 
 local verRespMsg = "%s: %s revision %s"
 
-function MagicMarker:OnVersionResponse(ver, major, minor, sender)
+function mod:OnVersionResponse(ver, major, minor, sender)
    self:Print(format(verRespMsg, sender or "Unknown Sender", major or "Unknown", minor or "Unknown"))
 end
 
-function MagicMarker:QueryAddonVersions()
+function mod:QueryAddonVersions()
    SetNetworkData("VCHECK")
    self:SendUrgentMessage("GUILD")
    self:SendUrgentMessage("RAID")
@@ -355,7 +355,7 @@ end
 local queuedData = {}
 local queuedDataTimer 
 
-function MagicMarker:QueueData_Add(zone, mob, hash)
+function mod:QueueData_Add(zone, mob, hash)
    if not queuedData[zone] then
       queuedData[zone] = {}
    end
@@ -364,14 +364,14 @@ function MagicMarker:QueueData_Add(zone, mob, hash)
    if self.hasSpam then self:spam("Queued %s in zone %s for partial update.", hash.name, zone) end
 end
 
-function MagicMarker:QueueData_Schedule()
+function mod:QueueData_Schedule()
    if queuedDataTimer then
       self:CancelTimer(queuedDataTimer, true)
    end
    queuedDataTimer = self:ScheduleTimer("QueueData_Send", 5)
 end
 
-function MagicMarker:QueueData_Send()
+function mod:QueueData_Send()
    if InCombatLockdown() then
       self:QueueData_Schedule()
       return
@@ -386,7 +386,7 @@ end
 
 -- This allows importing from the MagicMarker_Data addon
 
-function MagicMarker:ImportData(data, version, reallyimport)
+function mod:ImportData(data, version, reallyimport)
    if MagicMarkerDB.importedVersion and MagicMarkerDB.importedVersion >= version then
       return
    end
@@ -407,7 +407,7 @@ function MagicMarker:ImportData(data, version, reallyimport)
 	    whileDead = 1,
 	    hideOnEscape = 1,
 	    timeout = 0,
-	    OnAccept = function() MagicMarker:ImportData(data, version, true) end
+	    OnAccept = function() mod:ImportData(data, version, true) end
 
 	 }
       end
@@ -415,7 +415,7 @@ function MagicMarker:ImportData(data, version, reallyimport)
    end
 end
 
-function MagicMarker:MergeCCMethods(dest, source)
+function mod:MergeCCMethods(dest, source)
    if not source or not source.ccopt or not dest then return end
    if not dest.ccopt then
       dest.ccopt = source.ccopt
@@ -426,7 +426,7 @@ function MagicMarker:MergeCCMethods(dest, source)
    end
 end
 
-function MagicMarker:MergeZoneData(zone, zoneData, override, partial)
+function mod:MergeZoneData(zone, zoneData, override, partial)
    local localData = mobdata[zone]
    local localMob, simpleName
    if self.hasDebug then self:debug("Merging data for zone %s.", zoneData.name or zone) end
@@ -475,34 +475,34 @@ function MagicMarker:MergeZoneData(zone, zoneData, override, partial)
    end
 end
 
-function MagicMarker:BroadcastZoneData(zone)
-   zone = MagicMarker:SimplifyName(zone)
+function mod:BroadcastZoneData(zone)
+   zone = mod:SimplifyName(zone)
    if mobdata[zone] then
       SetNetworkData("MOBDATA", mobdata[zone], zone)
       self:SendBulkMessage()
    end
 end
 
-function MagicMarker:BroadcastAllZones()
+function mod:BroadcastAllZones()
    for zone, data in pairs(mobdata) do 
       SetNetworkData("MOBDATA", data, zone)
       self:SendBulkMessage()
    end
 end
 
-function MagicMarker:BroadcastRaidTargets()
+function mod:BroadcastRaidTargets()
    if self.hasTrace then self:trace("Broadcast raid target data to the raid.") end
    SetNetworkData("TARGETS", db.targetdata)
    self:SendBulkMessage()
 end
 
-function MagicMarker:BroadcastCCPriorities()
+function mod:BroadcastCCPriorities()
    if self.hasTrace then self:trace("Broadcast cc priority data to the raid.") end
    SetNetworkData("CCPRIO", db.ccprio)
    self:SendBulkMessage()
 end
 
-function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
+function mod:HandleCombatEvent(_, _, event, _, _, _,
 				       guid, name, _, spellid, spellname)
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
@@ -539,16 +539,16 @@ function MagicMarker:HandleCombatEvent(_, _, event, _, _, _,
 
       if data then
 	 if self.hasDebug then self:debug("Releasing %s from dead mob %s.", self:GetTargetName(data.mark), name) end
-	 MagicMarker:SmartMark_RemoveGUID(guid, data.mark, false, true)
+	 mod:SmartMark_RemoveGUID(guid, data.mark, false, true)
       end
    end
       -- Special Thaddius hack; Stalagg and Feugen never dies, so unmark if we detect Thaddius death
-   if MagicMarker.unmarkThaddiusAdds and GUIDToUID(guid) == "15928" then
-      MagicMarker.unmarkThaddiusAdds = nil
+   if mod.unmarkThaddiusAdds and GUIDToUID(guid) == "15928" then
+      mod.unmarkThaddiusAdds = nil
       for id,mobdata in pairs(tankPriorityList) do
 	 local uid = GUIDToUID(mobdata.guid)
 	 if uid == "15929" or uid == "15930" then
-	    MagicMarker:SmartMark_RemoveGUID(mobdata.guid, mobdata.mark, false, true)
+	    mod:SmartMark_RemoveGUID(mobdata.guid, mobdata.mark, false, true)
 	 end
       end
    end
@@ -556,11 +556,8 @@ end
 
 do
    local notPvPInstance = { raid = true, party = true }
-   function MagicMarker:ZoneChangedNewArea()
+   function mod:ZoneChangedNewArea()
       local zone,name = self:GetZoneName()
-      if not self.MMFu and MMFu then
-	 MagicMarker:RegisterMMFu(MMFu)
-      end
       if zone == nil or zone == "" then
 	 self:ScheduleTimer(self.ZoneChangedNewArea,5,self)
       else
@@ -582,14 +579,16 @@ do
    end
 end
 
-function MagicMarker:RegisterMMFu(plugin)
-   self.MMFu = plugin
+function mod:RegisterMMFu(plugin)
+   if self.hasWarn then
+      self:warn("Please uninstall FuBar_mod. It does no longer work with this version of Magic Marker. Instead there's a built-in LDB data provider.")
+   end
 end
 
-function MagicMarker:EnableEvents(markOnTarget)
+function mod:EnableEvents(markOnTarget)
    if not self.addonEnabled then
       self.addonEnabled = true
-      if self.MMFu then self.MMFu:Update() end
+      mod:UpdateLDB()
       if self.hasInfo then self:info(L["Magic Marker enabled."]) end
       if markOnTarget then
 	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
@@ -603,10 +602,10 @@ function MagicMarker:EnableEvents(markOnTarget)
    end
 end
 
-function MagicMarker:DisableEvents()
+function mod:DisableEvents()
    if self.addonEnabled then
       self.addonEnabled = false
-      if self.MMFu then self.MMFu:Update() end
+      mod:UpdateLDB()
       if self.hasInfo then self:info(L["Magic Marker disabled."]) end
       self:UnregisterEvent("PLAYER_REGEN_ENABLED") -- rescan group every time we exit combat.
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
@@ -617,7 +616,7 @@ function MagicMarker:DisableEvents()
    end
 end
 
-function MagicMarker:ToggleMagicMarker()
+function mod:ToggleMagicMarker()
    if self.addonEnabled then
       self:DisableEvents()
    else
@@ -627,14 +626,14 @@ end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
 
-function MagicMarker:MarkRaidTargets()
+function mod:MarkRaidTargets()
    if self.hasDebug then self:debug("Making all targets of the raid.") end
    self:IterateGroup(function (self, unit) self:SmartMark_MarkUnit(unit.."target") end, true)
 end
 
 local groupScanTimer
 
-function MagicMarker:LogClassInformation(unitName, class)
+function mod:LogClassInformation(unitName, class)
    if not class then _,class = UnitClass(unitName)  end
    if class then 
       raidClassList[class] = (raidClassList[class] or 0) + 1
@@ -644,7 +643,7 @@ function MagicMarker:LogClassInformation(unitName, class)
    end
 end
 
-function MagicMarker:ScanGroupMembers()
+function mod:ScanGroupMembers()
    if raidClassList.FAKE then return end
    for id,_ in pairs(raidClassList) do raidClassList[id] = 0 end
    if UnitClass("player") then
@@ -654,7 +653,7 @@ function MagicMarker:ScanGroupMembers()
 end
 
 
-function MagicMarker:CacheRaidMarkForUnit(unit)
+function mod:CacheRaidMarkForUnit(unit)
    local id = GetRaidTargetIndex(unit)
    if id then
       MagicMarkerDB.raidMarkCache[unit] = id
@@ -662,19 +661,19 @@ function MagicMarker:CacheRaidMarkForUnit(unit)
    end
 end
 
-function MagicMarker:CacheRaidMarks()
+function mod:CacheRaidMarks()
    MagicMarkerDB.raidMarkCache = {}   
    if self.hasDebug then self:debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
 
-function MagicMarker:MarkRaidFromCache()
+function mod:MarkRaidFromCache()
    if not MagicMarkerDB.raidMarkCache then
       return
    end
    for unit,id in pairs(MagicMarkerDB.raidMarkCache) do
       if markedTargets[id].uid and markedTargets[id].uid ~= unit then
-	 MagicMarker:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
+	 mod:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
       end
       SetTemplateTarget(id, unit)
       self:SetRaidTarget(unit, id)
@@ -682,7 +681,7 @@ function MagicMarker:MarkRaidFromCache()
    self:SmartMark_RecalculateMarks()
 end
 
-function MagicMarker:IterateGroup(callback, useID, ...)
+function mod:IterateGroup(callback, useID, ...)
    local id, name
    if self.hasSpam then self:spam("Iterating group...") end
    
@@ -709,14 +708,14 @@ function MagicMarker:IterateGroup(callback, useID, ...)
    end   
 end
 
-function MagicMarker:MarkRaidFromTemplate(template)
+function mod:MarkRaidFromTemplate(template)
    if self.hasDebug then self:debug("Marking from template: "..template) end
    local usedMarks = {}
    if template == "arch" or template == "archimonde" then
-      self:IterateGroup(MagicMarker.MarkTemplates.decursers.func, false, usedMarks)
-      self:IterateGroup(MagicMarker.MarkTemplates.shamans.func, false, usedMarks)
-   elseif MagicMarker.MarkTemplates[template] and MagicMarker.MarkTemplates[template].func then
-      self:IterateGroup(MagicMarker.MarkTemplates[template].func, false, usedMarks)
+      self:IterateGroup(mod.MarkTemplates.decursers.func, false, usedMarks)
+      self:IterateGroup(mod.MarkTemplates.shamans.func, false, usedMarks)
+   elseif mod.MarkTemplates[template] and mod.MarkTemplates[template].func then
+      self:IterateGroup(mod.MarkTemplates[template].func, false, usedMarks)
    else
       if self.hasWarn then self:warn(L["Unknown raid template: %s"], template) end
    end
@@ -724,7 +723,7 @@ function MagicMarker:MarkRaidFromTemplate(template)
    if next(usedMarks) then
       for id in pairs(usedMarks) do
 	 if markedTargets[id].uid and markedTargets[id].uid ~= usedMarks[id] then
-	    MagicMarker:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
+	    mod:SmartMark_RemoveGUID(markedTargets[id].guid, nil, nil, true)
 	 end
 	 SetTemplateTarget(id, usedMarks[id])
       end
@@ -732,7 +731,7 @@ function MagicMarker:MarkRaidFromTemplate(template)
    end
 end
 
-function MagicMarker:ScheduleGroupScan()
+function mod:ScheduleGroupScan()
    if groupScanTimer then self:CancelTimer(groupScanTimer, true) end
    groupScanTimer = self:ScheduleTimer("ScanGroupMembers", 5)
 end
@@ -749,10 +748,10 @@ local function UnitIsEligable (unit)
 end
 
 -- Return the hash for the unit of NIL if it's not available
-function MagicMarker:GetUnitHash(uid, currentZone)
+function mod:GetUnitHash(uid, currentZone)
    if not uid then return end
    if currentZone then
-      local zone = MagicMarker:GetZoneName()
+      local zone = mod:GetZoneName()
       local tmpHash = mobdata[zone]
       if tmpHash then
 	 return tmpHash.mobs[uid], zone
@@ -768,7 +767,7 @@ end
 
 local unitValueCache = {}
 
-function MagicMarker:UnitValue(uid, hash, modifier)
+function mod:UnitValue(uid, hash, modifier)
    --   if unitValueCache[unit] then return unitValueCache[unit] end
    local unitData = hash or self:GetUnitHash(uid, true)
    local value, ccvalue = 0, 0
@@ -795,7 +794,7 @@ end
    
 local function IsModifierPressed()
    if GetBindingKey("MAGICMARKSMARTMARK") then
-      return MagicMarker.markKeyDown
+      return mod.markKeyDown
    elseif db.modifier == "ALT" then
       return IsAltKeyDown()
    elseif db.modifier == "SHIFT" then
@@ -821,7 +820,7 @@ local function SmartMark_CCSorter(unit1, unit2)
    end
 end
 
-function MagicMarker:OnAssignData(targets, sender)
+function mod:OnAssignData(targets, sender)
    if not sender then sender = "Unknown" end
    if self.hasDebug then self:debug("[Net:%s] Received assignment data.", sender) end
 --   for id in pairs(tankPriorityList) do
@@ -845,16 +844,16 @@ function MagicMarker:OnAssignData(targets, sender)
    sort(tankPriorityList, SmartMark_TankSorter)
    sort(ccPriorityList, SmartMark_CCSorter)
    self:SmartMark_RecalculateMarks(true)
-   self:UpdateMMFuCount()
+   self:UpdateLDBCount()
 end
 
-function MagicMarker:IsValidMarker()
+function mod:IsValidMarker()
    return IsRaidLeader() or IsRaidOfficer() or GetNumRaidMembers() == 0
 end
 
 -- This is solely for debugging purposes
--- i.e /dump MagicMarker.smdata
-MagicMarker.smdata = {
+-- i.e /dump mod.smdata
+mod.smdata = {
    tank = tankPriorityList,
    cc = ccPriorityList,
    assigned = assignedTargets,
@@ -882,7 +881,7 @@ do
    local categoryMarkCache = {}
    local newCcCount = {}
 
-   function MagicMarker:OnCommResetV2()
+   function mod:OnCommResetV2()
       if self.hasDebug then
 	 self:debug("[Net] Raid cache clear received.")
       end
@@ -902,10 +901,10 @@ do
 	 SetTemplateTarget(id)
 	 marksUsed[id] = nil
       end
-      if self.MMFu and self.MMFu.SetTargetCount then self.MMFu:SetTargetCount(0, 0) end
+      mod:SetTargetCount(0, 0) 
    end
 
-   function MagicMarker:SmartMark_RecalculateMarks(network)
+   function mod:SmartMark_RecalculateMarks(network)
       local id, data, ccount
       local inCombat = InCombatLockdown()
       local canReprioritize = not inCombat or not next(assignedTargets)
@@ -1062,7 +1061,7 @@ do
 
    local updateAssignDataTimer
 
-   function MagicMarker:ScheduleAssignDataSend(network)
+   function mod:ScheduleAssignDataSend(network)
       if updateAssignDataTimer then
 	 self:CancelTimer(updateAssignDataTimer, true)
 	 updateAssignDataTimer = nil
@@ -1070,30 +1069,28 @@ do
       if not network then
 	 updateAssignDataTimer = self:ScheduleTimer("SmartMark_SendAssignments", 2.0)
       end
-      self:UpdateMMFuCount()
+      self:UpdateLDBCount()
    end
 
-   function MagicMarker:UpdateMMFuCount()
-      if self.MMFu and self.MMFu.SetTargetCount then
-	 local total = 0
-	 local marked = 0
-	 local mmdata = self:GetMarkData()
-	 if mmdata  then 
-	    for id, data in pairs(mmdata) do
-	       if data.uid and data.value then
-		  total = total + 1
-		  if data.valid then
-		     marked = marked + 1
-		  end
+   function mod:UpdateLDBCount()
+      local total = 0
+      local marked = 0
+      local mmdata = self:GetMarkData()
+      if mmdata  then 
+	 for id, data in pairs(mmdata) do
+	    if data.uid and data.value then
+	       total = total + 1
+	       if data.valid then
+		  marked = marked + 1
 	       end
 	    end
 	 end
-	 self.MMFu:SetTargetCount(marked, total)
       end
+      mod:SetTargetCount(marked, total)
    end
 
    local MT 
-   function MagicMarker:SmartMark_SendAssignments()
+   function mod:SmartMark_SendAssignments()
       if updateAssignDataTimer then
 	 self:CancelTimer(updateAssignDataTimer, true)
 	 updateAssignDataTimer = nil
@@ -1102,7 +1099,7 @@ do
       self:SendBulkMessage()
    end
 
-   function MagicMarker:SmartMark_AddGUID(guid, uid, name, mobHash)
+   function mod:SmartMark_AddGUID(guid, uid, name, mobHash)
       for id, data in ipairs(tankPriorityList) do
 	 if data.guid == guid then
 	    return data -- already known
@@ -1130,7 +1127,7 @@ do
       end
 
       self:SmartMark_RecalculateMarks()
-      self:UpdateMMFuCount()
+      self:UpdateLDBCount()
       
       return assignedTargets[guid], newhash
    end
@@ -1141,7 +1138,7 @@ do
 	 if found then
 	    hash[id-1] = data
 	 elseif data.guid == guid then
-	    if MagicMarker.trace then MagicMarker:trace(" Found unit to remove: %s", data.guid) end
+	    if mod.trace then mod:trace(" Found unit to remove: %s", data.guid) end
 	    found = data
 	 end
       end
@@ -1151,7 +1148,7 @@ do
       return found
    end
 
-   function MagicMarker:SmartMark_RemoveGUID(guid, mark, fromNetwork, delay)
+   function mod:SmartMark_RemoveGUID(guid, mark, fromNetwork, delay)
       local changed
       if self.hasTrace then self:trace("Looking for unit on tank list...") end
       local changed = SmartMark_CleanList(tankPriorityList, guid)
@@ -1199,19 +1196,19 @@ do
 	    if self.hasTrace then self:trace("Recalculate due to changed unit lists...") end
 	    self:SmartMark_RecalculateMarks()
 	 end
-	 self:UpdateMMFuCount()
+	 self:UpdateLDBCount()
       end
       return changed
    end
 
-   function MagicMarker:SmartMark_MarkUnit(unit)
+   function mod:SmartMark_MarkUnit(unit)
       if not UnitExists(unit) then return end
       local unitName = UnitName(unit)
       if UnitIsDead(unit) then
 	 return
       elseif UnitIsEligable(unit) then
 	 local unitTarget = GetRaidTargetIndex(unit)
-	 local guid, uid = MagicMarker:GetUnitID(unit)
+	 local guid, uid = mod:GetUnitID(unit)
 	 local mobHash = self:InsertNewUnit(uid, unitName, unit)
 	 local data, new
 
@@ -1226,7 +1223,7 @@ do
 
 	 -- Special hack for Thaddius, adds don't die...
 	 if uid == "15929" or uid == "15930" then
-	    MagicMarker.unmarkThaddiusAdds = true
+	    mod.unmarkThaddiusAdds = true
 	 end
 
 	 data = assignedTargets[guid]
@@ -1254,7 +1251,7 @@ do
 			     self:GetTargetName(unitTarget), unitName)
 	       end
 	       self:SmartMark_RecalculateMarks()
-	       self:UpdateMMFuCount()
+	       self:UpdateLDBCount()
 	    end
 	    return
 	 end
@@ -1288,7 +1285,7 @@ end
 
 do
    local tmpdata = {}
-   function MagicMarker:GetAssignData()
+   function mod:GetAssignData()
       
       for id in pairs(tmpdata) do
 	 if not assignedTargets[id] then
@@ -1319,27 +1316,27 @@ do
    end
 end
 
-function MagicMarker:SetRaidTarget(unit, mark)
+function mod:SetRaidTarget(unit, mark)
    if mark and unit and GetRaidTargetIndex(unit) ~= mark then
       SetRaidTarget(unit, mark)
    end
 end
 
-function MagicMarker:SendUrgentMessage(channel)
+function mod:SendUrgentMessage(channel)
    MagicComm:SendUrgentMessage(networkData, "MM", channel)
 end
 
-function MagicMarker:SendBulkMessage(channel)
-   if MagicMarker:IsValidMarker() then
+function mod:SendBulkMessage(channel)
+   if mod:IsValidMarker() then
       MagicComm:SendBulkMessage(networkData, "MM", channel)
    end
 end
 
-function MagicMarker:MarkSingle()
+function mod:MarkSingle()
    self:SmartMark_MarkUnit("target")
 end
 
-function MagicMarker:UnmarkSingle()
+function mod:UnmarkSingle()
    if UnitExists("target") then
       local guid = UnitGUID("target")
       local mark = GetRaidTargetIndex("target")
@@ -1347,12 +1344,12 @@ function MagicMarker:UnmarkSingle()
       if mark then
 	 SetRaidTarget("target", 0)
       end
-      self:UpdateMMFuCount()
+      self:UpdateLDBCount()
    end
 end
 
 
-function MagicMarker:GetMarkData()
+function mod:GetMarkData()
    local atdata
    for id,data in ipairs(markedTargets) do
       local atdata = assignedTargets[data.guid]
@@ -1364,7 +1361,7 @@ function MagicMarker:GetMarkData()
 end
 
 -- Disable memoried marksdata
-function MagicMarker:ResetMarkData(hardReset)
+function mod:ResetMarkData(hardReset)
    local id
    local usedRaidIcons
    local playerIcon
@@ -1423,7 +1420,7 @@ function MagicMarker:ResetMarkData(hardReset)
    end
    if self.hasInfo then self:info(L["Resetting raid targets."]) end
    self:ScanGroupMembers()
-   if self.MMFu and self.MMFu.SetTargetCount then self.MMFu:SetTargetCount(0, 0) end
+   mod:SetTargetCount(0, 0)
 end
 
 local function myconcat(hash, key, str)
@@ -1434,7 +1431,7 @@ local function myconcat(hash, key, str)
    end
 end
 
-function MagicMarker:ReportRaidMarks()
+function mod:ReportRaidMarks()
    local assign = {}
    local dest, test
    if GetNumRaidMembers() > 0 then
@@ -1493,12 +1490,12 @@ end
 -- can use this to set an override for the raid setup - hash like this
 -- { DRUID = 2, MAGE = 1 }
 -- etc
-function MagicMarker:SetFakeRaidMakeUp(map)
+function mod:SetFakeRaidMakeUp(map)
    raidClassList = map
    map.FAKE = 1
 end
 
-function MagicMarker:FixProfileDefaults()
+function mod:FixProfileDefaults()
    if not db.ccprio then
       db.ccprio = {
 	 10, -- sap
@@ -1519,7 +1516,7 @@ function MagicMarker:FixProfileDefaults()
    end
 end
 
-function MagicMarker:OnProfileChanged(event, newdb)
+function mod:OnProfileChanged(event, newdb)
    if event ~= "OnProfileDeleted" then
       db = self.db.profile
       self:FixProfileDefaults()
@@ -1535,11 +1532,11 @@ function MagicMarker:OnProfileChanged(event, newdb)
       
    self:NotifyChange()
 
-   if self.MMFu then self.MMFu:GenerateProfileConfig() end
+   mod:UpdateLDBConfig() 
 end
 
 -- number of groups able to enter the instance, used when scanning groups for CC etc.
-MagicMarker.zoneGroupNum = {
+mod.zoneGroupNum = {
    ["BlackTemple"] = 5,
    ["Gruul'sLair"] = 5,
    ["HyjalSummit"] = 5,

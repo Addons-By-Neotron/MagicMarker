@@ -191,7 +191,7 @@ L["Mark all shamans in the raid"]= "Marque tous les chamans du raid"
 L["Mark the decursers followed by the shamans"] = "Marque tous les décurseurs puis les chamans"
 L["Alias for archimonde"] = "Alias pour Archimonde"
 
--- FuBar plugin
+-- LDB Display
 L["Disabled"] = "Désactivé"
 L["Enabled"] = "Activé"
 L["Zone"] = "Zone"
@@ -200,8 +200,6 @@ L["Toggle event handling"] = "Active/Désactive le traitement des événements"
 L["Load the currently saved raid mark layout."] = "Charge le modèle d'icônes de raid actuellement enregistré"
 L["Save the current raid mark layout."] = "Sauvegarde le modèle actuel d'icônes de raid"
 L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = "Réinitialise le cache des icônes de raid. Notez que ceci préserve les options de Magic Marker ainsi que les icônes sur le raid."
-L["Short FuBar Text"] = "Texte FuBar court"
-L["Hide Magic Marker from the FuBar status text."] = "Cache Magic Marker de la barre d'état de FuBar."
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = "Active ou désactive le traitement des événements, i.e. si Magic Marker doit insérer ou non les monstres dans la base, marquer les monstres, etc."
 L["Toggle the Magic Marker configuration dialog."] = "Affiche/Cache la fenêtre de configuration de Magic MArker"
 L["Report the raid icon assignments to raid/party chat"] = "Signaler les affectations des icônes sur le chat raid/groupe"
@@ -219,11 +217,11 @@ L["Profile name"] = "Nom du profil"
 L["Active profile: %s"] = "Profil actif : %s"
 
 L["TOOLTIP_HINT"] =
-   "\n|cffeda55fClic|r pour afficher/cacher la fenêtre de config.\n"..
-   "|cffeda55fMaj-Clic|r pour activer/désactiver les événements.\n"..
-   "|cffeda55fAlt-Clic|r pour réinitialiser le cache des icônes de raid.\n"..
-   "|cffeda55fAlt-Maj-Clic|r pour faire un reset complet du cache.\n"..
-   "|cffeda55fClic-Milieu|r pour signaler les affectations de raid sur le chat."
+   "|cffeda55fClic|r |cffffd200pour afficher/cacher la fenêtre de config.|r\n"..
+   "|cffeda55fMaj-Clic|r |cffffd200pour activer/désactiver les événements.|r\n"..
+   "|cffeda55fAlt-Clic|r |cffffd200pour réinitialiser le cache des icônes de raid.|r\n"..
+   "|cffeda55fAlt-Maj-Clic|r |cffffd200pour faire un reset complet du cache.|r\n"..
+   "|cffeda55fClic-Milieu|r |cffffd200pour signaler les affectations de raid sur le chat.|r"
 
 -- creature description
 L["Creature type"] = "Type de créature"

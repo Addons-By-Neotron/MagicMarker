@@ -218,7 +218,7 @@ L["Mark all shamans in the raid"]= true
 L["Mark the decursers followed by the shamans"] = true
 L["Alias for archimonde"] = true
 
--- FuBar plugin
+-- LDB Display
 L["Disabled"] = true
 L["Enabled"] = true
 L["Zone"] = true
@@ -226,9 +226,6 @@ L["Status"] = true
 L["Toggle event handling"] = true
 L["Load the currently saved raid mark layout."] = true
 L["Save the current raid mark layout."] = true
-L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
-L["Short FuBar Text"] = true
-L["Hide Magic Marker from the FuBar status text."] = true
 L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = true
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = true
 L["Toggle the Magic Marker configuration dialog."] = true
@@ -249,11 +246,11 @@ L["Profile name"] = true
 L["Active profile: %s"] = true
 
 L["TOOLTIP_HINT"] =
-   "\n|cffeda55fClick|r to toggle config dialog.\n"..
-   "|cffeda55fShift-Click|r to toggle event handling.\n"..
-   "|cffeda55fAlt-Click|r to reset raid icon cache.\n"..
-   "|cffeda55fAlt-Shift-Click|r to hard reset raid icon cache.\n"..
-   "|cffeda55fMiddle-Click|r to print raid assignments to group chat."
+   "|cffeda55fClick|r |cffffd200to toggle config dialog.|r\n"..
+   "|cffeda55fShift-Click|r |cffffd200to toggle event handling.|r\n"..
+   "|cffeda55fAlt-Click|r |cffffd200to reset raid icon cache.|r\n"..
+   "|cffeda55fAlt-Shift-Click|r |cffffd200to hard reset raid icon cache.|r\n"..
+   "|cffeda55fMiddle-Click|r |cffffd200to print raid assignments to group chat.|r"
 
 -- creature description
 L["Creature type"] = true
