@@ -58,7 +58,8 @@ local KEY_BOUND = KEY_BOUND
 local KEY_UNBOUND_ERROR = KEY_UNBOUND_ERROR
 local _G = _G
 
-local MagicMarker = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
+local mod = LibStub("AceAddon-3.0"):GetAddon("MagicMarker")
+local MagicMarker = mod
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 local R = LibStub("AceConfigRegistry-3.0")
 local C = LibStub("AceConfigDialog-3.0")
@@ -67,11 +68,11 @@ local DBOpt = LibStub("AceDBOptions-3.0")
 local BabbleZone = LibStub("LibBabble-Zone-3.0") 
 local ZoneReverse = BabbleZone:GetReverseLookupTable()
 local ZoneLookup  = BabbleZone:GetUnstrictLookupTable()
+BabbleZone = nil
 
 local MobNotesDB
 local options, cmdoptions, standardZoneOptions, standardMobOptions
 local lastRaidIconType
-BabbleZone = nil
 
 local db
 
@@ -149,11 +150,11 @@ local dungeon_tiers = {
    }
 }
 
-function MagicMarker:GetCCID(ccname)
+function mod:GetCCID(ccname)
    return CONFIG_MAP[ccname]
 end
 
-function MagicMarker:GetIconTexture(id)
+function mod:GetIconTexture(id)
    return format("Interface\\AddOns\\MagicMarker\\Textures\\%s.tga",
 			sub(RT_LIST[id], 2))
 end
@@ -186,9 +187,9 @@ do
       else
 	 local oldAction = GetBindingAction(key)
 	 if ( oldAction ~= "" and oldAction ~= info.arg ) then
-	    MagicMarker:SetStatusText(format(KEY_UNBOUND_ERROR, GetBindingText(oldAction, "BINDING_NAME_")), true)
+	    mod:SetStatusText(format(KEY_UNBOUND_ERROR, GetBindingText(oldAction, "BINDING_NAME_")), true)
 	 else
-	    MagicMarker:SetStatusText(KEY_BOUND, true)
+	    mod:SetStatusText(KEY_BOUND, true)
 	 end
 
 	 SetBinding(key, info.arg)
@@ -198,7 +199,7 @@ do
 end
 
 local updateStatusTimer
-function MagicMarker:SetStatusText(text, update)
+function mod:SetStatusText(text, update)
    local frame = C.OpenFrames["Magic Marker"]
    if frame then
       frame:SetStatusText(text)
@@ -237,11 +238,11 @@ local function GetMobNote(arg)
    end
 end
 
-function MagicMarker:NoMobNote(arg)
+function mod:NoMobNote(arg)
    return not (( MobNotesDB and MobNotesDB[GetMobName(arg)]) or GetMobDesc(arg))
 end
 
-function MagicMarker:ToggleConfigDialog()
+function mod:ToggleConfigDialog()
    if C.OpenFrames["Magic Marker"] then
       C:Close("Magic Marker")
    else
@@ -289,7 +290,7 @@ do
       CONFIG_MAP[temp] = num
       RT_LIST[num] = temp
    end
-   for logname,id in pairs(MagicMarker.logLevels) do
+   for logname,id in pairs(mod.logLevels) do
       logLevelsDropdown[id] = L[logname]
    end
 
@@ -297,7 +298,7 @@ do
    cmdoptions = {
       type = "group",
       name = L["Magic Marker"],
-      handler = MagicMarker,
+      handler = mod,
       args = {
 	 versions = {
 	    type = "execute",
@@ -394,7 +395,7 @@ do
 	    order = 2,
 	    cmdHidden = true, 
 	    dropdownHidden = true,
-	    handler = MagicMarker,
+	    handler = mod,
 	    set = "SetCCPrio",
 	    get = "GetCCPrio", 
 	    args = {
@@ -421,7 +422,7 @@ do
 	    type = "group",
 	    name = L["Options"],
 	    order = 0,
-	    handler = MagicMarker,
+	    handler = mod,
 	    set = "SetProfileParam",
 	    get = "GetProfileParam",
 	    cmdHidden = true, 
@@ -495,8 +496,8 @@ do
 			order = 1000,
 			width = "full", 
 			func = "BroadcastRaidTargets",
-			handler = MagicMarker,
-			disabled = not MagicMarker:IsValidMarker()
+			handler = mod,
+			disabled = not mod:IsValidMarker()
 		     },
 		     broadcastMobs = {
 			type = "execute",
@@ -505,8 +506,8 @@ do
 			order = 1001,
 			width = "full", 
 			func = "BroadcastAllZones",
-			handler = MagicMarker,
-			disabled = not MagicMarker:IsValidMarker()
+			handler = mod,
+			disabled = not mod:IsValidMarker()
 		     },
 		     broadcastCCPrio = {
 			type = "execute",
@@ -514,8 +515,8 @@ do
 			order = 1002,
 			width = "full", 
 			func = "BroadcastCCPriorities",
-			handler = MagicMarker,
-			disabled = not MagicMarker:IsValidMarker()
+			handler = mod,
+			disabled = not mod:IsValidMarker()
 		     },
 		  },		  
 	       },
@@ -634,7 +635,7 @@ do
 	 width = "full",
 	 type = "toggle",
 	 name = L["Enable auto-marking on target change"],
-	 handler = MagicMarker,
+	 handler = mod,
 	 set = "SetZoneConfig",
 	 get = "GetZoneConfig",
 	 order = 20,
@@ -643,7 +644,7 @@ do
 	 width = "full",
 	 type = "toggle",
 	 name = L["Enable Magic Marker in this zone"],
-	 handler = MagicMarker,
+	 handler = mod,
 	 set = "SetZoneConfig",
 	 get = "GetZoneConfig",
 	 order = 10,
@@ -653,8 +654,8 @@ do
 	 name = L["Broadcast zone data to the raid group."],
 	 order = 1001,
 	 width = "full", 
-	 func = function(var) MagicMarker:BroadcastZoneData(var[#var-1]) end,
-	 disabled = not MagicMarker:IsValidMarker()
+	 func = function(var) mod:BroadcastZoneData(var[#var-1]) end,
+	 disabled = not mod:IsValidMarker()
       },
       deletehdr = {
 	 type = "header",
@@ -748,7 +749,7 @@ do
    end
 end
 
-function MagicMarker:SetProfileParam(var, value)
+function mod:SetProfileParam(var, value)
    local varName = var[#var]
    db[varName] = value
    if self.hasSpam then 
@@ -760,7 +761,7 @@ function MagicMarker:SetProfileParam(var, value)
    end
 end
 
-function MagicMarker:GetProfileParam(var) 
+function mod:GetProfileParam(var) 
    local varName = var[#var]
    if self.hasSpam then
       self:spam("Getting parameter %s as %s.", varName, tostring(db[varName]))
@@ -768,14 +769,14 @@ function MagicMarker:GetProfileParam(var)
    return db[varName]
 end
 
-function MagicMarker:GetMarkForCategory(category)
+function mod:GetMarkForCategory(category)
    if category == 1 then
       return db.targetdata.TANK or {}
    end
    return db.targetdata[ CC_LIST[category] ] or {}
 end
 
-function MagicMarker:IsUnitIgnored(pri)
+function mod:IsUnitIgnored(pri)
    return pri == CONFIG_MAP.P6
 end
 
@@ -805,14 +806,14 @@ local function uniqList(list, id, newValue, empty, max)
    return list
 end
    
-function MagicMarker:SetRaidTargetConfig(info, value)
+function mod:SetRaidTargetConfig(info, value)
    local type = info[#info-1]
    local id = getID(info[#info])
    value = CONFIG_MAP[value]
    db.targetdata[type] = uniqList(db.targetdata[type] or {}, id, value, 9, 8)
 end
 
-function MagicMarker:GetRaidTargetConfig(info)
+function mod:GetRaidTargetConfig(info)
    local type = info[#info-1]
    local id = getID(info[#info]) or 9
    if not db.targetdata[type] then
@@ -822,7 +823,7 @@ function MagicMarker:GetRaidTargetConfig(info)
    return RT_LIST[ db.targetdata[type][id] ]
 end
 
-function MagicMarker:GetCCPrio(info)
+function mod:GetCCPrio(info)
    local var = info[#info]
    local value = CC_LIST[ db.ccprio[getID(var)] or 1 ]
    if value == CC_LIST['00NONE'] then
@@ -832,14 +833,14 @@ function MagicMarker:GetCCPrio(info)
    return value
 end
 
-function MagicMarker:SetCCPrio(info, value)
+function mod:SetCCPrio(info, value)
    local var = info[#info]
    db.ccprio = uniqList(db.ccprio or {}, getID(var), CONFIG_MAP[value], 1, CONFIG_MAP.NUMCC)
    self:UpdateUsedCCMethods()
    if self.hasSpam then self:spam("Set %s to %s", var, tostring(value)) end
 end
 
-function MagicMarker:UpdateUsedCCMethods()
+function mod:UpdateUsedCCMethods()
    local unused = L["Unused Crowd Control Methods"]
    local used = {}
    local sorted = {}
@@ -872,7 +873,7 @@ function MagicMarker:UpdateUsedCCMethods()
    end
 end
 
-function MagicMarker:SetMobConfig(info, value, state)
+function mod:SetMobConfig(info, value, state)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
@@ -913,7 +914,7 @@ function MagicMarker:SetMobConfig(info, value, state)
    self:QueueData_Add(region, mob, mobhash)
 end
 
-function MagicMarker:GetMobConfig(info, key)
+function mod:GetMobConfig(info, key)
    local var = info[#info]
    local mob = info[#info-1]
    local region = info[#info-2]
@@ -941,7 +942,7 @@ function MagicMarker:GetMobConfig(info, key)
    return value
 end
 
-function MagicMarker:SetZoneConfig(info, value)
+function mod:SetZoneConfig(info, value)
    local var = info[#info]
    local region = info[#info-1]
    mobdata[region][var] = value
@@ -959,57 +960,57 @@ function MagicMarker:SetZoneConfig(info, value)
    end
 end
 
-function MagicMarker:GetZoneConfig(info)
+function mod:GetZoneConfig(info)
    local var = info[#info]
    local region = info[#info-1]
    return mobdata[region][var]
 end
 
 
-function MagicMarker:IsIgnored(var)
-   return MagicMarker:IsUnitIgnored(mobdata[var[#var-2]].mobs[var[#var-1]].priority)
+function mod:IsIgnored(var)
+   return mod:IsUnitIgnored(mobdata[var[#var-2]].mobs[var[#var-1]].priority)
 end
 
-function MagicMarker:IsIgnoredCC(var)
+function mod:IsIgnoredCC(var)
    local mob = mobdata[var[#var-2]].mobs[var[#var-1]]
-   return mob.category == CONFIG_MAP.TANK or MagicMarker:IsUnitIgnored(mob.priority)
+   return mob.category == CONFIG_MAP.TANK or mod:IsUnitIgnored(mob.priority)
 end
 
-function MagicMarker:IsHiddenCC(var)
+function mod:IsHiddenCC(var)
    local index = getID(var[#var])
    return not db.ccprio[index] 
 end
 
-function MagicMarker:IsHiddenRT(var)
+function mod:IsHiddenRT(var)
    local index = getID(var[#var])
    local list = db.targetdata[var[#var-1]]
    return not list or not list[index] 
 end
 
-function MagicMarker:IsHiddenAddRT(var)
+function mod:IsHiddenAddRT(var)
    local index = getID(var[#var])
    local list = db.targetdata[var[#var-1]] 
    if not list then return false end
    return list[#list] == 9 or #list == 8
 end
 
-function MagicMarker:IsHiddenAddCC(var)
+function mod:IsHiddenAddCC(var)
    local cc = db.ccprio
    return cc[#cc] == 1 or #cc == CONFIG_MAP.NUMCC 
 end
    
-function MagicMarker:AddNewCC(var)
+function mod:AddNewCC(var)
    local val = db.ccprio
    val[#val+1] = 1
 end
    
-function MagicMarker:AddNewRT(var)
+function mod:AddNewRT(var)
    local val = db.targetdata[var[#var-1]] or {}
    val[#val+1] = 9
    db.targetdata[var[#var-1]] = val
 end
 
-function MagicMarker:AddAllRT(var)
+function mod:AddAllRT(var)
    local ccid = var[#var-1]
    local val = db.targetdata[ccid] or {}
    local used = {}
@@ -1024,7 +1025,7 @@ function MagicMarker:AddAllRT(var)
    end
 end
 
-function MagicMarker:GetZoneName(zone)
+function mod:GetZoneName(zone)
    local simple, heroic 
    if not zone then
       zone = GetRealZoneText()
@@ -1042,7 +1043,7 @@ end
 
 local simpleNameCache = {}
 
-function MagicMarker:SimplifyName(name)
+function mod:SimplifyName(name)
    if not name then return "" end
    if not simpleNameCache[name] then
       simpleNameCache[name] = gsub(name, " ", "")
@@ -1050,7 +1051,7 @@ function MagicMarker:SimplifyName(name)
    return simpleNameCache[name]
 end
 
-function MagicMarker:GetZoneInfo(hash)
+function mod:GetZoneInfo(hash)
    local new = 0
    local total = 0
    local ignored = 0
@@ -1075,7 +1076,7 @@ local optionsCallout
 local function white(str)
    return format("|cffffffff%s|r", str)
 end
-function MagicMarker:InsertNewUnit(uid, name, unit)
+function mod:InsertNewUnit(uid, name, unit)
    local simpleName = self:SimplifyName(name)
    local simpleZone, zone, isHeroic, isRaid = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, mm = 1, heroic = isHeroic }
@@ -1145,7 +1146,7 @@ function MagicMarker:InsertNewUnit(uid, name, unit)
    return mobHash
 end
 
-function MagicMarker:GetZoneConfigHash(zone, name)
+function mod:GetZoneConfigHash(zone, name)
    local era
    local shortname = strreplace(name, "Heroic", "")
    if dungeon_tiers.wotlk[shortname] then
@@ -1183,7 +1184,7 @@ function MagicMarker:GetZoneConfigHash(zone, name)
 end
 
 
-function MagicMarker:RemoveZone(var)
+function mod:RemoveZone(var)
    local zone = var[#var-1]
    if self.hasWarn then
       self:warn(L["Deleting zone %s from the database!"],
@@ -1197,7 +1198,7 @@ function MagicMarker:RemoveZone(var)
    self:NotifyChange()
 end
 
-function MagicMarker:RemoveMob(var)
+function mod:RemoveMob(var)
    local mob = var[#var-1]
    local zone = var[#var-2]
    local hash = mobdata[zone]
@@ -1213,7 +1214,7 @@ function MagicMarker:RemoveMob(var)
    self:NotifyChange()
 end
 
-function MagicMarker:BuildMobConfig(var)
+function mod:BuildMobConfig(var)
    local mob = var[#var-1]
    local zone = var[#var-2]
 
@@ -1244,14 +1245,14 @@ function MagicMarker:BuildMobConfig(var)
    self:NotifyChange()
 end
 
-function MagicMarker:NotifyChange()
+function mod:NotifyChange()
    db = self.db.profile
    mobdata = MagicMarkerDB.mobdata
    self:UpdateUsedCCMethods()
    R:NotifyChange(L["Magic Marker"])
 end
  
-function MagicMarker:GenerateOptions()
+function mod:GenerateOptions()
    local opts = options.args.categories.args
    local subopts, order
 
@@ -1259,7 +1260,7 @@ function MagicMarker:GenerateOptions()
 
    mobdata = MagicMarkerDB.mobdata
    
-   options.handler = MagicMarker
+   options.handler = mod
    options.args.categories.set = "SetRaidTargetConfig"
    options.args.categories.get = "GetRaidTargetConfig"
 
@@ -1337,7 +1338,7 @@ function MagicMarker:GenerateOptions()
       opts[cmd] = {
 	 type = "execute",
 	 name = data.desc,
-	 func = function() MagicMarker:MarkRaidFromTemplate(cmd) end,
+	 func = function() mod:MarkRaidFromTemplate(cmd) end,
 	 order = data.order
       }
    end
@@ -1345,22 +1346,20 @@ function MagicMarker:GenerateOptions()
    self:UpdateUsedCCMethods()
 
    options.args.options.args.profile = DBOpt:GetOptionsTable(self.db)
-   if self.MMFu then
-      self.MMFu:GenerateProfileConfig()
-   end
+   mod:UpdateLDBConfig()
 end
 
-function MagicMarker:AddZoneConfig(zone, zonedata)
+function mod:AddZoneConfig(zone, zonedata)
    local subZone = self:GetZoneConfigHash(zonedata, zone)
    subZone.args[zone] = self:ZoneConfigData(zone, zonedata)
 end
 
-function MagicMarker:ZoneConfigData(id, zone)
+function mod:ZoneConfigData(id, zone)
    local name = ZoneLookup[zone.name] or zone.name
    return {
       type = "group",
       name = name,
-      handler = MagicMarker, 
+      handler = mod, 
       args = {
 	 zoneInfo = {
 	    type = "description",
@@ -1393,7 +1392,7 @@ function MagicMarker:ZoneConfigData(id, zone)
    }
 end
 
-function MagicMarker:LoadMobListForZone(var)
+function mod:LoadMobListForZone(var)
    local zone = (type(var) == "table" and var[#var-1]) or var
    local zoneData = self:GetZoneConfigHash(mobdata[zone], zone).args[zone]
    local name = mobdata[zone].name
@@ -1425,7 +1424,7 @@ function MagicMarker:LoadMobListForZone(var)
    self:NotifyChange()
 end
 
-function MagicMarker:MoveRaidIconDown(num)
+function mod:MoveRaidIconDown(num)
    if not lastRaidIconType then return end
    if self.hasTrace then self:trace("Moving %s down from position %d", tostring(lastRaidIconType), num) end
    if db.targetdata[lastRaidIconType][num+1] then
@@ -1436,7 +1435,7 @@ function MagicMarker:MoveRaidIconDown(num)
    end
 end
 
-function MagicMarker:MoveRaidIconUp(num)
+function mod:MoveRaidIconUp(num)
    if not lastRaidIconType then return end
    if self.hasTrace then self:trace("Moving %s up from position %d", tostring(lastRaidIconType), num) end
    local old = db.targetdata[lastRaidIconType][num]
@@ -1446,7 +1445,7 @@ function MagicMarker:MoveRaidIconUp(num)
 end
 
 
-function MagicMarker:MoveCCPrioDown(num)
+function mod:MoveCCPrioDown(num)
    if self.hasTrace then self:trace("Swapping CC position %d down one", num) end
    if db.ccprio[num+1] then
       local old = db.ccprio[num]
@@ -1456,7 +1455,7 @@ function MagicMarker:MoveCCPrioDown(num)
    end
 end
 
-function MagicMarker:MoveCCPrioUp(num)
+function mod:MoveCCPrioUp(num)
    if self.hasTrace then self:trace("Swapping CC position %d up one", num) end
    local old = db.ccprio[num]
    db.ccprio[num] = db.ccprio[num-1]   
@@ -1464,7 +1463,7 @@ function MagicMarker:MoveCCPrioUp(num)
    self:NotifyChange()
 end
 
-function MagicMarker:GetCCName(ccid, val)
+function mod:GetCCName(ccid, val)
    if ccid == -1 then 
       return L["External"]
    elseif ccid == -2 then
@@ -1476,14 +1475,14 @@ function MagicMarker:GetCCName(ccid, val)
    end
 end
 
-function MagicMarker:GetTargetHashData()
+function mod:GetTargetHashData()
    if not UnitExists("target") then return nil end
    local guid, uid, name = self:GetUnitID("target")
    local hash, zone = self:GetUnitHash(uid, true)
    return hash, uid, zone
 end
 
-function MagicMarker:Target_ChangePriority(change, cc)
+function mod:Target_ChangePriority(change, cc)
    local hash, uid, zone = self:GetTargetHashData()
    if not hash then return end
    local priority
@@ -1518,7 +1517,7 @@ function MagicMarker:Target_ChangePriority(change, cc)
    end
 end
 
-function MagicMarker:Target_SwapCategory()
+function mod:Target_SwapCategory()
    local hash, uid, zone = self:GetTargetHashData()
    if not hash then return end
    if hash.category == 1 then hash.category = 2 else hash.category = 1 end
@@ -1531,7 +1530,7 @@ end
 
 do
    local iconLink = "|TInterface\\AddOns\\MagicMarker\\Textures\\%s.tga:0|t"
-   function MagicMarker:GetTargetName(ccid, link)
+   function mod:GetTargetName(ccid, link)
       if not ccid then
 	 return "N/A"
       elseif link then
@@ -1560,7 +1559,7 @@ do
       Naxxramas=true,  TheObsidianSanctum=true, VaultofArchavon=true, TheEyeofEternity=true, Ulduar=true, TrialoftheCrusader=true, IcecrownCitadel=true
    }
 
-   function MagicMarker:UpgradeDatabase()
+   function mod:UpgradeDatabase()
       local version = MagicMarkerDB.version or 0
       
       if version < 1 then
@@ -1678,7 +1677,7 @@ local function AddKeyBinding(keyname, name, desc)
    keyBindingOrder = keyBindingOrder + 1
 end
 
-function MagicMarker:AboutMagicMarker()
+function mod:AboutMagicMarker()
    self:Print("|cffafa4ffAuthor:|r David Hedbor <neotron@gmail.com>")
    self:Print("|cffafa4ffDescription:|r Automated smart raid marking to speed up trash clearing in instance runs.")
    self:Print("|cffafa4ffVersion:|r"..self.version)
@@ -1686,7 +1685,7 @@ function MagicMarker:AboutMagicMarker()
    self:Print("|cffafa4ffPowered by:|r Ace3")
 end
 
-function MagicMarker:GetOptions()
+function mod:GetOptions()
    return options
 end
 -- Keybind names

@@ -189,7 +189,7 @@ L["Mark all shamans in the raid"]= "標出所有團隊中的薩滿"
 L["Mark the decursers followed by the shamans"] = "標出跟著薩滿的所有驅散魔法者"
 L["Alias for archimonde"] = true
 
--- FuBar plugin
+-- LDB Display
 L["Disabled"] = "關閉"
 L["Enabled"] = "開啟"
 L["Zone"] = "區域"
@@ -197,9 +197,6 @@ L["Status"] = "狀態"
 L["Toggle event handling"] = "切換事件處理"
 L["Load the currently saved raid mark layout."] = "讀取目前儲存的團隊標記配置"
 L["Save the current raid mark layout."] = "儲存目前的團隊標記配置"
-L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = "重置團隊圖示快取。注意，這會接收例如「保留團隊標記」的選項。"
-L["Short FuBar Text"] = "最小化"
-L["Hide Magic Marker from the FuBar status text."] = true
 L["Reset the raid icon cache. Note that this honors the Magic Marker options such as preserve raid marks."] = "重置團隊圖示快取。注意，這會接收例如「保留團隊標記」的選項。"
 L["Enable or disable the event handling, i.e whether or not Magic Marker will insert mobs into the mob database, mark mobs etc."] = true
 L["Toggle the Magic Marker configuration dialog."] = "開關 Magic Marker 設定對話框"
@@ -219,11 +216,11 @@ L["Profile name"] = true
 L["Active profile: %s"] = true
 
 L["TOOLTIP_HINT"] =
-   "\n|cffeda55fClick|r 開關設定視窗。\n"..
-   "|cffeda55fShift-Click|r 切換事件處理。\n"..
-   "|cffeda55fAlt-Click|r 重設團隊圖示快取記憶。\n"..
-   "|cffeda55fAlt-Shift-Click|r 強行重設團隊圖示快取記憶。\n"..
-   "|cffeda55fMiddle-Click|r to print raid assignments to group chat."
+   "|cffeda55fClick|r |cffffd200Hint:|r 開關設定視窗。|r\n"..
+   "|cffeda55fShift-Click|r |cffffd200Hint:|r 切換事件處理。|r\n"..
+   "|cffeda55fAlt-Click|r |cffffd200Hint:|r 重設團隊圖示快取記憶。|r\n"..
+   "|cffeda55fAlt-Shift-Click|r |cffffd200Hint:|r 強行重設團隊圖示快取記憶。|r\n"..
+   "|cffeda55fMiddle-Click|r |cffffd200Hint:|r to print raid assignments to group chat.|r"
 
 -- creature description
 L["Creature type"] = true

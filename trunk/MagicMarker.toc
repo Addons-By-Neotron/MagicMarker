@@ -5,10 +5,8 @@
 ## Version: 1.0.@project-revision@
 ## DefaultState: enabled
 ## X-Category: Raid
-## X-eMail: neotron@gmail.com
-
-## OptionalDeps: Ace3, MobNotes, LibBabble-Zone-3.0, LibLogger-1.0, MagicComm
-## X-Embeds: Ace3, LibBabble-Zone-3.0, LibLogger-1.0, MagicComm
+## X-EMail: neotron@gmail.com
+## OptionalDeps: Ace3, MobNotes, LibBabble-Zone-3.0, LibLogger-1.0, MagicComm. LibQTip-1.0, LibDataBroker-1.1, LibDropdown-1.0
 ## SavedVariables: MagicMarkerDB, MagicMarkerConfigDB
 
 # Library files
@@ -19,4 +17,4 @@ Config.lua
 MMRaidIcon.lua
 MMCCPrio.lua
 MarkTemplates.lua
-
+MM_LDB.lua
