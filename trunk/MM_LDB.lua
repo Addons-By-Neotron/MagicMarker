@@ -230,9 +230,9 @@ function mod:OnLDBEnter(frame)
 
 
    y = tooltip:AddLine( _n(L["Status"]));
-   tooltip:SetCell(y, 2, mod.addonEnabled and L["Enabled"] or L["Disabled"], nil, "LEFT", 3)
+   tooltip:SetCell(y, 2, mod.addonEnabled and L["Enabled"] or L["Disabled"], nil, "RIGHT", 3)
    y = tooltip:AddLine( _n(L["Zone"]))
-   tooltip:SetCell(y, 2, zone, nil, "LEFT", 3)
+   tooltip:SetCell(y, 2, zone, nil, "RIGHT", 3)
 
    local zoneID, _, heroic = mod:GetZoneName(zone)
    local inInstance, type = IsInInstance()
@@ -253,7 +253,7 @@ function mod:OnLDBEnter(frame)
 	 difftext = heroic and L["Heroic"] or L["Normal"]
       end
       y = tooltip:AddLine( _n(L["Difficulty"]));
-      tooltip:SetCell(y, 2, difftext, nil, "LEFT", 3)
+      tooltip:SetCell(y, 2, difftext, nil, "RIGHT", 3)
    end
    
    if MMDB.mobdata[zoneID] then
