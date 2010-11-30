@@ -119,7 +119,10 @@ local dungeon_tiers = {
       ["Ahn'kahet:TheOldKingdom"]=true,
       ["Azjol-Nerub"]=true,
       ["TheNexus"]=true,
-      ["UtgardeKeep"]=true,      
+      ["UtgardeKeep"]=true,
+      ["PitofSaron"]=true,
+      ["TheForgeofSouls"]=true,
+      ["HallsofReflection"]=true,
    },
    bc = {
       ["BlackTemple"]=true,
@@ -147,6 +150,19 @@ local dungeon_tiers = {
       ["TheSlavePens"]=true,
       ["TheBloodFurnace"]=true,
       ["HellfireRamparts"]=true,
+   },
+   cata = {
+      ["BaradinHold"]=true,
+      ["BlackwingDescent"]=true,
+      ["TheBastionOfTwilight"]=true,
+      ["ThroneoftheFourWinds"]=true,
+      ["GrimBatol"]=true, 
+      ["HallsofOrigination"]=true,
+      ["LostCityoftheTol'vir"]=true,
+      ["TheStonecore"]=true,
+      ["TheVortexPinnacle"]=true,
+      ["ThroneoftheTides"]=true,
+      ["BlackrockCaverns"]=true,
    }
 }
 
@@ -363,9 +379,10 @@ do
 	    type = "group",
 	    name = L["Mob Database"],
 	    args = {
-	       vanilla = { name = "Original", type = "group", args = {}, order = 30 },
-	       wotlk = { name = "Wrath of the Lich King", type = "group", args = {}, order = 10},
-	       bc = { name = "Burning Crusade", type = "group", args = {}, order = 20},
+	       cata = { name = L["Cataclysm"], type = "group", args = {}, order = 10},
+	       wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 20},
+	       bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 30},
+	       vanilla = { name = L["Original"], type = "group", args = {}, order = 40 },
 	    }, 
 	    order = 300,
 	    cmdHidden = true, 
