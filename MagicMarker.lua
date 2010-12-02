@@ -207,7 +207,8 @@ function mod:OnInitialize()
 
    MagicMarkerDB.unitCategoryMap = nil -- Delete old data, no way to convert since it's missing zone info
 
-   mobdata = MagicMarkerDB.mobdata
+   mobdata = MagicMarkerDB.mobdata or {}
+   MagicMarkerDB.mobdata = mobdata
    db = self.db.profile
    -- Buggy FuBar_MM caused these to be stored as strings
    db.logLevel = tonumber(db.logLevel)

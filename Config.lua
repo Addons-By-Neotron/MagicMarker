@@ -1578,7 +1578,7 @@ do
 
    function mod:UpgradeDatabase()
       local version = MagicMarkerDB.version or 0
-      MagicMarkerDB.mobdata = MagicMarkerDB.mobdata or {}
+
       if version < 1 then
 	 -- Added two new priority levels and change logging 
 	 MagicMarkerDB.logLevel = (MagicMarkerDB.debug and self.logLevels.DEBUG) or self.logLevels.INFO
