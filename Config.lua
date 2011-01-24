@@ -91,7 +91,7 @@ local CC_LIST = {
    "00NONE", "SHEEP", "BANISH", "SHACKLE", "HIBERNATE", "TRAP", "KITE",
    "MC", "FEAR", "SAP", "ENSLAVE", "ROOT",
    "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL", "BLIND", "BURN",
-   "HEX", "REPENTANCE"
+   "HEX", "REPENTANCE", "BINDELEMENTAL"
 }
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
@@ -100,70 +100,70 @@ local ccDropdown, ccpriDropdown, priDropdown, catDropdown, raidIconDropdown, log
 
 local dungeon_tiers = {
    wotlk = {
-      ["Naxxramas"]=true,
-      ["TheEyeofEternity"]=true,
-      ["TheObsidianSanctum"]=true,
-      ["TrialoftheCrusader"]=true,
-      ["Ulduar"]=true,
-      ["IcecrownCitadel"]=true,
-      ["VaultofArchavon"]=true,
-      ["TheCullingofStratholme"]=true,
-      ["TheOculus"]=true,
-      ["TrialoftheChampion"]=true,
-      ["HallsofLightning"]=true,
-      ["UtgardePinnacle"]=true,
-      ["HallsofStone"]=true,
-      ["Gundrak"]=true,
-      ["TheVioletHold"]=true,
-      ["Drak'TharonKeep"]=true,
       ["Ahn'kahet:TheOldKingdom"]=true,
       ["Azjol-Nerub"]=true,
-      ["TheNexus"]=true,
-      ["UtgardeKeep"]=true,
-      ["PitofSaron"]=true,
-      ["TheForgeofSouls"]=true,
+      ["Drak'TharonKeep"]=true,
+      ["Gundrak"]=true,
+      ["HallsofLightning"]=true,
       ["HallsofReflection"]=true,
+      ["HallsofStone"]=true,
+      ["IcecrownCitadel"]=true,
+      ["Naxxramas"]=true,
+      ["PitofSaron"]=true,
+      ["TheCullingofStratholme"]=true,
+      ["TheEyeofEternity"]=true,
+      ["TheForgeofSouls"]=true,
+      ["TheNexus"]=true,
+      ["TheObsidianSanctum"]=true,
+      ["TheOculus"]=true,
+      ["TheVioletHold"]=true,
+      ["TrialoftheChampion"]=true,
+      ["TrialoftheCrusader"]=true,
+      ["Ulduar"]=true,
+      ["UtgardeKeep"]=true,
+      ["UtgardePinnacle"]=true,
+      ["VaultofArchavon"]=true,
    },
    bc = {
+      ["AuchenaiCrypts"]=true,
       ["BlackTemple"]=true,
-      ["HyjalSummit"]=true,
-      ["SerpentshrineCavern"]=true,
       ["Gruul'sLair"]=true,
-      ["Magtheridon'sLair"]=true,
+      ["HellfireRamparts"]=true,
+      ["HyjalSummit"]=true,
       ["Karazhan"]=true,
+      ["Magisters'Terrace"]=true,
+      ["Magtheridon'sLair"]=true,
+      ["Mana-Tombs"]=true,
+      ["OldHillsbradFoothills"]=true,
+      ["SerpentshrineCavern"]=true,
+      ["SethekkHalls"]=true,
+      ["ShadowLabyrinth"]=true,
       ["SunwellPlateau"]=true,
       ["TempestKeep"]=true,
-      ["Zul'Aman"]=true,
-      ["ShadowLabyrinth"]=true,
-      ["TheBlackMorass"]=true,
-      ["TheSteamvault"]=true,
-      ["TheShatteredHalls"]=true,
-      ["Magisters'Terrace"]=true,
       ["TheArcatraz"]=true,
+      ["TheBlackMorass"]=true,
+      ["TheBloodFurnace"]=true,
       ["TheBotanica"]=true,
       ["TheMechanar"]=true,
-      ["SethekkHalls"]=true,
-      ["OldHillsbradFoothills"]=true,
-      ["AuchenaiCrypts"]=true,
-      ["Mana-Tombs"]=true,
-      ["TheUnderbog"]=true,
+      ["TheShatteredHalls"]=true,
       ["TheSlavePens"]=true,
-      ["TheBloodFurnace"]=true,
-      ["HellfireRamparts"]=true,
+      ["TheSteamvault"]=true,
+      ["TheUnderbog"]=true,
+      ["Zul'Aman"]=true,
    },
    cata = {
       ["BaradinHold"]=true,
+      ["BlackrockCaverns"]=true,
       ["BlackwingDescent"]=true,
-      ["TheBastionOfTwilight"]=true,
-      ["ThroneoftheFourWinds"]=true,
       ["GrimBatol"]=true, 
       ["HallsofOrigination"]=true,
       ["LostCityoftheTol'vir"]=true,
+      ["TheBastionOfTwilight"]=true,
+      ["TheBastionofTwilight"] = true,
       ["TheStonecore"]=true,
       ["TheVortexPinnacle"]=true,
+      ["ThroneoftheFourWinds"]=true,
       ["ThroneoftheTides"]=true,
-      ["BlackrockCaverns"]=true,
-      ["TheBastionofTwilight"] = true,
    }
 }
 
@@ -906,11 +906,6 @@ function mod:SetMobConfig(info, value, state)
 	 local ccopt = mobhash.ccopt or {}
 
 	 ccopt[value] = state or nil
-	 if value == CONFIG_MAP.TURNUNDEAD then
-	    -- If turn undead works / doesn't work, so does turn evil
-	    ccopt[CONFIG_MAP.TURNEVIL] = state or nil
-	 end
-
 	    	 
 	 if not next(ccopt) then
 	    mobhash.ccopt = nil
@@ -1198,13 +1193,13 @@ end
 function mod:GetZoneConfigHash(zone, name)
    local era
    local shortname = strreplace(name, "Heroic", "")
-   if dungeon_tiers.cata[shortname] then 
-      era = options.args.mobs.args.cata
-   elseif dungeon_tiers.wotlk[shortname] then
-      era = options.args.mobs.args.wotlk
-   elseif dungeon_tiers.bc[shortname] then 
-      era = options.args.mobs.args.bc
-   else
+   for expansion, dungeons in pairs(dungeon_tiers) do
+      if dungeons[shortname] then 
+	 era = options.args.mobs.args[expansion]
+	 break
+      end
+   end
+   if not era then
       era = options.args.mobs.args.vanilla
    end
   
