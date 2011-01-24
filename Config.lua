@@ -163,6 +163,7 @@ local dungeon_tiers = {
       ["TheVortexPinnacle"]=true,
       ["ThroneoftheTides"]=true,
       ["BlackrockCaverns"]=true,
+      ["TheBastionofTwilight"] = true,
    }
 }
 
@@ -1093,14 +1094,45 @@ local optionsCallout
 local function white(str)
    return format("|cffffffff%s|r", str)
 end
-function mod:InsertNewUnit(uid, name, unit)
+
+local function CompatGUIDToUID(guid)
+   local uid = tonumber(sub(guid, 8, 12), 16)
+   if uid == 0 then
+      return nil
+   end
+   return tostring(uid)
+end
+
+
+function mod:InsertNewUnit(guid, uid, name, unit)
    local simpleName = self:SimplifyName(name)
    local simpleZone, zone, isHeroic, isRaid = self:GetZoneName()
    local zoneHash = mobdata[simpleZone] or { name = zone, mobs = { }, mm = 1, heroic = isHeroic }
    local changed
-   local mobHash
-   zoneHash.isRaid = isRaid 
-   if not zoneHash.mobs[uid] then
+   local mobHash = zoneHash.mobs[uid] 
+   zoneHash.isRaid = isRaid
+   
+   -- Yeah this is not good but unavoidable for upgrade purposes.
+   -- Stupid UID being broken with absolutely no way to convert
+   -- correctly.
+   for oldUID,hash in pairs(zoneHash.mobs) do
+      if uid ~= oldUID and hash.name == name then
+	 if mobHash then
+	    mod:MergeCCMethods(mobHash, hash)
+	 else
+	    zoneHash.mobs[uid] = hash
+	    mobHash = hash
+	 end
+	 if mod.hasTrace then
+	    mod:trace("Upgraded broken uid %d to %d for %s.",
+		      oldUID, uid, mobHash.name);
+	 end
+	 zoneHash.mobs[oldUID] = nil
+	 changed = true
+      end
+   end
+
+   if not mobHash then
       if zoneHash.mobs[simpleName] then
 	 -- 2.4 conversion to use mob id instead of simplified mob name
 	 zoneHash.mobs[uid] = zoneHash.mobs[simpleName]
@@ -1166,9 +1198,11 @@ end
 function mod:GetZoneConfigHash(zone, name)
    local era
    local shortname = strreplace(name, "Heroic", "")
-   if dungeon_tiers.wotlk[shortname] then
+   if dungeon_tiers.cata[shortname] then 
+      era = options.args.mobs.args.cata
+   elseif dungeon_tiers.wotlk[shortname] then
       era = options.args.mobs.args.wotlk
-   elseif  dungeon_tiers.bc[shortname] then 
+   elseif dungeon_tiers.bc[shortname] then 
       era = options.args.mobs.args.bc
    else
       era = options.args.mobs.args.vanilla
