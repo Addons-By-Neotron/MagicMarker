@@ -177,7 +177,7 @@ local function LowSetTarget(id, uid, val, ccid, guid)
 end
 
 local function GUIDToUID(guid)
-   local uid = tonumber(sub(guid, 8, 12), 16)
+   local uid = tonumber(sub(guid, 7, 10), 16)
    if uid == 0 then
       return nil
    end
@@ -1209,8 +1209,8 @@ do
 	 return
       elseif UnitIsEligable(unit) then
 	 local unitTarget = GetRaidTargetIndex(unit)
-	 local guid, uid = mod:GetUnitID(unit)
-	 local mobHash = self:InsertNewUnit(uid, unitName, unit)
+	 local guid, uid = mod:GetUnitID(unit)	 
+	 local mobHash = self:InsertNewUnit(guid, uid, unitName, unit)
 	 local data, new
 
 	 if not self:IsValidMarker() then
