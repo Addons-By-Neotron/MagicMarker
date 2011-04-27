@@ -20,11 +20,11 @@ along with mod.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-MagicMarker = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
+local mod = LibStub("AceAddon-3.0"):NewAddon("MagicMarker", "AceConsole-3.0",
 						     "AceEvent-3.0", "AceTimer-3.0",
 						     "LibLogger-1.0")
+MagicMarker = mod
 local MagicMarker = MagicMarker
-local mod = MagicMarker
 local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
@@ -75,7 +75,7 @@ local tostring = tostring
 local type = type
 
 -- Number of CC used for each crowd control method
-local networkData = {}
+local networkData = { }
 
 -- class makeup of the party/raid
 local raidClassList = {}
@@ -503,8 +503,8 @@ function mod:BroadcastCCPriorities()
    self:SendBulkMessage()
 end
 
-function mod:HandleCombatEvent(_, _, event, _, _, _,
-				       guid, name, _, spellid, spellname)
+function mod:HandleCombatEvent(_, _, event, _, _, _, _,
+			       guid, name, _, spellid, spellname)
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
       if not ccid then return end

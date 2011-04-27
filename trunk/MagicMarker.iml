@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="LUA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="FrameXML" level="application" />
+    <orderEntry type="library" name="Ace3" level="application" />
+    <orderEntry type="library" name="WoW Libs" level="application" />
+    <orderEntry type="library" name="Magic Utility Libs" level="application" />
+  </component>
+</module>
+
