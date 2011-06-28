@@ -503,8 +503,22 @@ function mod:BroadcastCCPriorities()
    self:SendBulkMessage()
 end
 
-function mod:HandleCombatEvent(_, _, event, _, _, _, _,
-			       guid, name, _, spellid, spellname)
+function mod:HandleCombatEvent(_, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags,
+			       sourceRaidFlags, -- 4.1  guid
+			       guid, -- 4.1 name
+			       name, -- 4.1 destflags
+			       destflags, -- 4.1 spellid
+			       destRaidFlags, -- 4.1 spellname
+			       spellid, spellname)
+
+   if type(sourceRaidFlags) == "string" then
+      -- 4.1 compatibility
+      spellname = destRaidFlags
+      spellid = destflags
+      destflags = name
+      name = guid
+      guid = sourceRaidFlags
+   end
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
       if not ccid then return end

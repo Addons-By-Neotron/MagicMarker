@@ -163,6 +163,7 @@ local dungeon_tiers = {
     ["TheVortexPinnacle"] = true,
     ["ThroneoftheFourWinds"] = true,
     ["ThroneoftheTides"] = true,
+    ["Firelands"]=true,
   }
 }
 
