@@ -1,0 +1,41 @@
+﻿<Bindings>
+	<Binding name="MAGICMARKTOGGLE" header="MagicMarker">
+		MagicMarker:ToggleConfigDialog()
+	</Binding>
+	<Binding name="MAGICMARKRESET">
+		MagicMarker:ResetMarkData()
+	</Binding>
+	<Binding name="MAGICMARKMARK">
+		MagicMarker:MarkSingle()
+	</Binding>
+	<Binding name="MAGICMARKUNMARK">
+		MagicMarker:UnmarkSingle()
+	</Binding>
+	<Binding name="MAGICMARKRAID">
+		MagicMarker:MarkRaidTargets()
+	</Binding>
+	<Binding name="MAGICMARKLOAD">
+                MagicMarker:MarkRaidFromCache()
+	</Binding>
+	<Binding name="MAGICMARKSAVE">
+		MagicMarker:CacheRaidMarks()
+	</Binding>
+        <Binding name="MAGICMARKSMARTMARK" runOnUp="true">
+                MagicMarker.markKeyDown = keystate == "down"
+        </Binding>
+        <Binding name="MAGICMARKINCREASEPRIO">
+                MagicMarker:Target_ChangePriority(1)
+        </Binding>
+        <Binding name="MAGICMARKDECREASEPRIO">
+                MagicMarker:Target_ChangePriority(-1)
+        </Binding>
+        <Binding name="MAGICMARKINCREASEPRIOCC">
+                MagicMarker:Target_ChangePriority(1, true)
+        </Binding>
+        <Binding name="MAGICMARKDECREASEPRIOCC">
+                MagicMarker:Target_ChangePriority(-1, true)
+        </Binding>
+        <Binding name="MAGICMARKSWAPTYPE">
+                MagicMarker:Target_SwapCategory()
+        </Binding>
+</Bindings>
