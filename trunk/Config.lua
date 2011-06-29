@@ -1192,7 +1192,7 @@ end
 
 function mod:GetZoneConfigHash(zone, name)
   local era
-  local shortname = strreplace(name, "Heroic", "")
+  local shortname = gsub(name, "Heroic", "")
   for expansion, dungeons in pairs(dungeon_tiers) do
     if dungeons[shortname] then
       era = options.args.mobs.args[expansion]
