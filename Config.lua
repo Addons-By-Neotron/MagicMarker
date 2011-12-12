@@ -1087,7 +1087,7 @@ end
 local optionsCallout
 
 local function white(str)
-  return format("|cffffffff%s|r", str)
+  return format("|cffffffff%s|r", str or "N/A")
 end
 
 local function CompatGUIDToUID(guid)
@@ -1156,7 +1156,7 @@ function mod:InsertNewUnit(guid, uid, name, unit)
     local type = UnitCreatureType(unit)
     local mana = UnitManaMax(unit)
     local class = UnitClassification(unit)
-    local desc = L["Creature type"] .. ": " .. white(type)
+    local desc = L["Creature type"] .. ": " .. (white(type or "Unknown"))
     if family then
       desc = desc .. ", " .. L["family"] .. ": " .. white(family)
     end
