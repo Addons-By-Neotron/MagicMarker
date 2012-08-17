@@ -33,8 +33,7 @@ mod.MINOR_VERSION = tonumber('@project-revision@') or tonumber(("$Revision$"):ma
 
 -- Upvalue of global functions
 local GetBindingKey = GetBindingKey
-local GetNumPartyMembers = GetNumPartyMembers
-local GetNumRaidMembers = GetNumRaidMembers
+local GetNumGroupMembers = GetNumGroupMembers
 local GetRaidRosterInfo = GetRaidRosterInfo
 local GetRaidTargetIndex = GetRaidTargetIndex
 local GetRealZoneText = GetRealZoneText
@@ -43,8 +42,9 @@ local InCombatLockdown = InCombatLockdown
 local IsAltKeyDown = IsAltKeyDown
 local IsControlKeyDown = IsControlKeyDown
 local IsInInstance = IsInInstance
-local IsRaidLeader = IsRaidLeader
-local IsRaidOfficer = IsRaidOfficer
+local UnitIsGroupLeader = UnitIsGroupLeader
+local IsInRaid = IsInRaid
+local UnitIsGroupAssistant = UnitIsGroupAssistant
 local IsShiftKeyDown = IsShiftKeyDown
 local LibStub = LibStub
 local SendChatMessage = SendChatMessage
@@ -700,22 +700,22 @@ function mod:IterateGroup(callback, useID, ...)
    local id, name
    if self.hasSpam then self:spam("Iterating group...") end
    
-   if GetNumRaidMembers() > 0 then
+   if IsInRaid() then
       local maxgrp, class, groupid, online, dead
       local playerName = UnitName("player")
       local zoneID, zone = self:GetZoneName()
 
       maxgrp = self.zoneGroupNum[zoneID]
 
-      for id = 1,GetNumRaidMembers() do
+      for id = 1,GetNumGroupMembers() do
 	 name, _, groupid, _, _, class, _, online, dead = GetRaidRosterInfo(id)
 	 if name == playerName or (online and (not db.filterdead or not dead) and (not maxgrp or groupid <= maxgrp)) then
 	    callback(self, (useID and "raid"..id) or name, class, ...)
 	 end
       end
    else
-      if GetNumPartyMembers() > 0 then
-	 for id = 1,GetNumPartyMembers() do
+      if GetNumGroupMembers() > 0 then
+	 for id = 1,GetNumGroupMembers() do
 	    callback(self, (useID and party_idx[id]) or UnitName(party_idx[id]), nil, ...)
 	 end
       end
@@ -863,7 +863,7 @@ function mod:OnAssignData(targets, sender)
 end
 
 function mod:IsValidMarker()
-   return IsRaidLeader() or IsRaidOfficer() or GetNumRaidMembers() == 0
+   return UnitIsGroupLeader("player") or UnitIsGroupAssistant("player") or not IsInRaid()
 end
 
 -- This is solely for debugging purposes
@@ -1449,9 +1449,9 @@ end
 function mod:ReportRaidMarks()
    local assign = {}
    local dest, test
-   if GetNumRaidMembers() > 0 then
+   if IsInRaid() then
       dest = "RAID"
-   elseif GetNumPartyMembers() > 0 then
+   elseif GetNumGroupMembers() > 0 then
       dest = "PARTY"
    else
       return
