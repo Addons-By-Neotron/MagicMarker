@@ -1047,9 +1047,10 @@ function mod:GetZoneName(zone)
 
   simple = self:SimplifyName(zone)
   local inInstance, type = IsInInstance()
-  if inInstance and type ~= "raid" and GetInstanceDifficulty() == 2 then
+  local _, _, difficulty = GetInstanceInfo()
+  local _, _, heroic = GetDifficultyInfo(difficulty)
+  if inInstance and type ~= "raid" and heroic then 
     simple = simple .. "Heroic"
-    heroic = true
   end
   return simple, zone, heroic, type == "raid"
 end
