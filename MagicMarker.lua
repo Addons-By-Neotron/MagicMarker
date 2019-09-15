@@ -610,8 +610,7 @@ function mod:EnableEvents(markOnTarget)
       end
       self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMark_MarkUnit", "mouseover")   
       self:RegisterEvent("PLAYER_REGEN_ENABLED", "ScheduleGroupScan")
-      self:RegisterEvent("RAID_ROSTER_UPDATE", "ScheduleGroupScan")
-      self:RegisterEvent("PARTY_MEMBERS_CHANGED", "ScheduleGroupScan")
+      self:RegisterEvent("GROUP_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
       self:ScheduleGroupScan()
    end

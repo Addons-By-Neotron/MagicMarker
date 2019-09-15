@@ -296,7 +296,7 @@ do
       self.alignoffset = 30
       local num  = AceGUI:GetNextWidgetNum(Type)
       local name = "AceGUI30MMCCPrio"..num
-      local buttdown = CreateFrame("Button",name.."Down",frame,"UIPanelButtonTemplate2")
+      local buttdown = CreateFrame("Button",name.."Down",frame,"UIPanelButtonTemplate")
       self.buttdown = buttdown
       buttdown.obj = self
       buttdown:SetText(" - ");
@@ -307,7 +307,7 @@ do
       buttdown:SetScript("OnMouseUp", function() end)
       buttdown:SetScript("OnClick",Button_MoveDown)
 
-      local buttup = CreateFrame("Button",name.."Up",frame,"UIPanelButtonTemplate2")
+      local buttup = CreateFrame("Button",name.."Up",frame,"UIPanelButtonTemplate")
       self.buttup = buttup
       buttup.obj = self
       buttup:SetText(" + ");

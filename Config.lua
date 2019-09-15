@@ -44,7 +44,7 @@ local IsInInstance = IsInInstance
 local GetInstanceDifficulty = GetInstanceDifficulty
 local UnitCreatureFamily = UnitCreatureFamily
 local UnitCreatureType = UnitCreatureType
-local UnitManaMax = UnitManaMax
+local UnitPowerMax = UnitPowerMax
 local UnitClassification = UnitClassification
 local GetBindingKey = GetBindingKey
 local SetBinding = SetBinding
@@ -1155,7 +1155,7 @@ function mod:InsertNewUnit(guid, uid, name, unit)
   if not mobHash.desc then
     local family = UnitCreatureFamily(unit)
     local type = UnitCreatureType(unit)
-    local mana = UnitManaMax(unit)
+    local mana = UnitPowerMax(unit, Enum.PowerType.Mana)
     local class = UnitClassification(unit)
     local desc = L["Creature type"] .. ": " .. (white(type or "Unknown"))
     if family then

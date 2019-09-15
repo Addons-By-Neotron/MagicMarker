@@ -15,9 +15,9 @@
   <Include file="Libs\AceTimer-3.0\AceTimer-3.0.xml"/>
   <Include file="Libs\AceLocale-3.0\AceLocale-3.0.xml"/>	
   <Include file="Libs\LibBabble-Zone-3.0\lib.xml"/>
-  <Include file="Libs\LibLogger-1.0\lib.xml"/>
-  <Include file="Libs\MagicComm\lib.xml"/>
-  <Include file="Libs\LibDropdown-1.0\lib.xml"/>
+  <Include file="Libs\LibLogger\LibLogger-1.0\lib.xml"/>
+  <Include file="Libs\MagicComm\MagicComm\lib.xml"/>
+  <Include file="Libs\LibDropdown-1.0\LibDropdown-1.0\lib.xml"/>
   <Script  file="Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
   <Include file="Libs\LibQTip-1.0\lib.xml"/>
 </Ui>
