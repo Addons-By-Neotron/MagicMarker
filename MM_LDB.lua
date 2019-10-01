@@ -237,21 +237,7 @@ function mod:OnLDBEnter(frame)
    local zoneID, _, heroic = mod:GetZoneName(zone)
    local inInstance, type = IsInInstance()
    if inInstance then
-      local difficulty = GetInstanceDifficulty and GetInstanceDifficulty()
-      local difftext
-      if type == "raid" then
-	 local dl = L["Raid"];
-	 if difficulty == 1 then dl = dl .. " - 10"
-	 elseif difficulty == 2 then dl = dl .. " - 25"
-	 elseif difficulty == 3 then dl = dl .. " - 10 ".. L["Heroic"]
-	 elseif difficulty == 4 then dl = dl .. " - 25 ".. L["Heroic"]
-	 end
-	 difftext = dl
-      elseif type == 'pvp' or type == 'arena' then
-	 difftext = "PvP"
-      else
-	 difftext = heroic and L["Heroic"] or L["Normal"]
-      end
+      local difficulty, difftext = mod:GetDifficultyInfo()
       y = tooltip:AddLine( _n(L["Difficulty"]));
       tooltip:SetCell(y, 2, difftext, nil, "RIGHT", 3)
    end

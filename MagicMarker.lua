@@ -61,7 +61,10 @@ local UnitLevel = UnitLevel
 local UnitName = UnitName
 local UnitPlayerControlled = UnitPlayerControlled
 local UnitSex = UnitSex
+local GetInstanceInfo = GetInstanceInfo
+local GetDifficultyInfo = GetDifficultyInfo
 local format = string.format
+
 local ipairs = ipairs
 local next = next
 local pairs = pairs
@@ -182,6 +185,17 @@ local function GUIDToUID(guid)
       return nil
    end
    return tostring(npc_id)
+end
+
+-- Returns [id, difficulty string, isHeroic]
+function mod:GetDifficultyInfo()
+   if GetDifficultyInfo then 
+      local _,_,diffid = GetInstanceInfo()
+      local name, _, heroic = GetDifficultyInfo(diffid)
+      return diffid, name, heroic
+   else
+      return 0, "Normal", false
+   end
 end
 
 -- Returns [GUID, UID, Name]

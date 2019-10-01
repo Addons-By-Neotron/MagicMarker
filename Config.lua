@@ -41,7 +41,6 @@ local type = type
 
 local GetRealZoneText = GetRealZoneText
 local IsInInstance = IsInInstance
-local GetInstanceDifficulty = GetInstanceDifficulty
 local UnitCreatureFamily = UnitCreatureFamily
 local UnitCreatureType = UnitCreatureType
 local UnitPowerMax = UnitPowerMax
@@ -1061,9 +1060,9 @@ function mod:GetZoneName(zone)
   simple = self:SimplifyName(zone)
   local inInstance, type = IsInInstance()
   local _, _, difficulty = GetInstanceInfo()
-  local _, _, heroic = GetDifficultyInfo and GetDifficultyInfo(difficulty) 
-  if inInstance and type ~= "raid" and heroic then 
-    simple = simple .. "Heroic"
+  local diffid,diffname, heroic = mod:GetDifficultyInfo()
+  if inInstance and (diffid <= 0 or not heroic) then
+    simple = simple ..  diffname
   end
   return simple, zone, heroic, type == "raid"
 end
