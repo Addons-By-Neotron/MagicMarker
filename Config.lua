@@ -52,7 +52,7 @@ local GetBindingAction = GetBindingAction
 local GetBindingText = GetBindingText
 local SetBindings = SetBindings
 local GetCurrentBindingSet = GetCurrentBindingSet
-local SaveBindings = SaveBindings
+local SaveBindings = SaveBindings or AttemptToSaveBindings
 
 local KEY_BOUND = KEY_BOUND
 local KEY_UNBOUND_ERROR = KEY_UNBOUND_ERROR
@@ -371,20 +371,33 @@ do
     }
   }
 
+  
+  local expansions
+
+  if mod:IsClassic() then
+     expansions =  {
+	vanilla = { name = L["Classic"], type = "group", args = {}, order = 40 },
+     }
+  else
+     expansions =  {
+	bfa = { name = L["Battle for Azeroth"], type = "group", args = {}, order = 10 },
+	legion = { name = L["Legion"], type = "group", args = {}, order = 20 },
+	wod = { name = L["Warlords of Draenor"], type = "group", args = {}, order = 30 },
+	cata = { name = L["Cataclysm"], type = "group", args = {}, order = 40 },
+	wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 50 },
+	bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
+	vanilla = { name = L["Original"], type = "group", args = {}, order = 70 },
+     }
+  end
   options = {
-    type = "group",
+     type = "group",
     name = L["Magic Marker"],
     childGroups = "tab",
     args = {
       mobs = {
         type = "group",
         name = L["Mob Database"],
-        args = {
-          cata = { name = L["Cataclysm"], type = "group", args = {}, order = 10 },
-          wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 20 },
-          bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 30 },
-          vanilla = { name = L["Original"], type = "group", args = {}, order = 40 },
-        },
+        args = expansions,
         order = 300,
         cmdHidden = true,
         dropdownHidden = true,
@@ -1048,7 +1061,7 @@ function mod:GetZoneName(zone)
   simple = self:SimplifyName(zone)
   local inInstance, type = IsInInstance()
   local _, _, difficulty = GetInstanceInfo()
-  local _, _, heroic = GetDifficultyInfo(difficulty)
+  local _, _, heroic = GetDifficultyInfo and GetDifficultyInfo(difficulty) 
   if inInstance and type ~= "raid" and heroic then 
     simple = simple .. "Heroic"
   end

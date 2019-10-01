@@ -237,7 +237,7 @@ function mod:OnLDBEnter(frame)
    local zoneID, _, heroic = mod:GetZoneName(zone)
    local inInstance, type = IsInInstance()
    if inInstance then
-      local difficulty = GetInstanceDifficulty()
+      local difficulty = GetInstanceDifficulty and GetInstanceDifficulty()
       local difftext
       if type == "raid" then
 	 local dl = L["Raid"];

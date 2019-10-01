@@ -263,7 +263,7 @@ do
       frame:SetHeight(17)
       frame:SetPoint("LEFT",self.pullout,"LEFT",6,0)
       frame:SetPoint("RIGHT",self.pullout,"RIGHT",-6,0)
-      frame:SetFrameStrata("FULLSCREEN_DIALOG")
+      frame:SetFrameStrata("TOOLTIP")
       frame.obj = self
       
       local highlight = frame:CreateTexture(nil, "OVERLAY")
@@ -399,7 +399,7 @@ do
       frame:EnableMouse()
       pullout:SetBackdrop(ControlBackdrop)
       pullout:SetBackdropColor(0,0,0)
-      pullout:SetFrameStrata("FULLSCREEN_DIALOG")
+      pullout:SetFrameStrata("TOOLTIP")
       pullout:SetPoint("TOPLEFT",frame,"BOTTOMLEFT",0,0)
       pullout:SetPoint("TOPRIGHT",frame,"BOTTOMRIGHT",-72,0)
       pullout:SetClampedToScreen(true)

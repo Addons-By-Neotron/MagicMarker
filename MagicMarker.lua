@@ -177,11 +177,11 @@ local function LowSetTarget(id, uid, val, ccid, guid)
 end
 
 local function GUIDToUID(guid)
-   local uid = tonumber(sub(guid, 7, 10), 16)
-   if uid == 0 then
+   local _, _, _, _, _, npc_id = strsplit("-",guid);
+   if npc_id == 0 then
       return nil
    end
-   return tostring(uid)
+   return tostring(npc_id)
 end
 
 -- Returns [GUID, UID, Name]
@@ -191,6 +191,10 @@ function mod:GetUnitID(unit)
    guid = UnitGUID(unit)
    uid = GUIDToUID(guid)
    return guid, uid or mod:SimplifyName(unitName), unitName
+end
+
+function mod:IsClassic()
+   return SaveBindings == nil
 end
 
 function mod:OnInitialize()
@@ -503,22 +507,10 @@ function mod:BroadcastCCPriorities()
    self:SendBulkMessage()
 end
 
-function mod:HandleCombatEvent(_, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags,
-			       sourceRaidFlags, -- 4.1  guid
-			       guid, -- 4.1 name
-			       name, -- 4.1 destflags
-			       destflags, -- 4.1 spellid
-			       destRaidFlags, -- 4.1 spellname
-			       spellid, spellname)
-
-   if type(sourceRaidFlags) == "string" then
-      -- 4.1 compatibility
-      spellname = destRaidFlags
-      spellid = destflags
-      destflags = name
-      name = guid
-      guid = sourceRaidFlags
-   end
+function mod:HandleCombatEvent()
+   local timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags,
+   sourceRaidFlags, guid, name, destflags, destRaidFlags, spellid, spellname = CombatLogGetCurrentEventInfo()
+   
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
       if not ccid then return end
