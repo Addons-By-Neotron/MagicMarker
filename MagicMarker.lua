@@ -720,7 +720,7 @@ function mod:IterateGroup(callback, useID, ...)
       end
    else
       if GetNumGroupMembers() > 0 then
-	 for id = 1,GetNumGroupMembers() do
+	 for id = 1,GetNumGroupMembers()-1 do
 	    callback(self, (useID and party_idx[id]) or UnitName(party_idx[id]), nil, ...)
 	 end
       end
