@@ -1,4 +1,4 @@
-## Interface: 80200
+## Interface: 80300
 ## Title: Magic Marker
 ## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
