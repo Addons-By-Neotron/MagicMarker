@@ -319,7 +319,7 @@ do
       buttup:SetScript("OnClick", Button_MoveUp)
       
       
-      local editbox = CreateFrame("EditBox",nil,frame)
+      local editbox = CreateFrame("EditBox",nil,frame, BackdropTemplateMixin and "BackdropTemplate")
       self.editbox = editbox
       editbox.obj = self
       editbox:SetFontObject(ChatFontNormal)
@@ -363,7 +363,7 @@ do
       frame:SetHeight(44)
       frame:SetWidth(200)
       frame:SetScript("OnHide",Dropdown_OnHide)
-      local pullout = CreateFrame("Frame",nil,UIParent)
+      local pullout = CreateFrame("Frame",nil,UIParent, BackdropTemplateMixin and "BackdropTemplate")
       self.pullout = pullout
       frame:EnableMouse()
       pullout:SetBackdrop(ControlBackdrop)
