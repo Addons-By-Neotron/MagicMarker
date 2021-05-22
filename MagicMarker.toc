@@ -1,8 +1,13 @@
-## Interface: 90002
+## Interface: 90005
+## Interface-Classic: 11306
+## Interface-BCC: 20501
+## Interface-Retail: 90005
+## X-Curse-Project-ID: 14363
+## X-WoWI-ID: 9110
 ## Title: Magic Marker
 ## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
-## Version: 9.0.2
+## Version: 9.0.5
 ## DefaultState: enabled
 ## X-Category: Raid
 ## X-EMail: neotron@gmail.com
