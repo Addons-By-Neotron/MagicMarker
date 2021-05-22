@@ -110,7 +110,7 @@ local CC_CLASS = {
 
 local defaultConfigDB = {
    profile = {
-      filterdead = false, 
+      filterdead = false,
       autolearncc = true,
       acceptCCPrio = false,
       acceptMobData = false,
@@ -149,13 +149,13 @@ local function SetExternalTarget(id, guid, uid, name, hash)
 end
 
 local function SetTemplateTarget(id, name, network)
-   if id and id > 0 and id < 9 then 
+   if id and id > 0 and id < 9 then
       templateTargets[id].guid = name and UnitGUID(name) or nil
       templateTargets[id].name = name
       templateTargets[id].uid  = name
       templateTargets[id].mark = name and id or nil
       if name then
-	 SetExternalTarget(id) 
+	 SetExternalTarget(id)
 	 for oid = 1, 8 do
 	    -- We can only have the same template target once so clean it up
 	    if oid ~= id and templateTargets[oid].name == name then
@@ -171,9 +171,9 @@ local function SetTemplateTarget(id, name, network)
 end
 
 local function LowSetTarget(id, uid, val, ccid, guid)
-   if id and id > 0 and id < 9 then 
+   if id and id > 0 and id < 9 then
       markedTargets[id].guid  = guid
-      markedTargets[id].uid  = uid 
+      markedTargets[id].uid  = uid
       markedTargets[id].ccid  = ccid
       markedTargets[id].value = val
    end
@@ -189,7 +189,7 @@ end
 
 -- Returns [id, difficulty string, isHeroic]
 function mod:GetDifficultyInfo()
-   if GetDifficultyInfo then 
+   if GetDifficultyInfo then
       local _,_,diffid = GetInstanceInfo()
       local name, _, heroic = GetDifficultyInfo(diffid)
       return diffid, name, heroic
@@ -208,7 +208,11 @@ function mod:GetUnitID(unit)
 end
 
 function mod:IsClassic()
-   return SaveBindings == nil
+   return (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+end
+
+function mod:IsBurningCrusadeClassic()
+    return (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 end
 
 function mod:OnInitialize()
@@ -234,7 +238,7 @@ function mod:OnInitialize()
    db.remarkDelay = nil -- no longer needed
 
    self:UpgradeDatabase()
-   
+
 
    -- sets ccprio/raid target defaults
    self:FixProfileDefaults()
@@ -248,9 +252,9 @@ function mod:OnInitialize()
    self:SetLogLevel(db.logLevel)
    self.commPrefix = "MagicMarker"
    self.commPrefixRT = "MagicMarkerRT"
-   
+
    -- no longer used
-   MagicMarkerDB.debug = nil   
+   MagicMarkerDB.debug = nil
    MagicMarkerDB.logLevel = nil
 
    for id = 0,9 do
@@ -265,7 +269,7 @@ end
 function mod:OnEnable()
    mod:SetupLDB()
    playerName = UnitName("player")
-   
+
    self:RegisterEvent("ZONE_CHANGED_NEW_AREA","ZoneChangedNewArea")
    self:ZoneChangedNewArea()
    self:GenerateOptions()
@@ -281,8 +285,8 @@ function mod:OnDisable()
    self:DisableEvents()
 end
 
-function mod:OnMobdataReceive(zone, data, version, sender) 
-   if version ~= MagicMarkerDB.version then 
+function mod:OnMobdataReceive(zone, data, version, sender)
+   if version ~= MagicMarkerDB.version then
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
@@ -293,22 +297,22 @@ function mod:OnMobdataReceive(zone, data, version, sender)
    self:NotifyChange()
 end
 
-function mod:OnMobdataPartialReceive(data, version, sender) 
-   if version ~= MagicMarkerDB.version then 
+function mod:OnMobdataPartialReceive(data, version, sender)
+   if version ~= MagicMarkerDB.version then
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
    if db.acceptMobData then
       if self.hasDebug then self:debug("[Net] Received partial mob database update from %s.", sender) end
-      for zone, zonedata in pairs(data) do 
+      for zone, zonedata in pairs(data) do
 	 self:MergeZoneData(zone, zonedata, nil, true)
       end
    end
    self:NotifyChange()
 end
 
-function mod:OnTargetReceive(data, version, sender) 
-   if version ~= MagicMarkerDB.version then 
+function mod:OnTargetReceive(data, version, sender)
+   if version ~= MagicMarkerDB.version then
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
@@ -319,8 +323,8 @@ function mod:OnTargetReceive(data, version, sender)
    self:NotifyChange()
 end
 
-function mod:OnCCPrioReceive(data, version, sender) 
-   if version ~= MagicMarkerDB.version then 
+function mod:OnCCPrioReceive(data, version, sender)
+   if version ~= MagicMarkerDB.version then
       if self.hasTrace then self:trace("[Net] MagicMarkerDB version mismatch (got = %s, have %d).", tostring(version), MagicMarkerDB.version) end
       return
    end
@@ -372,7 +376,7 @@ end
 
 -- Queue data to be sent after modifying the configuration data
 local queuedData = {}
-local queuedDataTimer 
+local queuedDataTimer
 
 function mod:QueueData_Add(zone, mob, hash)
    if not queuedData[zone] then
@@ -405,12 +409,12 @@ end
 
 -- This allows importing from the MagicMarker_Data addon
 
-function mod:ImportData(data, version, reallyimport)
+function mod:ImportData(data, version, reallyImport)
    if MagicMarkerDB.importedVersion and MagicMarkerDB.importedVersion >= version then
       return
    end
 
-   if reallyimport then
+   if reallyImport then
       for zone,zoneData in pairs(data) do
 	 self:MergeZoneData(zone, zoneData, true)
       end
@@ -445,12 +449,20 @@ function mod:MergeCCMethods(dest, source)
    end
 end
 
+local function ends_with(str, ending)
+    return ending == "" or str:sub(-#ending) == ending
+end
+
 function mod:MergeZoneData(zone, zoneData, override, partial)
+    if not zoneData.heroic and not ends_with(zone, "Normal") then
+        mobdata[zone] = nil
+        zone = zone .. "Normal"
+    end
    local localData = mobdata[zone]
    local localMob, simpleName
-   if self.hasDebug then self:debug("Merging data for zone %s.", zoneData.name or zone) end
+   if self.hasDebug then self:debug("Merging data for zone %s [%s].", zoneData.name or zone, zone) end
    if not partial and (not localData or (db.mobDataBehavior == 3 and not override)) then  -- replace
-      if self.hasTrace then self:trace("Replacing local data with networked data.") end 
+      if self.hasTrace then self:trace("Replacing local data with networked data.") end
       mobdata[zone] = zoneData
    elseif localData then
       localData = localData.mobs
@@ -503,7 +515,7 @@ function mod:BroadcastZoneData(zone)
 end
 
 function mod:BroadcastAllZones()
-   for zone, data in pairs(mobdata) do 
+   for zone, data in pairs(mobdata) do
       SetNetworkData("MOBDATA", data, zone)
       self:SendBulkMessage()
    end
@@ -524,13 +536,13 @@ end
 function mod:HandleCombatEvent()
    local timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags,
    sourceRaidFlags, guid, name, destflags, destRaidFlags, spellid, spellname = CombatLogGetCurrentEventInfo()
-   
+
    if db.autolearncc and event == "SPELL_AURA_APPLIED" then
       local ccid = spellIdToCCID[spellid]
       if not ccid then return end
       local uid = GUIDToUID(guid)
       if not uid then return end
-      
+
       local hash, zone = self:GetUnitHash(uid, true)
       if hash then
 	 if not hash.ccopt then
@@ -588,9 +600,9 @@ do
 	    local inInstance, type = IsInInstance()
 	    enableLogging = inInstance and notPvPInstance[type]
 	 else
-	    enableLogging = zoneData.mm 
+	    enableLogging = zoneData.mm
 	 end
-	 
+
 	 if enableLogging then
 	    self:EnableEvents(zoneData and zoneData.targetMark)
 	 else
@@ -614,7 +626,7 @@ function mod:EnableEvents(markOnTarget)
       if markOnTarget then
 	 self:RegisterEvent("PLAYER_TARGET_CHANGED", "SmartMark_MarkUnit", "target")
       end
-      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMark_MarkUnit", "mouseover")   
+      self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", "SmartMark_MarkUnit", "mouseover")
       self:RegisterEvent("PLAYER_REGEN_ENABLED", "ScheduleGroupScan")
       self:RegisterEvent("GROUP_ROSTER_UPDATE", "ScheduleGroupScan")
       self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "HandleCombatEvent")
@@ -629,7 +641,7 @@ function mod:DisableEvents()
       if self.hasInfo then self:info(L["Magic Marker disabled."]) end
       self:UnregisterEvent("PLAYER_REGEN_ENABLED") -- rescan group every time we exit combat.
       self:UnregisterEvent("PLAYER_TARGET_CHANGED")
-      self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")   
+      self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
       self:UnregisterEvent("RAID_ROSTER_UPDATE")
       self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
       self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -641,7 +653,7 @@ function mod:ToggleMagicMarker()
       self:DisableEvents()
    else
       self:EnableEvents()
-   end      
+   end
 end
 
 local party_idx = { "party1", "party2", "party3", "party4" }
@@ -655,7 +667,7 @@ local groupScanTimer
 
 function mod:LogClassInformation(unitName, class)
    if not class then _,class = UnitClass(unitName)  end
-   if class then 
+   if class then
       raidClassList[class] = (raidClassList[class] or 0) + 1
       if self.hasTrace then self:trace("  found %s => %s.", unitName, class) end
    elseif self.hasWarn then
@@ -682,7 +694,7 @@ function mod:CacheRaidMarkForUnit(unit)
 end
 
 function mod:CacheRaidMarks()
-   MagicMarkerDB.raidMarkCache = {}   
+   MagicMarkerDB.raidMarkCache = {}
    if self.hasDebug then self:debug("Caching raid / party marks.") end
    self:IterateGroup(self.CacheRaidMarkForUnit)
 end
@@ -704,7 +716,7 @@ end
 function mod:IterateGroup(callback, useID, ...)
    local id, name
    if self.hasSpam then self:spam("Iterating group...") end
-   
+
    if IsInRaid() then
       local maxgrp, class, groupid, online, dead
       local playerName = UnitName("player")
@@ -725,7 +737,7 @@ function mod:IterateGroup(callback, useID, ...)
 	 end
       end
       callback(self, (useID and "player") or UnitName("player"), nil, ...);
-   end   
+   end
 end
 
 function mod:MarkRaidFromTemplate(template)
@@ -763,7 +775,7 @@ local function UnitIsEligable (unit)
    return UnitExists(unit)
       and (UnitCanAttack("player", unit) or UnitIsEnemy("player", unit))
       and not UnitIsDead(unit)
-      and  type ~= "Critter" and type ~= "Totem" 
+      and  type ~= "Critter" and type ~= "Totem"
       and not UnitPlayerControlled(unit)  and not UnitIsPlayer(unit)
 end
 
@@ -811,7 +823,7 @@ function mod:UnitValue(uid, hash, modifier)
 --   unitValueCache[unit]  = value
    return value+modifier, ccvalue+modifier, unitData
 end
-   
+
 local function IsModifierPressed()
    if GetBindingKey("MAGICMARKSMARTMARK") then
       return mod.markKeyDown
@@ -832,7 +844,7 @@ local function SmartMark_TankSorter(unit1, unit2)
    end
 end
 
-local function SmartMark_CCSorter(unit1, unit2) 
+local function SmartMark_CCSorter(unit1, unit2)
    if unit1.ccval == unit2.ccval then
       return (unit1.guid or "") < (unit2.guid or "") -- ensure stable sort
    else
@@ -895,7 +907,7 @@ end
 
 -- recalculate mark assignments based on the priority lists
 
-do 
+do
    local ccUsed = {}
    local marksUsed = {}
    local categoryMarkCache = {}
@@ -921,7 +933,7 @@ do
 	 SetTemplateTarget(id)
 	 marksUsed[id] = nil
       end
-      mod:SetTargetCount(0, 0) 
+      mod:SetTargetCount(0, 0)
    end
 
    function mod:SmartMark_RecalculateMarks(network)
@@ -944,7 +956,7 @@ do
       if self.hasDebug then self:debug("Recalculating mark priority list:") end
 
       -- cache external targets
-      for id = 1,8 do 
+      for id = 1,8 do
 	 if db.honorMarks and externalTargets[id].guid then
 	    marksUsed[id] = true
 	    assignedTargets[externalTargets[id].guid] = externalTargets[id]
@@ -953,12 +965,12 @@ do
 	    marksUsed[id] = true
 	    assignedTargets[templateTargets[id].guid] = templateTargets[id]
 	    if self.hasDebug then self:debug("++ %s => %s [tmpl]", self:GetTargetName(id), templateTargets[id].name) end
-	 end  
+	 end
       end
 
       -- This will hard-prioritize network assigned targets
       local assignedCount = 0
-      
+
       for id,data in ipairs(tankPriorityList) do
 	 if data.sender and data.sender ~= playerName and data.mark then
 	    if self.hasTrace then self:trace("Reserving %s for %s (from %s).", self:GetTargetName(data.mark), data.name, data.sender) end
@@ -971,7 +983,7 @@ do
 	    end
 	 end
       end
-      
+
       -- Update list of marks used on the raid
       if db.honorRaidMarks then
 	 self:IterateGroup(function(self, unit)
@@ -982,7 +994,7 @@ do
 				 marksUsed[id] = true
 				 if self.hasDebug then
 				    self:debug("++ %s => %s [raid]", self:GetTargetName(id), unit)
-				 end			      
+				 end
 			      end
 			   end)
       end
@@ -995,7 +1007,7 @@ do
 	    for _,category in ipairs(db.ccprio) do
 	       local class = CC_CLASS[category]
 	       local cc = data.hash.ccopt
-	       if cc[category] and (not class or raidClassList[class] and raidClassList[class] > 0) then 
+	       if cc[category] and (not class or raidClassList[class] and raidClassList[class] > 0) then
 		  local cc_used_count = ccUsed[category] or 0
 		  if not class or cc_used_count < raidClassList[class] then
 		     categoryMarkCache[category] = categoryMarkCache[category] or self:GetMarkForCategory(category)
@@ -1014,8 +1026,8 @@ do
 		     end
 		  end
 	       end
-	    end 
-	 end 
+	    end
+	 end
       end
 
       if not inCombat then -- Never change cc targets to tank targets during combat
@@ -1023,17 +1035,17 @@ do
 	 -- Ensure we have sufficient available targets for tanking.
 	 if self.hasTrace then self:trace("Found %d assigned targets, %d CC'd out of %d total, %d minimum (max %d cc'd so need to release %d targets).",
 				       assignedCount, #ccPriorityList, #tankPriorityList, db.minTankTargets,  maxCCTargets, assignedCount - maxCCTargets - #ccPriorityList) end
-				       
+
 	 if assignedCount > maxCCTargets then
 	    for id = #ccPriorityList, 1, -1 do
 	       data = ccPriorityList[id]
-	       if (not data.sender or data.sender == playerName) and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then 
+	       if (not data.sender or data.sender == playerName) and assignedTargets[data.guid] and (not db.burnDownIsTank or data.ccused ~= self:GetCCID("BURN")) then
 		  assignedTargets[data.guid] = nil
 		  assignedCount = assignedCount - 1
 		  if self.hasDebug then self:debug("-- %s => %s [insufficient tank targets] = %s", self:GetTargetName(data.mark), data.name, data.guid) end
 		  marksUsed[data.mark] = nil
 		  data.mark = nil
-		  
+
 		  if assignedCount <= maxCCTargets then
 		     -- released enough
 		     break
@@ -1042,7 +1054,7 @@ do
 	    end
 	 end
       end
-      
+
       local tankMarkList = self:GetMarkForCategory(1)
       for id = 1, #tankPriorityList do
 	 data = tankPriorityList[id]
@@ -1067,7 +1079,7 @@ do
 
       if self.hasDebug then self:debug("Done.") end
 
-      -- TODO - need to rework syncing for this. 
+      -- TODO - need to rework syncing for this.
       for guid,data in pairs(assignedTargets) do
 	 if data.ccused then
 	    LowSetTarget(data.mark, data.uid, data.ccused == 1 and data.value or data.ccval, data.ccused, guid)
@@ -1096,7 +1108,7 @@ do
       local total = 0
       local marked = 0
       local mmdata = self:GetMarkData()
-      if mmdata  then 
+      if mmdata  then
 	 for id, data in pairs(mmdata) do
 	    if data.uid and data.value then
 	       total = total + 1
@@ -1109,7 +1121,7 @@ do
       mod:SetTargetCount(marked, total)
    end
 
-   local MT 
+   local MT
    function mod:SmartMark_SendAssignments()
       if updateAssignDataTimer then
 	 self:CancelTimer(updateAssignDataTimer, true)
@@ -1137,7 +1149,7 @@ do
 	 hash = hash
       }
       valueModifier = valueModifier - 0.001
-      
+
       tankPriorityList[#tankPriorityList+1] = newhash
       sort(tankPriorityList, SmartMark_TankSorter)
 
@@ -1148,13 +1160,13 @@ do
 
       self:SmartMark_RecalculateMarks()
       self:UpdateLDBCount()
-      
+
       return assignedTargets[guid], newhash
    end
 
    local function SmartMark_CleanList(hash, guid)
       local found
-      for id, data in ipairs(hash) do	
+      for id, data in ipairs(hash) do
 	 if found then
 	    hash[id-1] = data
 	 elseif data.guid == guid then
@@ -1188,7 +1200,7 @@ do
 	    changed = true
 	 end
 	 if templateTargets[mark] and templateTargets[mark].guid == guid then
-	    SetTemplateTarget(mark)	    
+	    SetTemplateTarget(mark)
 	    if self.hasTrace then self:trace("Removed template target...") end
 	    changed = true
 	 end
@@ -1228,14 +1240,14 @@ do
 	 return
       elseif UnitIsEligable(unit) then
 	 local unitTarget = GetRaidTargetIndex(unit)
-	 local guid, uid = mod:GetUnitID(unit)	 
+	 local guid, uid = mod:GetUnitID(unit)
 	 local mobHash = self:InsertNewUnit(guid, uid, unitName, unit)
 	 local data, new
 
 	 if not self:IsValidMarker() then
 	    return
 	 end
-	 
+
 	 if not IsModifierPressed() and unit == "mouseover" then
 	    -- Modifier isn't pressed and it's a mouseover, so return
 	    return
@@ -1255,12 +1267,12 @@ do
 	       end
 	    end
 	 end
-	 
+
 	 if not data and unitTarget and db.honorMarks then
-	    local ext = externalTargets[unitTarget] 
+	    local ext = externalTargets[unitTarget]
 	    if ext.guid ~= guid then -- guids are not matching
 	       for id,data in pairs(externalTargets) do
-		  if data.guid == guid then 
+		  if data.guid == guid then
 		     SetExternalTarget(id) -- we had it under a different target, release it
 		     break
 		  end
@@ -1275,10 +1287,10 @@ do
 	    end
 	    return
 	 end
-	 
+
 	 if not data then
 	    data, new = self:SmartMark_AddGUID(guid, uid, unitName, mobHash)
-	 end   
+	 end
 
 	 if data and data.mark and data.mark > 0 and data.mark < 9 and
 	    data.mark ~= unitTarget then
@@ -1288,7 +1300,7 @@ do
 	       markedTargets[unitTarget] = tmp
 	       LowSetTarget(data.mark)
 	       data.mark = unitTarget
-	       if self.hasTrace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end	       
+	       if self.hasTrace then self:trace("[Combat] Preserving %s on %s.", self:GetTargetName(unitTarget), data.name or guid) end
 	    else
 	       self:SetRaidTarget(unit, data.mark)
 	       if self.hasTrace then
@@ -1306,7 +1318,7 @@ end
 do
    local tmpdata = {}
    function mod:GetAssignData()
-      
+
       for id in pairs(tmpdata) do
 	 if not assignedTargets[id] then
 	    tmpdata[id] = nil
@@ -1394,9 +1406,9 @@ function mod:ResetMarkData(hardReset)
 
    for id in pairs(tankPriorityList) do tankPriorityList[id] = nil end
    for id in pairs(ccPriorityList) do ccPriorityList[id] = nil end
-   
+
    for id,data in pairs(assignedTargets) do
-      if type(data) == "table" and data.mark then 
+      if type(data) == "table" and data.mark then
 	 markToUID[data.mark] = data.uid
       end
       assignedTargets[id] = nil
@@ -1416,8 +1428,8 @@ function mod:ResetMarkData(hardReset)
 			   end
 			end)
    end
-   
-   
+
+
    for id = 1, 8 do
       if not (usedRaidIcons and usedRaidIcons[id]) then
 	 LowSetTarget(id)
@@ -1430,9 +1442,9 @@ function mod:ResetMarkData(hardReset)
    SetNetworkData("CLEARV2")
    self:SendUrgentMessage()
 
-   -- Hack, sometimes the last mark isn't removed.   
+   -- Hack, sometimes the last mark isn't removed.
    if hardReset or db.resetRaidIcons then
-      if playerIcon then 
+      if playerIcon then
 	 SetRaidTarget("player", playerIcon)
       else
 	 self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.75)
@@ -1461,7 +1473,7 @@ function mod:ReportRaidMarks()
    else
       return
    end
-   
+
    local sortData = {}
    local hasData
 
@@ -1476,8 +1488,8 @@ function mod:ReportRaidMarks()
    end
    if hasData then
       SendChatMessage("*** Raid Target assignments:", dest)
-      sort(sortData, function(a,b) return a > b end)   
-      
+      sort(sortData, function(a,b) return a > b end)
+
       for _, id in pairs(sortData) do
 	 id = valueToId[id]
 	 local data = markedTargets[id]
@@ -1488,7 +1500,7 @@ function mod:ReportRaidMarks()
 			     self:GetTargetName(id, true),
 			     self:GetCCName(data.ccid, 1),
 			     unitData.name)
-	       
+
 	       if data.ccid == 1 then
 		  SendChatMessage(test,dest)
 	       else
@@ -1540,7 +1552,7 @@ function mod:OnProfileChanged(event, newdb)
    if event ~= "OnProfileDeleted" then
       db = self.db.profile
       self:FixProfileDefaults()
-      
+
       for key,val in pairs(db.ccprio) do
 	 if not val or val == 1 then
 	    db.ccprio[key] = nil
@@ -1549,10 +1561,10 @@ function mod:OnProfileChanged(event, newdb)
       self:SetLogLevel(db.logLevel)
       self:SetStatusText(format(L["Active profile: %s"], self.db:GetCurrentProfile()))
    end
-      
+
    self:NotifyChange()
 
-   mod:UpdateLDBConfig() 
+   mod:UpdateLDBConfig()
 end
 
 -- number of groups able to enter the instance, used when scanning groups for CC etc.
