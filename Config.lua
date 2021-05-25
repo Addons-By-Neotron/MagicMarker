@@ -91,6 +91,14 @@ local CC_LIST = {
     "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL", "BLIND", "BURN",
     "HEX", "REPENTANCE", "BINDELEMENTAL"
 }
+local AVAILABLE_CC = {}
+do
+    local ccids = LibStub("MagicComm-1.0").spellIdToCCID
+    for spellid in pairs(ccids) do
+        AVAILABLE_CC[ccids[spellid]] = true
+    end
+end
+
 local PRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P6" }
 local CCPRI_LIST = { "P1", "P2", "P3", "P4", "P5", "P0" }
 local RT_LIST = { "Star", "Circle", "Diamond", "Triangle", "Moon", "Square", "Cross", "Skull", "None" }
@@ -283,7 +291,7 @@ end
     CONFIG_MAP.NUMCC = #CC_LIST - 1
     maxcc = CONFIG_MAP.NUMCC + 1
     for num, txt in ipairs(CC_LIST) do
-        if num <= maxcc then
+        if num <= maxcc and AVAILABLE_CC[num] then
             ccDropdown[txt] = L[txt]
         end
         CONFIG_MAP[txt] = num
@@ -900,7 +908,7 @@ function mod:UpdateUsedCCMethods()
     end
 
     for id = 2, CONFIG_MAP.NUMCC + 1 do
-        if not used[id] then
+        if not used[id] and AVAILABLE_CC[id] then
             sorted[#sorted + 1] = L[CC_LIST[id]]
         end
     end
@@ -1248,7 +1256,6 @@ function mod:GetZoneConfigHash(zone, name)
     local shortname = gsub(name, "Heroic", "")
     shortname = gsub(shortname, "Normal", "")
     shortname = gsub(shortname, "Mythic", "")
-    mod:trace("Config zone hash lookup for %s / %s => %s", zone.name, name, shortname)
     for expansion, dungeons in pairs(dungeon_tiers) do
         if dungeons[shortname] then
             era = options.args.mobs.args[expansion]
