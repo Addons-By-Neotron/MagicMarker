@@ -92,7 +92,6 @@ local CC_LIST = {
     "HEX", "REPENTANCE", "BINDELEMENTAL"
 }
 local AVAILABLE_CC = {
-	[1] = true, -- 00NONE
 	[7] = true, -- KITE
 	[19] = true, -- BURN
 }
