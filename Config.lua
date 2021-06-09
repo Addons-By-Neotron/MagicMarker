@@ -91,7 +91,11 @@ local CC_LIST = {
     "CYCLONE", "TURNUNDEAD", "SCAREBEAST", "SEDUCE", "TURNEVIL", "BLIND", "BURN",
     "HEX", "REPENTANCE", "BINDELEMENTAL"
 }
-local AVAILABLE_CC = {}
+local AVAILABLE_CC = {
+	[1] = true, -- 00NONE
+	[7] = true, -- KITE
+	[19] = true, -- BURN
+}
 do
     local ccids = LibStub("MagicComm-1.0").spellIdToCCID
     for spellid in pairs(ccids) do
