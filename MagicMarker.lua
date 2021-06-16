@@ -99,6 +99,11 @@ local externalTargets = {}  -- [mark] => data
 local templateTargets = {}  -- [mark] => data
 local playerName
 
+
+local function ends_with(str, ending)
+    return ending == "" or str:sub(-#ending) == ending
+end
+
 -- CC Classes, matches CC_LIST in Config.lua. Tank/kite has no classes specified for it
 local CC_CLASS = {
     false, "MAGE", "WARLOCK", "PRIEST", "DRUID", "HUNTER", false ,
@@ -416,6 +421,11 @@ function mod:ImportData(data, version, reallyImport)
 
     if reallyImport then
         for zone,zoneData in pairs(data) do
+            if zoneData.heroic and not zoneData.isRaid and ends_with(zone, "Heroic") then
+                zone = gsub(zone, "Heroic", "")
+            elseif not zoneData.heroic and not ends_with(zone, "Normal") then
+                zone = zone .. "Normal"
+            end
             self:MergeZoneData(zone, zoneData, true)
         end
         MagicMarkerDB.importedVersion = version
@@ -449,15 +459,7 @@ function mod:MergeCCMethods(dest, source)
     end
 end
 
-local function ends_with(str, ending)
-    return ending == "" or str:sub(-#ending) == ending
-end
-
 function mod:MergeZoneData(zone, zoneData, override, partial)
-    if not zoneData.heroic and not ends_with(zone, "Normal") then
-        mobdata[zone] = nil
-        zone = zone .. "Normal"
-    end
     local localData = mobdata[zone]
     local localMob, simpleName
     if self.hasDebug then self:debug("Merging data for zone %s [%s].", zoneData.name or zone, zone) end

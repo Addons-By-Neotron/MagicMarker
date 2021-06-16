@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 9
+local CONFIG_VERSION = 10
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -1798,6 +1798,25 @@ do
                 end
             end
             db.mobDataBehavior = origBehavior
+        end
+        if version < 10 then
+            local origBehavior = MagicMarkerDB.mobDataBehavior
+            MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
+            -- Fix bad imported data from MagicMarker_Data
+            for zoneName in pairs(dungeon_tiers.bc) do
+                local heroicKey = zoneName.."Heroic"
+                local zoneDetected = MagicMarkerDB.mobdata[zoneName]
+                local zoneImported = MagicMarkerDB.mobdata[heroicKey]
+                MagicMarkerDB.mobdata[heroicKey] = nil
+                if zoneImported ~= nil then
+                    if zoneDetected == nil then
+                        MagicMarkerDB.mobdata[zoneName] = zoneImported
+                    else
+                        self:MergeZoneData(zoneName, zoneImported)
+                    end
+                end
+            end
+            MagicMarkerDB.mobDataBehavior = origBehavior
         end
         MagicMarkerDB.version = CONFIG_VERSION
     end
