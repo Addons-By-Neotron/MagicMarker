@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 10
+local CONFIG_VERSION = 11
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -1101,7 +1101,8 @@ function mod:GetZoneName(zone)
     if inInstance and (diffid <= 0 or not heroic) then
         simple = simple .. diffname
     end
-    return simple, zone, heroic, type == "raid"
+    local isRaid = type == "raid"
+    return simple, zone, heroic, isRaid
 end
 
 local simpleNameCache = {}
@@ -1165,7 +1166,7 @@ function mod:InsertNewUnit(guid, uid, name, unit)
     local changed
     local mobHash = zoneHash.mobs[uid]
     zoneHash.isRaid = isRaid
-
+    mod:info("Simple zone = %s", simpleZone)
     -- Yeah this is not good but unavoidable for upgrade purposes.
     -- Stupid UID being broken with absolutely no way to convert
     -- correctly.
@@ -1267,20 +1268,20 @@ function mod:GetZoneConfigHash(zone, name)
     end
 
     local subZoneHash
-    if zone.heroic then
-        subZoneHash = era.args.heroic or {
-            type = "group",
-            name = L["Heroic"],
-            args = {}
-        }
-        era.args.heroic = subZoneHash
-    elseif zone.isRaid then
+    if zone.isRaid then
         subZoneHash = era.args.raid or {
             type = "group",
             name = L["Raid"],
             args = {}
         }
         era.args.raid = subZoneHash
+    elseif zone.heroic then
+        subZoneHash = era.args.heroic or {
+            type = "group",
+            name = L["Heroic"],
+            args = {}
+        }
+        era.args.heroic = subZoneHash
     else
         subZoneHash = era.args.normal or {
             type = "group",
@@ -1679,16 +1680,16 @@ end
 
 -- All raid instances
 do
-    local raids = {
-        "MoltenCore", "BlackwingLair", "TempleofAhn'Qiraj", "Ahn'Qiraj",
-        "RuinsofAhn'Qiraj", "Zul'Gurub", "Karazhan", "Zul'Aman",
-        "Gruul'sLair", "Magtheridon'sLair",
-        "SerpentshrineCavern", "WorldBoss", "TempestKeep",
-        "BlackTemple", "HyjalSummit", "Naxxramas", "SunwellPlateau",
-        "TheObsidianSanctum", "VaultofArchavon",
-        "TheEyeofEternity", "Ulduar", "TrialoftheCrusader", "IcecrownCitadel"
+    mod.raids = {
+        ["MoltenCore"]=true, ["BlackwingLair"]=true, ["TempleofAhn'Qiraj"]=true, ["Ahn'Qiraj"]=true,
+        ["RuinsofAhn'Qiraj"]=true, ["Zul'Gurub"]=true, ["Karazhan"]=true, ["Zul'Aman"]=true,
+        ["Gruul'sLair"]=true, ["Magtheridon'sLair"]=true,
+        ["SerpentshrineCavern"]=true, ["WorldBoss"]=true, ["TempestKeep"]=true,
+        ["BlackTemple"]=true, ["HyjalSummit"]=true, ["Naxxramas"]=true, ["SunwellPlateau"]=true,
+        ["TheObsidianSanctum"]=true, ["VaultofArchavon"]=true,
+        ["TheEyeofEternity"]=true, ["Ulduar"]=true, ["TrialoftheCrusader"]=true, ["IcecrownCitadel"]=true
     }
-
+    local raids = mod.raids
     -- all WotLK raid instances
     local mergeRaids = {
         Naxxramas = true,
@@ -1780,7 +1781,7 @@ do
             local origBehavior = db.mobDataBehavior
             self:Print("Upgrading database. Merging normal and heroic raids into a single entry.")
             db.mobDataBehavior = 2 -- heroic will override normal
-            for _, zoneName in ipairs(raids) do
+            for zoneName in pairs(raids) do
                 local zone = MagicMarkerDB.mobdata[zoneName]
                 if zone then
                     zone.isRaid = true
@@ -1814,6 +1815,29 @@ do
                     else
                         self:MergeZoneData(zoneName, zoneImported)
                     end
+                end
+            end
+            MagicMarkerDB.mobDataBehavior = origBehavior
+        end
+        if version < 11 then
+            local origBehavior = MagicMarkerDB.mobDataBehavior
+            MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
+            -- Fix bad imported data from MagicMarker_Data
+            for zoneName in pairs(raids) do
+                local importKey = zoneName.."Normal"
+                local zoneDetected = MagicMarkerDB.mobdata[zoneName]
+                local zoneImported = MagicMarkerDB.mobdata[importKey]
+                mod:debug("Import key = %s, zoneNAme = %s, zoneDetected = %s, zoneImported = %s", importKey, zoneName, zoneDetected and "found" or "not found", zoneImported and "found" or  "not found")
+                MagicMarkerDB.mobdata[importKey] = nil
+                if zoneImported ~= nil then
+                    zoneImported.isRaid = true
+                    if zoneDetected == nil then
+                        MagicMarkerDB.mobdata[zoneName] = zoneImported
+                    else
+                        self:MergeZoneData(zoneName, zoneImported)
+                    end
+                elseif zoneDetected then
+                    zoneDetected.isRaid = true
                 end
             end
             MagicMarkerDB.mobDataBehavior = origBehavior

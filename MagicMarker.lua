@@ -421,7 +421,9 @@ function mod:ImportData(data, version, reallyImport)
 
     if reallyImport then
         for zone,zoneData in pairs(data) do
-            if zoneData.heroic and not zoneData.isRaid and ends_with(zone, "Heroic") then
+            if mod.raids[zone] then
+                zoneData.isRaid = true
+            elseif zoneData.heroic and ends_with(zone, "Heroic") then
                 zone = gsub(zone, "Heroic", "")
             elseif not zoneData.heroic and not ends_with(zone, "Normal") then
                 zone = zone .. "Normal"
@@ -467,6 +469,9 @@ function mod:MergeZoneData(zone, zoneData, override, partial)
         if self.hasTrace then self:trace("Replacing local data with networked data.") end
         mobdata[zone] = zoneData
     elseif localData then
+        if zoneData.isRaid then
+            localData = zoneData.isRaid
+        end
         localData = localData.mobs
         if zoneData.mobs then
             zoneData = zoneData.mobs
