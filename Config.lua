@@ -1166,7 +1166,6 @@ function mod:InsertNewUnit(guid, uid, name, unit)
     local changed
     local mobHash = zoneHash.mobs[uid]
     zoneHash.isRaid = isRaid
-    mod:info("Simple zone = %s", simpleZone)
     -- Yeah this is not good but unavoidable for upgrade purposes.
     -- Stupid UID being broken with absolutely no way to convert
     -- correctly.
