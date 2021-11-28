@@ -471,7 +471,7 @@ function mod:MergeZoneData(zone, zoneData, override, partial)
         mobdata[zone] = zoneData
     elseif localData then
         if zoneData.isRaid then
-            localData = zoneData.isRaid
+            localData.isRaid = zoneData.isRaid
         end
         localData = localData.mobs
         if zoneData.mobs then

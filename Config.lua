@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 11
+local CONFIG_VERSION = 12
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -1258,16 +1258,22 @@ function mod:GetZoneConfigHash(zone, name)
     local shortname = gsub(name, "Heroic", "")
     shortname = gsub(shortname, "Normal", "")
     shortname = gsub(shortname, "Mythic", "")
+    shortname = gsub(shortname, "10 Player", "")
+    local eraname
     for expansion, dungeons in pairs(dungeon_tiers) do
         if dungeons[shortname] then
             era = options.args.mobs.args[expansion]
+            eraname = expansion
             break
         end
     end
     if not era then
         era = options.args.mobs.args.vanilla
+        eraname = "default"
     end
-
+    if self.hasSpam then
+        mod:spam("Zone %s (%s) is era %s", name, shortname, eraname);
+    end
     local subZoneHash
     if zone.isRaid then
         subZoneHash = era.args.raid or {
@@ -1839,6 +1845,24 @@ do
                     end
                 elseif zoneDetected then
                     zoneDetected.isRaid = true
+                end
+            end
+            MagicMarkerDB.mobDataBehavior = origBehavior
+        end
+        if version < 12 then
+            local origBehavior = MagicMarkerDB.mobDataBehavior
+            MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
+            for zoneName, zoneData in pairs(MagicMarkerDB.mobdata) do
+                local fixedName = gsub(zoneName, "10 Player", "")
+                if fixedName ~= zoneName then
+                    mod:debug("Fixing invalid zone name %s", zoneName)
+                    local goodData = MagicMarkerDB.mobdata[fixedName]
+                    if goodData then
+                        self:MergeZoneData(fixedName, zoneData)
+                    else
+                        MagicMarkerDB.mobdata[fixedName] = zoneData
+                    end
+                    MagicMarkerDB.mobdata[zoneName] = nil
                 end
             end
             MagicMarkerDB.mobDataBehavior = origBehavior
