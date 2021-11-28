@@ -1517,7 +1517,7 @@ function mod:ReportRaidMarks()
                     local playerName
                     if ccClass then
                         local index = classIndex[ccClass] or 1
-                        playerName = raidClassNames[ccClass][index] .. " "
+                        playerName = raidClassNames[ccClass][index] and (raidClassNames[ccClass][index] .. " ") or nil
                         classIndex[ccClass] = index + 1
                     end
                     test = format("%s %s%s: %s",
