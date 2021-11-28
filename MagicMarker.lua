@@ -82,7 +82,7 @@ local networkData = { }
 
 -- class makeup of the party/raid
 local raidClassList = {}
-
+local raidClassNames = {}
 -- Spell ID to CC id mapping (upvalued)
 local spellIdToCCID
 
@@ -676,8 +676,11 @@ local groupScanTimer
 function mod:LogClassInformation(unitName, class)
     if not class then _,class = UnitClass(unitName)  end
     if class then
-        raidClassList[class] = (raidClassList[class] or 0) + 1
         if self.hasTrace then self:trace("  found %s => %s.", unitName, class) end
+        raidClassList[class] = (raidClassList[class] or 0) + 1
+        class = class:upper()
+        raidClassNames[class] = raidClassNames[class] or {}
+        raidClassNames[class][#raidClassNames[class] +1] = unitName
     elseif self.hasWarn then
         self:warn(L["Unable to determine the class for %s."], unitName)
     end
@@ -686,6 +689,12 @@ end
 function mod:ScanGroupMembers()
     if raidClassList.FAKE then return end
     for id,_ in pairs(raidClassList) do raidClassList[id] = 0 end
+    for id,_ in pairs(raidClassNames) do
+        for num, _ in ipairs(raidClassNames[id]) do
+            raidClassNames[id][num] = nil
+        end
+    end
+
     if UnitClass("player") then
         if self.hasTrace then self:trace("Rescanning raid/party member classes.") end
         self:IterateGroup(self.LogClassInformation)
@@ -1497,15 +1506,23 @@ function mod:ReportRaidMarks()
     if hasData then
         SendChatMessage("*** Raid Target assignments:", dest)
         sort(sortData, function(a,b) return a > b end)
-
+        local classIndex = {}
         for _, id in pairs(sortData) do
             id = valueToId[id]
             local data = markedTargets[id]
             local unitData = self:GetUnitHash(data.uid)
             if unitData then
                 if data.ccid then
-                    test = format("%s %s: %s",
+                    local ccClass = CC_CLASS[data.ccid]
+                    local playerName
+                    if ccClass then
+                        local index = classIndex[ccClass] or 1
+                        playerName = raidClassNames[ccClass][index] .. " "
+                        classIndex[ccClass] = index + 1
+                    end
+                    test = format("%s %s%s: %s",
                             self:GetTargetName(id, true),
+                            playerName or "",
                             self:GetCCName(data.ccid, 1),
                             unitData.name)
 
