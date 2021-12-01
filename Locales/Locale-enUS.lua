@@ -165,6 +165,7 @@ L["Classic"] = true
 L["Warlords of Draenor"] = true
 L["Legion"] = true
 L["Battle for Azeroth"] = true
+L["Vanilla"] = true
 
 -- Help Texts
 L["CCHELPTEXT"] = "Here you configure all CC methods that are available for this target. The actual methods used are determined by the crowd control priority configuration, the raid makeup and individual mob prioritization. If no available crowd controllers are found, the mob will revert to being tanked."
