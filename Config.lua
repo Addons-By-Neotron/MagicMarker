@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 12
+local CONFIG_VERSION = 13
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -1100,10 +1100,13 @@ function mod:GetZoneName(zone)
     simple = self:SimplifyName(zone)
     local inInstance, type = IsInInstance()
     local diffid, diffname, heroic = mod:GetDifficultyInfo()
-    if inInstance and (diffid <= 0 or not heroic) then
+    if inInstance and (diffid <= 0 or not heroic) and diffname ~= "10 Player" then
         simple = simple .. diffname
     end
     local isRaid = type == "raid"
+    if self.hasSpam then
+        mod:spam("Zone name %s simplified to %s", zone, simple);
+    end
     return simple, zone, heroic, isRaid
 end
 
@@ -1849,7 +1852,7 @@ do
             end
             MagicMarkerDB.mobDataBehavior = origBehavior
         end
-        if version < 12 then
+        if version < 13 then
             local origBehavior = MagicMarkerDB.mobDataBehavior
             MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
             for zoneName, zoneData in pairs(MagicMarkerDB.mobdata) do
