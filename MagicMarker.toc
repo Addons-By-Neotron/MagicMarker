@@ -1,9 +1,10 @@
 ## Interface: 90205
 ## Interface-Classic: 11403
 ## Interface-BCC: 20504
-## Interface-Retail: 90205
+## Interface-Wrath: 30400
 ## X-Curse-Project-ID: 14363
 ## X-WoWI-ID: 9110
+## X-Wago-ID: ZQ6a2AKW
 ## Title: Magic Marker
 ## Notes: Automated smart raid marking to speed up trash clearing in instance runs
 ## Author: NeoTron
