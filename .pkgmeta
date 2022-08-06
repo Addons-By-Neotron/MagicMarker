@@ -15,7 +15,7 @@ externals:
     Libs/CallbackHandler-1.0: https://repos.wowace.com/wow/ace3/trunk/CallbackHandler-1.0
     Libs/LibBabble-Zone-3.0: https://repos.wowace.com/wow/libbabble-zone-3-0/trunk
     Libs/LibStub: https://repos.wowace.com/wow/libstub/trunk
-    Libs/LibDataBroker-1.1: git://github.com/tekkub/libdatabroker-1-1.git
+    Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1.git
     Libs/LibQTip-1.0: https://repos.wowace.com/wow/libqtip-1-0
     Libs/MagicComm: https://github.com/neotron/WoW-MagicComm.git
     Libs/LibLogger: https://github.com/neotron/WoW-LibLogger.git
