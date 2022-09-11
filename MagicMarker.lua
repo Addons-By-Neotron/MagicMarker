@@ -221,6 +221,10 @@ function mod:IsBurningCrusadeClassic()
     return (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 end
 
+function mod:IsWrathClassic()
+    return (WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC)
+end
+
 function mod:OnInitialize()
     -- Set up the config database
     self.db = LibStub("AceDB-3.0"):New("MagicMarkerConfigDB", defaultConfigDB, "Default")
