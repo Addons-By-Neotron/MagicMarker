@@ -396,6 +396,12 @@ end
             bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
             vanilla = { name = L["Classic"], type = "group", args = {}, order = 70 },
         }
+    elseif mod:IsWrathClassic() then
+        expansions = {
+            wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 50 },
+            bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
+            vanilla = { name = L["Vanilla"], type = "group", args = {}, order = 70 },            
+        }
     else
         expansions = {
             bfa = { name = L["Battle for Azeroth"], type = "group", args = {}, order = 10 },
