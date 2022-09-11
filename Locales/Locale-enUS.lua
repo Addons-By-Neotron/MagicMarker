@@ -162,6 +162,7 @@ L["Wrath of the Lich King"] = true
 L["Burning Crusade"] = true
 L["Original"] = true
 L["Classic"] = true
+L["Vanilla"] = true
 L["Warlords of Draenor"] = true
 L["Legion"] = true
 L["Battle for Azeroth"] = true
