@@ -20,7 +20,7 @@ along with MagicMarker.  If not, see <http://www.gnu.org/licenses/>.
 **********************************************************************
 ]]
 
-local CONFIG_VERSION = 13
+local CONFIG_VERSION = 14
 local format = string.format
 local sub = string.sub
 local strmatch = strmatch
@@ -390,17 +390,20 @@ end
     if mod:IsClassic() then
         expansions = {
             vanilla = { name = L["Classic"], type = "group", args = {}, order = 10 },
+            zones = { name = L["Outdoor Zones"], type = "group", args = {}, order = 100 },
         }
     elseif mod:IsBurningCrusadeClassic() then
         expansions = {
             bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
             vanilla = { name = L["Classic"], type = "group", args = {}, order = 70 },
+            zones = { name = L["Outdoor Zones"], type = "group", args = {}, order = 100 },
         }
     elseif mod:IsWrathClassic() then
         expansions = {
             wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 50 },
             bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
             vanilla = { name = L["Vanilla"], type = "group", args = {}, order = 70 },            
+            zones = { name = L["Outdoor Zones"], type = "group", args = {}, order = 100 },
         }
     else
         expansions = {
@@ -411,6 +414,7 @@ end
             wotlk = { name = L["Wrath of the Lich King"], type = "group", args = {}, order = 50 },
             bc = { name = L["Burning Crusade"], type = "group", args = {}, order = 60 },
             vanilla = { name = L["Vanilla"], type = "group", args = {}, order = 70 },
+            zones = { name = L["Outdoor Zones"], type = "group", args = {}, order = 100},
         }
     end
     options = {
@@ -1106,14 +1110,14 @@ function mod:GetZoneName(zone)
     simple = self:SimplifyName(zone)
     local inInstance, type = IsInInstance()
     local diffid, diffname, heroic = mod:GetDifficultyInfo()
-    if inInstance and (diffid <= 0 or not heroic) and diffname ~= "10 Player" then
+    if inInstance and (diffid <= 0 or not heroic) and diffname ~= "10 Player" and diffname ~= "25 Player" then
         simple = simple .. diffname
     end
     local isRaid = type == "raid"
     if self.hasSpam then
         mod:spam("Zone name %s simplified to %s", zone, simple);
     end
-    return simple, zone, heroic, isRaid
+    return simple, zone, heroic, isRaid, inInstance
 end
 
 local simpleNameCache = {}
@@ -1172,11 +1176,12 @@ end
 
 function mod:InsertNewUnit(guid, uid, name, unit)
     local simpleName = self:SimplifyName(name)
-    local simpleZone, zone, isHeroic, isRaid = self:GetZoneName()
+    local simpleZone, zone, isHeroic, isRaid, isInstance = self:GetZoneName()
     local zoneHash = mobdata[simpleZone] or { name = zone, mobs = {}, mm = 1, heroic = isHeroic }
     local changed
     local mobHash = zoneHash.mobs[uid]
     zoneHash.isRaid = isRaid
+    zoneHash.isOutdoors = not isInstance
     -- Yeah this is not good but unavoidable for upgrade purposes.
     -- Stupid UID being broken with absolutely no way to convert
     -- correctly.
@@ -1277,8 +1282,13 @@ function mod:GetZoneConfigHash(zone, name)
         end
     end
     if not era then
-        era = options.args.mobs.args.vanilla
-        eraname = "default"
+        if zone.isOutdoors then
+            era = options.args.mobs.args.zones
+            eraname = "zones"
+        else
+            era = options.args.mobs.args.vanilla
+            eraname = "default"
+        end
     end
     if self.hasSpam then
         mod:spam("Zone %s (%s) is era %s", name, shortname, eraname);
@@ -1298,6 +1308,8 @@ function mod:GetZoneConfigHash(zone, name)
             args = {}
         }
         era.args.heroic = subZoneHash
+    elseif zone.isOutdoors then
+        subZoneHash = era
     else
         subZoneHash = era.args.normal or {
             type = "group",
@@ -1696,6 +1708,26 @@ end
 
 -- All raid instances
 do
+
+    function FixInvalidPostfix(self, postfix)
+        local origBehavior = MagicMarkerDB.mobDataBehavior
+        MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
+        for zoneName, zoneData in pairs(MagicMarkerDB.mobdata) do
+            local fixedName = gsub(zoneName, postfix, "")
+            if fixedName ~= zoneName then
+                mod:debug("Fixing invalid zone name %s", zoneName)
+                local goodData = MagicMarkerDB.mobdata[fixedName]
+                if goodData then
+                    self:MergeZoneData(fixedName, zoneData)
+                else
+                    MagicMarkerDB.mobdata[fixedName] = zoneData
+                end
+                MagicMarkerDB.mobdata[zoneName] = nil
+            end
+        end
+        MagicMarkerDB.mobDataBehavior = origBehavior
+    end
+
     mod.raids = {
         ["MoltenCore"]=true, ["BlackwingLair"]=true, ["TempleofAhn'Qiraj"]=true, ["Ahn'Qiraj"]=true,
         ["RuinsofAhn'Qiraj"]=true, ["Zul'Gurub"]=true, ["Karazhan"]=true, ["Zul'Aman"]=true,
@@ -1859,22 +1891,10 @@ do
             MagicMarkerDB.mobDataBehavior = origBehavior
         end
         if version < 13 then
-            local origBehavior = MagicMarkerDB.mobDataBehavior
-            MagicMarkerDB.mobDataBehavior = 1 -- learned will override imported
-            for zoneName, zoneData in pairs(MagicMarkerDB.mobdata) do
-                local fixedName = gsub(zoneName, "10 Player", "")
-                if fixedName ~= zoneName then
-                    mod:debug("Fixing invalid zone name %s", zoneName)
-                    local goodData = MagicMarkerDB.mobdata[fixedName]
-                    if goodData then
-                        self:MergeZoneData(fixedName, zoneData)
-                    else
-                        MagicMarkerDB.mobdata[fixedName] = zoneData
-                    end
-                    MagicMarkerDB.mobdata[zoneName] = nil
-                end
-            end
-            MagicMarkerDB.mobDataBehavior = origBehavior
+            FixInvalidPostfix(self, "10 Player")
+        end
+        if version < 14 then
+            FixInvalidPostfix(self, "25 Player")
         end
         MagicMarkerDB.version = CONFIG_VERSION
     end
