@@ -51,7 +51,6 @@ local GetBindingAction = GetBindingAction
 local GetBindingText = GetBindingText
 local SetBindings = SetBindings
 local GetCurrentBindingSet = GetCurrentBindingSet
-local GetDifficultyInfo = GetDifficultyInfo
 local SaveBindings = SaveBindings or AttemptToSaveBindings
 
 local KEY_BOUND = KEY_BOUND
@@ -1110,8 +1109,8 @@ function mod:GetZoneName(zone)
 
     simple = self:SimplifyName(zone)
     local inInstance, type = IsInInstance()
-    local diffid, diffname, heroic = GetDifficultyInfo()
-    if inInstance and diffid and (diffid <= 0 or not heroic) and diffname and (diffname ~= "10 Player" and diffname ~= "25 Player") then
+    local diffid, diffname, heroic = mod:GetDifficultyInfo()
+    if inInstance and (diffid <= 0 or not heroic) and diffname ~= "10 Player" and diffname ~= "25 Player" then
         simple = simple .. diffname
     end
     local isRaid = type == "raid"
