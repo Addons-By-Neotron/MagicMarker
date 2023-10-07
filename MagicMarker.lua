@@ -198,7 +198,10 @@ function mod:GetDifficultyInfo()
         local _,instype, diffid, diffname = GetInstanceInfo()
         if instype ~= "none" and diffid and diffid > 0 then
             local name, _, heroic = GetDifficultyInfo(diffid)
-            return diffid, name, heroic
+            -- Classic Era has GetDifficultyInfo but it returns nothing
+            if name then
+                return diffid, name, heroic
+            end
         end
     end
     return 0, "Normal", false
