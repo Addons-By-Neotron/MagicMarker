@@ -29,7 +29,7 @@ local MagicComm   = LibStub("MagicComm-1.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("MagicMarker", false)
 
 mod.MAJOR_VERSION = "MagicMarker-1.0"
-mod.MINOR_VERSION = tonumber('@project-revision@') or tonumber(("$Revision$"):match("%d+"))
+mod.MINOR_VERSION = tonumber("@project-date-integer@") or tonumber(date("%Y%m%d%H%M%S"))
 
 -- Upvalue of global functions
 local GetBindingKey = GetBindingKey
