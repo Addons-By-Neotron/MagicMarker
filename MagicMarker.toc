@@ -1,8 +1,8 @@
-## Interface: 100207
-## Interface-Classic: 11404
+## Interface: 110207
+## Interface-Classic: 50503
 ## Interface-BCC: 20504
 ## Interface-Cata: 40402
-## Interface-Mists: 50500
+## Interface-Mists: 50503
 ## X-Curse-Project-ID: 14363
 ## X-WoWI-ID: 9110
 ## X-Wago-ID: ZQ6a2AKW
