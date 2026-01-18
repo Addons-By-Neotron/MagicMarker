@@ -1,4 +1,4 @@
-## Interface: 100207
+## Interface: 50503, 38000, 20505, 11508
 ## X-Curse-Project-ID: 14363
 ## X-WoWI-ID: 9110
 ## X-Wago-ID: ZQ6a2AKW
