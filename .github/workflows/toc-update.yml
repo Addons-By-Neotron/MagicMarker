@@ -14,8 +14,11 @@ jobs:
       - name: Update TOC Interface version
         uses: p3lim/toc-interface-updater@v4
         with:
-          base: retail # this is default
-
+          flavor: |
+            mists
+            wrath
+            tbc
+            vanilla
       - name: Create pull request
         uses: peter-evans/create-pull-request@v6.0.1
         with:
